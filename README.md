@@ -7,10 +7,16 @@ LDpred is a Python based software package that adjusts GWAS summary statistics
 for the effects of linkage disequilibrium (LD).  The details of the method is 
 described in Vilhjalmsson et al. (AJHG 2015) [http://www.cell.com/ajhg/abstract/S0002-9297(15)00365-1]
 
-* The current version is 0.6.
+* The current version is 0.9.05
 
 
 ## Getting Started ##
+NEW!
+You can install it via pip, i.e. just write:
+
+`pip install ldpred`
+
+This will automatically install the requirements listed below.  After installing them, make sure that the scripts are in path.
 
 ### Requirements ###
 LDpred currently requires three Python packages to be installed and in path.  These 
@@ -55,17 +61,17 @@ If you have any questions or trouble getting the method to work, please contact 
 ## Using LDpred ##
 To run LDpred, at least two steps are required:
 
-1. The first step is a data synchronization step, where two or three data sets, genotypes and summary statistics are synchronized.  This generates a HDF5 file which contains the synchronized genotypes.  This step is implemented in the file ** coord_genotypes.py **.  This step requires at least one genotype file (the LD reference genotypes), where we recommend at least 1000 unrelated individuals with the same ancestry make-up as the individuals for which summary statistics datasets are obtained from.  Another genotype file can also be given if the user intends to validate the predictions using a separate set of genotypes.
+1. The first step is a data synchronization step, where two or three data sets, genotypes and summary statistics are synchronized.  This generates a HDF5 file which contains the synchronized genotypes.  This step is implemented in the  ** coord ** script.  This step requires at least one genotype file (the LD reference genotypes), where we recommend at least 1000 unrelated individuals with the same ancestry make-up as the individuals for which summary statistics datasets are obtained from.  Another genotype file can also be given if the user intends to validate the predictions using a separate set of genotypes.
 
-2. After generating the coordinated data file then the one can apply LDpred and run it on the synchronized dataset.  This step is implemented in ** LDpred.py **.  This step generates two files, a LD file with LD information for the given LD radius, and the re-weighted effect estimates.  The LD file enables the user to not have to generate the LD file again when trying, e.g., different values of *p* (the fraction of causal variants). However, it is re-generated if a different LD radius is given.  The other file that LDpred generates contains the LDpred-adjusted effect estimates. 
+2. After generating the coordinated data file then the one can apply LDpred and run it on the synchronized dataset.  This step is implemented in ** ldpred ** script.  This step generates two files, a LD file with LD information for the given LD radius, and the re-weighted effect estimates.  The LD file enables the user to not have to generate the LD file again when trying, e.g., different values of *p* (the fraction of causal variants). However, it is re-generated if a different LD radius is given.  The other file that LDpred generates contains the LDpred-adjusted effect estimates. 
 
 ## Generating individual risk scores ##
-Individual risk scores can be generated using the **validate.py** script.  It calculates polygenic risk scores for the individuals in the validation data if given, otherwise it treats the LD reference genotypes as validation genotypes.  A phenotype file can be provided, covariate file, as well as plink-formatted principal components file.  
+Individual risk scores can be generated using the **validate** script.  It calculates polygenic risk scores for the individuals in the validation data if given, otherwise it treats the LD reference genotypes as validation genotypes.  A phenotype file can be provided, covariate file, as well as plink-formatted principal components file.  
 
 
 
 ## LD-pruning + Thresholding ##
-In addition to the LDpred.py script, which implements the LDpred algorithm, the package also implements LD-pruning + Thresholding, as an alternative method.  This method often yields better predictions than LDpred when the LD reference panel is small.  This method is implemented in the ** LD_pruning_thres.py ** script.
+In addition to the LDpred.py script, which implements the LDpred algorithm, the package also implements LD-pruning + Thresholding, as an alternative method.  This method often yields better predictions than LDpred when the LD reference panel is small.  This method is implemented in the ** pt ** script.
 
 
 ## Individual scripts and their usage information ##
@@ -76,7 +82,7 @@ Coordinate genotypes and summary statistics datasets for calculating polygenic r
 
 Usage: 
 
-`python coord_genotypes.py --gf=PLINK_LD_REF_GENOTYPE_FILE --ssf=SUM_STATS_FILE --N=SS_SAMPLE_SIZE  --out=OUT_COORD_FILE [--vgf=PLINK_VAL_GENOTYPE_FILE --vbim=VAL_PLINK_BIM_FILE  --ssf_format=SSF_FORMAT --gmdir=GENETIC_MAP_DIR --gf_format=GENOTYPE_FILE_FORMAT --indiv_list=INDIV_LIST_FILE  --skip_coordination]`
+`coord --gf=PLINK_LD_REF_GENOTYPE_FILE --ssf=SUM_STATS_FILE --N=SS_SAMPLE_SIZE  --out=OUT_COORD_FILE [--vgf=PLINK_VAL_GENOTYPE_FILE --vbim=VAL_PLINK_BIM_FILE  --ssf_format=SSF_FORMAT --gmdir=GENETIC_MAP_DIR --gf_format=GENOTYPE_FILE_FORMAT --indiv_list=INDIV_LIST_FILE  --skip_coordination]`
 
  * PLINK_LD_REF_GENOTYPE_FILE (and PLINK_VAL_GENOTYPE_FILE) should be a (full path) filename prefix to a standard PLINK bed file (without .bed) Make sure that the fam and bim files with same names are in the same directory. PLINK_LD_REF_GENOTYPE_FILE refers LD reference genotypes, and PLINK_VAL_GENOTYPE_FILE refers to validation genotypes. It is not necessary to have LD validation genotypes at this stage.
 
@@ -120,7 +126,7 @@ Implements LDpred, an approximate Gibbs sampler that calculate posterior means o
 
 Usage: 
 
-`python LDpred.py --coord=COORD_DATA_FILE  --ld_radius=LD_RADIUS   --local_ld_file_prefix=LD_FILE_NAME  --PS=FRACTIONS_CAUSAL  --N=SAMPLE_SIZE  --out=OUTPUT_FILE_PREFIX  [ --num_iter=NUM_ITER  --H2=HERTIABILITY  --gm_ld_radius=GEN_MAP_RADIUS]`
+`ldpred --coord=COORD_DATA_FILE  --ld_radius=LD_RADIUS   --local_ld_file_prefix=LD_FILE_NAME  --PS=FRACTIONS_CAUSAL  --N=SAMPLE_SIZE  --out=OUTPUT_FILE_PREFIX  [ --num_iter=NUM_ITER  --H2=HERTIABILITY  --gm_ld_radius=GEN_MAP_RADIUS]`
     
  * COORD_DATA_FILE: The HDF5 file obtained by running the coord_genotypes.py
  
@@ -148,7 +154,7 @@ Note that for maximal accuracy all SNPs with LDpred weights should be included i
 
 Usage: 
 
-`python validate.py --vgf=PLINK_VAL_GENOTYPE_FILE  --rf=RESULT_FILE_PREFIX  --out=OUTPUT_FILE_PREFIX  [--res_format=LDPRED --split_by_chrom --pf=PHEN_FILE --pf_format=STANDARD --cov_file=COVARIATE_FILE --pcs_file=PCS_FILE --PS=FRACTIONS_CAUSAL  --TS=PVAL_THRESHOLDS]`
+`validate --vgf=PLINK_VAL_GENOTYPE_FILE  --rf=RESULT_FILE_PREFIX  --out=OUTPUT_FILE_PREFIX  [--res_format=LDPRED --split_by_chrom --pf=PHEN_FILE --pf_format=STANDARD --cov_file=COVARIATE_FILE --pcs_file=PCS_FILE --PS=FRACTIONS_CAUSAL  --TS=PVAL_THRESHOLDS]`
     
  * PLINK_VAL_GENOTYPE_FILE: PLINK formatted genotypes for which we want to calculate risk scores.
  
