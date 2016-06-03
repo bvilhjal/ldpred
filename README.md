@@ -16,6 +16,10 @@ You can install it via pip, i.e. just write:
 
 `pip install ldpred`
 
+or if you need to install it locally you can try
+
+`pip install --user ldpred`
+
 This will automatically install the requirements listed below.  After installing them, make sure that the scripts are in path.
 
 ### Requirements ###
