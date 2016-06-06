@@ -412,8 +412,6 @@ def parse_sum_stats_standard(filename=None,
         hdf5_file.flush()
     print '%d SNPs parsed from summary statistics file.'% num_snps
     
-
-
 def parse_sum_stats_giant(filename=None,
                           bimfile =None,
                           hdf5_file=None,
@@ -477,6 +475,120 @@ def parse_sum_stats_giant(filename=None,
                 chrom_dict[chrom]['ps'].append(pval)
                 #nt = [lc_CAPs_dict[l[1]], lc_CAPs_dict[l[2]]]
                 nt = [l[1], l[2]]
+                chrom_dict[chrom]['nts'].append(nt)                
+                beta = sp.sign(raw_beta) * stats.norm.ppf(pval/2.0)
+                chrom_dict[chrom]['betas'].append(beta / sp.sqrt(n))
+                chrom_dict[chrom]['log_odds'].append(beta / sp.sqrt(n))
+
+    print 'SS file loaded, now sorting and storing in HDF5 file.'
+    assert not 'sum_stats' in hdf5_file.keys(), 'Something is wrong with HDF5 file?'
+    ssg = hdf5_file.create_group('sum_stats')
+    num_snps = 0
+    for chrom in chrom_dict.keys():
+        print '%d SNPs on chromosome %d'%(len(chrom_dict[chrom]['positions']),chrom)
+        sl = zip(chrom_dict[chrom]['positions'], chrom_dict[chrom]['sids'], chrom_dict[chrom]['nts'],
+                 chrom_dict[chrom]['betas'], chrom_dict[chrom]['log_odds'],
+                 chrom_dict[chrom]['freqs'], chrom_dict[chrom]['ps'])
+        sl.sort()
+        ps = []
+        betas = []
+        nts = []
+        sids = []
+        positions = []
+        log_odds = []
+        freqs=[]
+        prev_pos = -1
+        for pos, sid, nt, beta, lo, frq, p in sl:
+            if pos == prev_pos:
+                print 'duplicated position %d' % pos
+                continue
+            else:
+                prev_pos = pos
+            ps.append(p)
+            betas.append(beta)
+            nts.append(nt)
+            sids.append(sid)
+            positions.append(pos)
+            log_odds.append(lo)
+            freqs.append(frq)
+        print 'Still %d SNPs on chromosome %d'%(len(ps),chrom)
+        g = ssg.create_group('chrom_%d' % chrom)
+        g.create_dataset('ps', data=sp.array(ps))
+        g.create_dataset('freqs', data=freqs)
+        g.create_dataset('betas', data=betas)
+        g.create_dataset('log_odds', data=log_odds)
+        num_snps +=len(log_odds)
+        g.create_dataset('nts', data=nts)
+        g.create_dataset('sids', data=sids)
+        g.create_dataset('positions', data=positions)
+        hdf5_file.flush()
+    print '%d SNPs parsed from summary statistics file.'% num_snps
+    
+    
+
+def parse_sum_stats_giant2(filename=None,
+                          bimfile =None,
+                          hdf5_file=None,
+                          debug=False):
+    """
+    Input format:
+    
+    MarkerName A1 A2 Freq.Hapmap.Ceu BETA SE.2gc P.2gc N
+    rs4747841 a g 0.55 0.0025 0.0061 0.68 60558.2
+    rs4749917 t c 0.45 -0.0025 0.0061 0.68 60558.1
+    rs737656 a g 0.3667 -0.0073 0.0064 0.25 60529.2
+
+    """
+    lc_CAPs_dict = {'a':'A', 'c':'C', 'g':'G', 't':'T'}
+
+    snps_pos_map = {}
+    assert bimfile is not None, 'BIM file is required'
+    print 'Parsing SNP list'
+    valid_sids = set()
+    print 'Parsing bim file: %s'%bimfile
+    with open(bimfile) as f:
+        for line in f:
+            l = line.split()
+#             sid_str = l[1]
+#             sid_list = sid_str.split(':')
+#             sid = sid_list[0]
+#             if sid[:2]=='rs':
+#             valid_sids.add(sid[0])
+            valid_sids.add(l[1])
+            #valid_sids.add("%d_%d"%(l[0],l[3]))
+            snps_pos_map[l[1]]={'pos':int(l[3]), 'chrom':int(l[0])}
+    print len(valid_sids)
+
+    chrom_dict = {}
+
+    print 'Parsing the file: %s' % filename
+    with open(filename) as f:
+        print f.next()
+        for line in f:
+            l = (line.strip()).split()
+            sid = l[0]
+            if debug and random.random()>0.1:
+                continue
+            if sid in valid_sids:                        
+                pos = snps_pos_map[sid]['pos']
+                chrom = snps_pos_map[sid]['chrom']
+                if not chrom in chrom_dict.keys():
+                    chrom_dict[chrom] = {'ps':[], 'log_odds':[], 'freqs':[],
+                             'betas':[], 'nts': [], 'sids': [], 'positions': []}
+                chrom_dict[chrom]['sids'].append(sid)
+#                 chrom_dict[chrom]['sids'].append('%d_%d'%(chrom,pos))
+                chrom_dict[chrom]['positions'].append(pos)
+                if l[3]=='.' or l[3]=='NA':
+                    freq = -1
+                else:
+                    freq = float(l[3])
+                chrom_dict[chrom]['freqs'].append(freq)
+                raw_beta = float(l[4])
+                pval = float(l[6])
+                n = float(l[7])
+                chrom_dict[chrom]['ps'].append(pval)
+                nt = [lc_CAPs_dict[l[1]], lc_CAPs_dict[l[2]]]
+#                 nt = [l[1], l[2]]
                 chrom_dict[chrom]['nts'].append(nt)                
                 beta = sp.sign(raw_beta) * stats.norm.ppf(pval/2.0)
                 chrom_dict[chrom]['betas'].append(beta / sp.sqrt(n))
@@ -1689,6 +1801,8 @@ def main():
         parse_sum_stats_basic(filename=p_dict['ssf'], bimfile = bimfile, hdf5_file=h5f, n=p_dict['N'])
     elif p_dict['ssf_format']=='GIANT':
         parse_sum_stats_giant(filename=p_dict['ssf'], bimfile = bimfile, hdf5_file=h5f, debug=p_dict['debug'])
+    elif p_dict['ssf_format']=='GIANT2':
+        parse_sum_stats_giant2(filename=p_dict['ssf'], bimfile = bimfile, hdf5_file=h5f, debug=p_dict['debug'])
     elif p_dict['ssf_format']=='DECODE':
         parse_sum_stats_decode(filename=p_dict['ssf'], hdf5_file=h5f)
     if not p_dict['vgf'] == None:
