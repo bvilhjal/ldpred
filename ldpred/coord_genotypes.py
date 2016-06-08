@@ -1114,7 +1114,8 @@ def coordinate_genot_ss(genotype_file=None,
                         hdf5_file=None,
                         genetic_map_dir=None,
                         check_mafs=False,
-                        min_maf =0.01):
+                        min_maf =0.01,
+                        skip_coordination=False):
     """
     Assumes plink BED files.  Imputes missing genotypes.
     """
@@ -1223,36 +1224,38 @@ def coordinate_genot_ss(genotype_file=None,
             #Is the nucleotide ambiguous?
             #g_nt = [recode_dict[g_nts[g_i][0]],recode_dict[g_nts[g_i][1]]
             g_nt = [g_nts[g_i][0],g_nts[g_i][1]]
-            if tuple(g_nt) in ambig_nts:
-                num_ambig_nts +=1
-                tot_num_non_matching_nts += 1
-                continue
             
-            #First check if nucleotide is sane?
-            if (not g_nt[0] in valid_nts) or (not g_nt[1] in valid_nts):
-                num_non_matching_nts += 1
-                tot_num_non_matching_nts += 1                
-                continue
-
-            ss_nt = ss_nts[ss_i]
-            #Are the nucleotides the same?
-            flip_nts = False
-            os_g_nt = sp.array([opp_strand_dict[g_nt[0]], opp_strand_dict[g_nt[1]]])
-            if not (sp.all(g_nt == ss_nt) or sp.all(os_g_nt == ss_nt)):
-                # Opposite strand nucleotides
-                flip_nts = (g_nt[1] == ss_nt[0] and g_nt[0] == ss_nt[1]) or (os_g_nt[1] == ss_nt[0] and os_g_nt[0] == ss_nt[1])
-                if flip_nts:
-                    betas[ss_i] = -betas[ss_i]
-                    log_odds[ss_i] = -log_odds[ss_i]
-                    if 'freqs' in ssg.keys():
-                        ss_freqs[ss_i] = 1-ss_freqs[ss_i]
-                else:
-#                     print "Nucleotides don't match after all?: g_sid=%s, ss_sid=%s, g_i=%d, ss_i=%d, g_nt=%s, ss_nt=%s" % \
-#                         (g_sids[g_i], ss_sids[ss_i], g_i, ss_i, str(g_nt), str(ss_nt))
-                    num_non_matching_nts += 1
+            if not skip_coordination:
+                if tuple(g_nt) in ambig_nts:
+                    num_ambig_nts +=1
                     tot_num_non_matching_nts += 1
-                        
                     continue
+                
+                if (not g_nt[0] in valid_nts) or (not g_nt[1] in valid_nts):
+                    num_non_matching_nts += 1
+                    tot_num_non_matching_nts += 1                
+                    continue
+
+                ss_nt = ss_nts[ss_i]
+    
+                #Are the nucleotides the same?
+                flip_nts = False
+                os_g_nt = sp.array([opp_strand_dict[g_nt[0]], opp_strand_dict[g_nt[1]]])
+                if not (sp.all(g_nt == ss_nt) or sp.all(os_g_nt == ss_nt)):
+                    # Opposite strand nucleotides
+                    flip_nts = (g_nt[1] == ss_nt[0] and g_nt[0] == ss_nt[1]) or (os_g_nt[1] == ss_nt[0] and os_g_nt[0] == ss_nt[1])
+                    if flip_nts:
+                        betas[ss_i] = -betas[ss_i]
+                        log_odds[ss_i] = -log_odds[ss_i]
+                        if 'freqs' in ssg.keys():
+                            ss_freqs[ss_i] = 1-ss_freqs[ss_i]
+                    else:
+    #                     print "Nucleotides don't match after all?: g_sid=%s, ss_sid=%s, g_i=%d, ss_i=%d, g_nt=%s, ss_nt=%s" % \
+    #                         (g_sids[g_i], ss_sids[ss_i], g_i, ss_i, str(g_nt), str(ss_nt))
+                        num_non_matching_nts += 1
+                        tot_num_non_matching_nts += 1
+                            
+                        continue
 
             # everything seems ok.
             ok_indices['g'].append(g_i)
@@ -1396,7 +1399,8 @@ def coordinate_genotypes_ss_w_ld_ref(genotype_file = None,
                                     hdf5_file = None,
                                     genetic_map_dir=None,
                                     check_mafs=False,
-                                    min_maf=0.01):
+                                    min_maf=0.01,
+                                    skip_coordination=False):
 #   recode_dict = {1:'A', 2:'T', 3:'C', 4:'G'} #1K genomes recoding..
     print 'Coordinating things w genotype file: %s \nref. genot. file: %s'%(genotype_file, reference_genotype_file) 
     plinkf = plinkfile.PlinkFile(genotype_file)
@@ -1555,48 +1559,50 @@ def coordinate_genotypes_ss_w_ld_ref(genotype_file = None,
             assert g_sids[g_i]==rg_sids[rg_i]==ss_sids[ss_i], 'Some issues with coordinating the genotypes.'
             
             g_nt = g_nts[g_i]
-            rg_nt = rg_nts[rg_i]
-#             rg_nt = [recode_dict[rg_nts[rg_i][0]],recode_dict[rg_nts[rg_i][1]]]
-            ss_nt = ss_nts[ss_i]
+            if not skip_coordination:
 
-            #Is the nucleotide ambiguous.
-            g_nt = [g_nts[g_i][0],g_nts[g_i][1]]
-            if tuple(g_nt) in ambig_nts:
-                num_ambig_nts +=1
-                tot_num_non_matching_nts += 1                
-                continue
-            
-            #First check if nucleotide is sane?
-            if (not g_nt[0] in valid_nts) or (not g_nt[1] in valid_nts):
-                num_non_matching_nts += 1
-                tot_num_non_matching_nts += 1                
-                continue
-            
-            os_g_nt = sp.array([opp_strand_dict[g_nt[0]], opp_strand_dict[g_nt[1]]])
-
-            flip_nts = False
-            if not ((sp.all(g_nt == ss_nt) or sp.all(os_g_nt == ss_nt)) and (sp.all(g_nt == rg_nt) or sp.all(os_g_nt == rg_nt))):
-                if sp.all(g_nt == rg_nt) or sp.all(os_g_nt == rg_nt):
-                    flip_nts = (g_nt[1] == ss_nt[0] and g_nt[0] == ss_nt[1]) or (os_g_nt[1] == ss_nt[0] and os_g_nt[0] == ss_nt[1])
-                    #Try flipping the SS nt
-                    if flip_nts:
-                        betas[ss_i] = -betas[ss_i]                        
-                        log_odds[ss_i] = -log_odds[ss_i]    
-                        if 'freqs' in ssg.keys():
-                            ss_freqs[ss_i] = 1-ss_freqs[ss_i]
+                rg_nt = rg_nts[rg_i]
+    #             rg_nt = [recode_dict[rg_nts[rg_i][0]],recode_dict[rg_nts[rg_i][1]]]
+                ss_nt = ss_nts[ss_i]
+    
+                #Is the nucleotide ambiguous.
+                g_nt = [g_nts[g_i][0],g_nts[g_i][1]]
+                if tuple(g_nt) in ambig_nts:
+                    num_ambig_nts +=1
+                    tot_num_non_matching_nts += 1                
+                    continue
+                
+                #First check if nucleotide is sane?
+                if (not g_nt[0] in valid_nts) or (not g_nt[1] in valid_nts):
+                    num_non_matching_nts += 1
+                    tot_num_non_matching_nts += 1                
+                    continue
+                
+                os_g_nt = sp.array([opp_strand_dict[g_nt[0]], opp_strand_dict[g_nt[1]]])
+    
+                flip_nts = False
+                if not ((sp.all(g_nt == ss_nt) or sp.all(os_g_nt == ss_nt)) and (sp.all(g_nt == rg_nt) or sp.all(os_g_nt == rg_nt))):
+                    if sp.all(g_nt == rg_nt) or sp.all(os_g_nt == rg_nt):
+                        flip_nts = (g_nt[1] == ss_nt[0] and g_nt[0] == ss_nt[1]) or (os_g_nt[1] == ss_nt[0] and os_g_nt[0] == ss_nt[1])
+                        #Try flipping the SS nt
+                        if flip_nts:
+                            betas[ss_i] = -betas[ss_i]                        
+                            log_odds[ss_i] = -log_odds[ss_i]    
+                            if 'freqs' in ssg.keys():
+                                ss_freqs[ss_i] = 1-ss_freqs[ss_i]
+                        else:
+                            print "Nucleotides don't match after all?: g_sid=%s, ss_sid=%s, g_i=%d, ss_i=%d, g_nt=%s, ss_nt=%s" % \
+                                (g_sids[g_i], ss_sids[ss_i], g_i, ss_i, str(g_nt), str(ss_nt))
+                            num_non_matching_nts += 1
+                            tot_num_non_matching_nts += 1
+                            continue
+    
+                        
                     else:
-                        print "Nucleotides don't match after all?: g_sid=%s, ss_sid=%s, g_i=%d, ss_i=%d, g_nt=%s, ss_nt=%s" % \
-                            (g_sids[g_i], ss_sids[ss_i], g_i, ss_i, str(g_nt), str(ss_nt))
                         num_non_matching_nts += 1
                         tot_num_non_matching_nts += 1
                         continue
-
-                    
-                else:
-                    num_non_matching_nts += 1
-                    tot_num_non_matching_nts += 1
-                    continue
-                    # Opposite strand nucleotides
+                        # Opposite strand nucleotides
             
            
             # everything seems ok.
@@ -1818,7 +1824,7 @@ def main():
             if not p_dict['skip_coordination']:
                 raise Exception('This option requires you to skip coordination of nucleotides and some QC.  Please confirm with --skip_coordination flag.')
             coordinate_decode_genot_ss(genotype_file=p_dict['gf'],  genetic_map_dir=p_dict['gmdir'], indiv_file=p_dict['indiv_list'],  
-                                       hdf5_file=h5f)
+                                       hdf5_file=h5f, skip_coordination=p_dict['skip_coordination'])
         else:
             raise Exception('Unknown genotype file format: %s'%p_dict['gf_format'])
     
