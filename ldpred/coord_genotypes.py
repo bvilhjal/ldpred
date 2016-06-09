@@ -358,7 +358,7 @@ def parse_sum_stats_standard(filename=None,
                 chrom_dict[chrom]['ps'].append(pval)
                 nt = [l[2], l[3]]
                 chrom_dict[chrom]['nts'].append(nt)                
-                raw_beta = float(l[8])
+                raw_beta = -float(l[8])
                 chrom_dict[chrom]['log_odds'].append(raw_beta)
                 beta = sp.sign(raw_beta) * stats.norm.ppf(pval/2.0)
                 
@@ -992,7 +992,9 @@ def parse_sum_stats_basic(filename=None,
                     chrom_dict[chrom]['ps'].append(pval)
                     nt = [l[2], l[3]]
                     chrom_dict[chrom]['nts'].append(nt)                
-                    raw_beta = sp.log(float(l[5]))
+                    odds_ratio = float(l[5])
+                    assert odds_ratio >0, 'The odds ratios appear to have negative values.  Please use an appropriate dataformat.'
+                    raw_beta = sp.log(odds_ratio)
                     chrom_dict[chrom]['log_odds'].append(raw_beta)
                     beta = sp.sign(raw_beta) * stats.norm.ppf(pval/2.0)
                     chrom_dict[chrom]['betas'].append(beta / sp.sqrt(n))
