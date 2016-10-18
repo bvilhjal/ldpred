@@ -28,8 +28,8 @@ def get_LDpred_ld_tables(snps, ld_radius=100, ld_window_size=0, h2=None, n_train
     """
     
     ld_dict = {}
-    m,n = snps.shape
-    print m,n
+    m, n = snps.shape
+    print m, n
     ld_scores = sp.ones(m)
     ret_dict = {}
     if gm_ld_radius is None:
@@ -41,52 +41,52 @@ def get_LDpred_ld_tables(snps, ld_radius=100, ld_window_size=0, h2=None, n_train
             D_i = sp.dot(snp, X.T) / n
             r2s = D_i ** 2
             ld_dict[snp_i] = D_i
-            lds_i = sp.sum(r2s - (1-r2s) / (n-2),dtype='float32')
-            #lds_i = sp.sum(r2s - (1-r2s)*empirical_null_r2)
-            ld_scores[snp_i] =lds_i
+            lds_i = sp.sum(r2s - (1 - r2s) / (n - 2), dtype='float32')
+            # lds_i = sp.sum(r2s - (1-r2s)*empirical_null_r2)
+            ld_scores[snp_i] = lds_i
     else:
         assert gm is not None, 'Genetic map is missing.'
         window_sizes = []
-        ld_boundaries =[]
+        ld_boundaries = []
         for snp_i, snp in enumerate(snps):
             curr_cm = gm[snp_i] 
             
-            #Now find lower boundary
+            # Now find lower boundary
             start_i = snp_i
             min_cm = gm[snp_i]
-            while start_i>0 and min_cm>curr_cm-gm_ld_radius:
-                start_i = start_i -1
+            while start_i > 0 and min_cm > curr_cm - gm_ld_radius:
+                start_i = start_i - 1
                 min_cm = gm[start_i]
             
-            #Now find the upper boundary
+            # Now find the upper boundary
             stop_i = snp_i
             max_cm = gm[snp_i]
-            while stop_i>0 and max_cm<curr_cm+gm_ld_radius:
-                stop_i = stop_i +1
+            while stop_i > 0 and max_cm < curr_cm + gm_ld_radius:
+                stop_i = stop_i + 1
                 max_cm = gm[stop_i]
             
-            ld_boundaries.append([start_i,stop_i])    
-            curr_ws = stop_i-start_i
+            ld_boundaries.append([start_i, stop_i])    
+            curr_ws = stop_i - start_i
             window_sizes.append(curr_ws)
-            assert curr_ws>0, 'Some issues with the genetic map'
+            assert curr_ws > 0, 'Some issues with the genetic map'
 
             X = snps[start_i: stop_i]
             D_i = sp.dot(snp, X.T) / n
             r2s = D_i ** 2
             ld_dict[snp_i] = D_i
-            lds_i = sp.sum(r2s - (1-r2s) / (n-2),dtype='float32')
-            #lds_i = sp.sum(r2s - (1-r2s)*empirical_null_r2)
-            ld_scores[snp_i] =lds_i
+            lds_i = sp.sum(r2s - (1 - r2s) / (n - 2), dtype='float32')
+            # lds_i = sp.sum(r2s - (1-r2s)*empirical_null_r2)
+            ld_scores[snp_i] = lds_i
         
-        avg_window_size=sp.mean(window_sizes)
-        print 'Average # of SNPs in LD window was %0.2f'%avg_window_size
-        if ld_window_size==0:
-            ld_window_size = avg_window_size*2
+        avg_window_size = sp.mean(window_sizes)
+        print 'Average # of SNPs in LD window was %0.2f' % avg_window_size
+        if ld_window_size == 0:
+            ld_window_size = avg_window_size * 2
         ret_dict['ld_boundaries'] = ld_boundaries
-    ret_dict['ld_dict']=ld_dict
-    ret_dict['ld_scores']=ld_scores
+    ret_dict['ld_dict'] = ld_dict
+    ret_dict['ld_scores'] = ld_scores
     
-    if ld_window_size>0:
+    if ld_window_size > 0:
         ref_ld_matrices = []
         inf_shrink_matrices = []
         for i, wi in enumerate(range(0, m, ld_window_size)):
@@ -96,13 +96,13 @@ def get_LDpred_ld_tables(snps, ld_radius=100, ld_window_size=0, h2=None, n_train
             X = snps[start_i: stop_i]
             D = sp.dot(X, X.T) / n
             ref_ld_matrices.append(D)
-            if h2!=None and n_training!=None:
+            if h2 != None and n_training != None:
                 A = ((m / h2) * sp.eye(curr_window_size) + (n_training / (1)) * D)
                 A_inv = linalg.pinv(A)
                 inf_shrink_matrices.append(A_inv)
-        ret_dict['ref_ld_matrices']=ref_ld_matrices
-        if h2!=None and n_training!=None:
-            ret_dict['inf_shrink_matrices']=inf_shrink_matrices
+        ret_dict['ref_ld_matrices'] = ref_ld_matrices
+        if h2 != None and n_training != None:
+            ret_dict['inf_shrink_matrices'] = inf_shrink_matrices
     return ret_dict
 
 
@@ -139,7 +139,7 @@ def calc_ld_table(snps, max_ld_dist=2000, min_r2=0.2, verbose=True, normalize=Fa
         ld_vec = sp.array(ld_vec).flatten()
         for k in range(start_i, end_i):
             ld_vec_i = k - start_i
-            if ld_vec[ld_vec_i] > min_r2:
+            if ld_vec[ld_vec_i] ** 2 > min_r2:
                 ld_table[i][k] = ld_vec[ld_vec_i]
                 ld_table[k][i] = ld_vec[ld_vec_i]
                 num_stored += 1
@@ -150,7 +150,7 @@ def calc_ld_table(snps, max_ld_dist=2000, min_r2=0.2, verbose=True, normalize=Fa
                 sys.stdout.flush()
     if verbose:
         sys.stdout.write('Done.\n')
-        if num_pairs>0:
+        if num_pairs > 0:
             print 'Stored %d (%0.4f%%) correlations that made the cut (r^2>%0.3f).' % (num_stored, 100 * (num_stored / float(num_pairs)), min_r2)
         else:
             print '-'
@@ -163,33 +163,33 @@ def calc_ld_table(snps, max_ld_dist=2000, min_r2=0.2, verbose=True, normalize=Fa
 
 
 
-def calc_full_ld_table(ld_mat, min_ld=0.2, verbose=True):
-    """
-    Calculate LD between all SNPs using an efficient sliding LD square
-    """
-    if verbose:
-        print 'Calculating LD table'
-    t0 = time.time()
-    m = ld_mat.shape[0]
-    ld_table = {}
-    for i in range(m):
-        ld_table[i] = {}
-
-    D2 = sp.array(ld_mat) ** 2
-    # print D2
-    for i in range(m - 1):
-        for j in range(i + 1, m):
-            if D2[i, j] > min_ld:
-                ld_table[j][i] = D2[i, j]
-                ld_table[i][j] = D2[i, j]
-        if verbose:
-            sys.stdout.write('\b\b\b\b\b\b\b%0.2f%%' % (100.0 * (min(1, float(i + 1) / (m)))))
-            sys.stdout.flush()
-    t1 = time.time()
-    t = (t1 - t0)
-    if verbose:
-        print '\nIt took %d minutes and %0.2f seconds to calculate the LD table' % (t / 60, t % 60)
-    return ld_table
+# def calc_full_ld_table(ld_mat, min_ld=0.2, verbose=True):
+#     """
+#     Calculate LD between all SNPs using an efficient sliding LD square
+#     """
+#     if verbose:
+#         print 'Calculating LD table'
+#     t0 = time.time()
+#     m = ld_mat.shape[0]
+#     ld_table = {}
+#     for i in range(m):
+#         ld_table[i] = {}
+# 
+#     D2 = sp.array(ld_mat) ** 2
+#     # print D2
+#     for i in range(m - 1):
+#         for j in range(i + 1, m):
+#             if D2[i, j] > min_ld:
+#                 ld_table[j][i] = D2[i, j]
+#                 ld_table[i][j] = D2[i, j]
+#         if verbose:
+#             sys.stdout.write('\b\b\b\b\b\b\b%0.2f%%' % (100.0 * (min(1, float(i + 1) / (m)))))
+#             sys.stdout.flush()
+#     t1 = time.time()
+#     t = (t1 - t0)
+#     if verbose:
+#         print '\nIt took %d minutes and %0.2f seconds to calculate the LD table' % (t / 60, t % 60)
+#     return ld_table
 
 
 
@@ -285,7 +285,7 @@ def ml_iter(beta_hats, genotypes, ld_radius=20,
         print 'Performing iterative approach'
     t0 = time.time()
     
-    #Ordering the beta_hats, and storing the order
+    # Ordering the beta_hats, and storing the order
     m = len(beta_hats)
     indices = range(m)
     beta_hats = beta_hats.tolist()
@@ -304,21 +304,21 @@ def ml_iter(beta_hats, genotypes, ld_radius=20,
     selected_indices = set()
     updated_beta_hats = beta_hats[:]
     while len(selected_indices) < max_num_selected:
-        #Sort and select beta
+        # Sort and select beta
         l = zip((sp.array(updated_beta_hats) ** 2).tolist(), range(m))
         l.sort(reverse=True)
         for beta_hat, beta_i in l:
             if not beta_i in selected_indices:
                 selected_indices.add(beta_i)
                 break
-        #Iterating over the window around the selected beta
+        # Iterating over the window around the selected beta
         start_i = max(0, beta_i - ld_radius)
         end_i = min(beta_i + ld_radius, m)
         for i in range(start_i, end_i):
             if i == beta_i:
                 continue
             else:
-                #Updaate the LD matrix
+                # Updaate the LD matrix
                 d = ld_table[i]
                 ld_partners = d['ld_partners']
                 beta_hat_list = d['beta_hat_list']
@@ -331,7 +331,7 @@ def ml_iter(beta_hats, genotypes, ld_radius=20,
                 D_inv = linalg.pinv(D)
                 ld_table['D_inv'] = D_inv
                 updated_beta = sp.dot(D_inv[0], bs)
-                #assert updated_beta != beta_hats[i]
+                # assert updated_beta != beta_hats[i]
                 updated_beta_hats[i] = updated_beta
     for i in range(m):
         if not i in selected_indices:
