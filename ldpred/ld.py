@@ -12,13 +12,6 @@ except Exception:
 import sys
 import time
 from numpy import linalg 
-import pdb
-import os
-import cPickle
-import plinkio
-from plinkio import plinkfile
-import itertools as it
-import random
 
 
 
@@ -89,7 +82,7 @@ def get_LDpred_ld_tables(snps, ld_radius=100, ld_window_size=0, h2=None, n_train
     if ld_window_size > 0:
         ref_ld_matrices = []
         inf_shrink_matrices = []
-        for i, wi in enumerate(range(0, m, ld_window_size)):
+        for wi in range(0, m, ld_window_size):
             start_i = wi
             stop_i = min(m, wi + ld_window_size)
             curr_window_size = stop_i - start_i
@@ -214,7 +207,6 @@ def ml_LD_shrink(beta_hats, genotypes=None, reference_ld_mats=None, window_metho
         for i, wi in enumerate(range(0, num_betas, ld_window_size)):
             start_i = wi 
             stop_i = min(num_betas, wi + ld_window_size)
-            curr_window_size = stop_i - start_i
             if reference_ld_mats != None:
                 D = reference_ld_mats[i]
             else:
@@ -265,8 +257,7 @@ def ml_LD_shrink(beta_hats, genotypes=None, reference_ld_mats=None, window_metho
 
  
 def ml_iter(beta_hats, genotypes, ld_radius=20,
-            verbose=False, iter_percentile=0.05,
-            ld_dict_file_prefix=None, ld_dict=None):
+            verbose=False, iter_percentile=0.05,):
     """
     Yang et al. iterative scheme.
     
@@ -283,11 +274,9 @@ def ml_iter(beta_hats, genotypes, ld_radius=20,
 
     if verbose:
         print 'Performing iterative approach'
-    t0 = time.time()
     
     # Ordering the beta_hats, and storing the order
     m = len(beta_hats)
-    indices = range(m)
     beta_hats = beta_hats.tolist()
 
     ld_table = {}
@@ -384,7 +373,6 @@ def ld_pruning(ld_table, max_ld=0.5, verbose=False):
     """
     Prunes SNPs in LD, in random order. 
     """
-    import random
     if verbose:
         print 'Calculating LD table'
     t0 = time.time()

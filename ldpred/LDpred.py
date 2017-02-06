@@ -40,7 +40,6 @@ import gzip
 import os
 import sys
 import time
-import traceback
 
 from scipy import stats
 import h5py
@@ -50,13 +49,10 @@ import itertools as it
 import ld
 import scipy as sp
 
-
-chromosomes_list = ['chrom_%d' % (x) for x in range(1, 23)]
-chromosomes_list.append('chrom_X')
+from coord_genotypes import chromosomes_list
 
 
-# Current LDpred version is 0.6
-__version__ = '0.6'
+__version__ = '0.9.1'
 
 def parse_parameters():
     """
@@ -357,7 +353,7 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
 
         
 def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=1000, ld_radius=100,
-                 num_iter=60, burn_in=10, p=None, zero_jump_prob=0.05, ld_dict_file_prefix=None,
+                 num_iter=60, burn_in=10, p=None, zero_jump_prob=0.05,
                  ld_dict=None, reference_ld_mats=None, ld_boundaries=None, verbose=False):
     """
     LDpred (Gibbs Sampler) 
