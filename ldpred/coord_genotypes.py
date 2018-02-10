@@ -9,7 +9,7 @@ coord --gf=PLINK_LD_REF_GENOTYPE_FILE --ssf=SUM_STATS_FILE --N=SS_SAMPLE_SIZE  -
                              --gf_format=GENOTYPE_FILE_FORMAT --indiv_list=INDIV_LIST_FILE  --maf=MAF_THRES  --skip_coordination  --check_mafs
                              --chr=ChR_COLUMN_HEADER --pos=POSITION_COLUMN_HEADER --ref=REF_ALLELE_COLUMN_HEADER --alt=ALT_ALLELE_COLUMN_HEADER
                              --reffreq=REF_FRE_COLUMN_HEADER --info=INFO_COLUMN_HEADER --rs=RSID_COLUMN_HEADER --pval=PVAL_COLUMN_HEADER
-                             --effalt=EFFECT_SIZE_COLUMN_HEADER --ncol=SAMPLE_
+                             --effalt=EFFECT_SIZE_COLUMN_HEADER --ncol=SAMPLE_SIZE --beta] 
 
  - PLINK_LD_REF_GENOTYPE_FILE (and PLINK_VAL_GENOTYPE_FILE) should be a (full path) filename prefix to a standard PLINK bed file
    (without .bed) Make sure that the fam and bim files with same names are in the same directory.  PLINK_LD_REF_GENOTYPE_FILE refers
