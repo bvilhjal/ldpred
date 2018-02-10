@@ -9,7 +9,7 @@ coord --gf=PLINK_LD_REF_GENOTYPE_FILE --ssf=SUM_STATS_FILE --N=SS_SAMPLE_SIZE  -
                              --gf_format=GENOTYPE_FILE_FORMAT --indiv_list=INDIV_LIST_FILE  --maf=MAF_THRES  --skip_coordination  --check_mafs
                              --chr=ChR_COLUMN_HEADER --pos=POSITION_COLUMN_HEADER --ref=REF_ALLELE_COLUMN_HEADER --alt=ALT_ALLELE_COLUMN_HEADER
                              --reffreq=REF_FRE_COLUMN_HEADER --info=INFO_COLUMN_HEADER --rs=RSID_COLUMN_HEADER --pval=PVAL_COLUMN_HEADER
-                             --effalt=EFFECT_SIZE_COLUMN_HEADER --ncol=SAMPLE_SIZE --beta] 
+                             --eff=EFFECT_SIZE_COLUMN_HEADER --ncol=SAMPLE_SIZE --beta]
 
  - PLINK_LD_REF_GENOTYPE_FILE (and PLINK_VAL_GENOTYPE_FILE) should be a (full path) filename prefix to a standard PLINK bed file
    (without .bed) Make sure that the fam and bim files with same names are in the same directory.  PLINK_LD_REF_GENOTYPE_FILE refers
@@ -93,7 +93,7 @@ def parse_parameters():
 
     long_options_list = ['gf=', 'vgf=', 'ssf=', 'out=', 'vbim=', 'N=', 'ssf_format=', 'gmdir=', 'indiv_list=',
                          'gf_format=', 'maf=', 'skip_coordination', 'check_mafs', 'h', 'help', 'debug', 'chr=',
-                         'pos=', 'ref=', 'alt=', 'reffreq=', 'info=', 'rs=', 'pval=', 'effalt=','ncol=','beta']
+                         'pos=', 'ref=', 'alt=', 'reffreq=', 'info=', 'rs=', 'pval=', 'eff=','ncol=','beta']
 
     p_dict = {'gf':None, 'vgf':None, 'ssf':None, 'out':None, 'vbim':None, 'N':None, 'ssf_format':'STANDARD', 'gmdir':None,
               'indiv_list':None, 'gf_format':'PLINK', 'maf':0.01, 'skip_coordination':False, 'debug':False, 'check_mafs':False,
@@ -140,7 +140,7 @@ def parse_parameters():
             elif opt in ("--info"): p_dict['info'] = arg
             elif opt in ("--rs"): p_dict['rs'] = arg
             elif opt in ("--pval"): p_dict['pval'] = arg
-            elif opt in ("--effalt"): p_dict['effalt'] = arg
+            elif opt in ("--eff"): p_dict['effalt'] = arg
             elif opt in ("--ncol"): p_dict['ncol'] = arg
             else:
                 print "Unkown option:", opt
