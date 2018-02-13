@@ -77,9 +77,6 @@ opp_strand_dict = {'A':'T', 'G':'C', 'T':'A', 'C':'G'}
 
 valid_nts = set(['A', 'T', 'C', 'G'])
 
-lc_CAPs_dict = {'a':'A', 'c':'C', 'g':'G', 't':'T'}
-
-
 ok_chromosomes = ['%d' % (x) for x in range(1, 23)]
 ok_chromosomes.append('X')
 chromosomes_list = ['chrom_%s' % (chrom) for chrom in ok_chromosomes]
@@ -93,11 +90,11 @@ def parse_parameters():
 
     long_options_list = ['gf=', 'vgf=', 'ssf=', 'out=', 'vbim=', 'N=', 'ssf_format=', 'gmdir=', 'indiv_list=',
                          'gf_format=', 'maf=', 'skip_coordination', 'check_mafs', 'h', 'help', 'debug', 'chr=',
-                         'pos=', 'ref=', 'alt=', 'reffreq=', 'info=', 'rs=', 'pval=', 'eff=','ncol=','beta']
+                         'pos=', 'A1=', 'A2=', 'reffreq=', 'info=', 'rs=', 'pval=', 'eff=','ncol=','beta']
 
-    p_dict = {'gf':None, 'vgf':None, 'ssf':None, 'out':None, 'vbim':None, 'N':None, 'ssf_format':'STANDARD', 'gmdir':None,
+    p_dict = {'gf':None, 'vgf':None, 'ssf':None, 'out':None, 'vbim':None, 'N':None, 'ssf_format':'NONE', 'gmdir':None,
               'indiv_list':None, 'gf_format':'PLINK', 'maf':0.01, 'skip_coordination':False, 'debug':False, 'check_mafs':False,
-              'chr':'CHR', 'pos':'BP', 'ref':None, 'alt':'A1', 'reffreq':None, 'info':None, 'rs':'SNP', 'pval':'P', 'effalt':None,
+              'chr':None, 'pos':None, 'A1':None, 'A2':None, 'reffreq':None, 'info':None, 'rs':None, 'pval':None, 'eff':None,
               'ncol':None, 'beta':False}
 
     if len(sys.argv) == 1:
@@ -134,13 +131,13 @@ def parse_parameters():
             elif opt in ("--N"): p_dict['N'] = int(arg)
             elif opt in ("--chr"): p_dict['chr'] = arg
             elif opt in ("--pos"): p_dict['pos'] = arg
-            elif opt in ("--ref"): p_dict['ref'] = arg
-            elif opt in ("--alt"): p_dict['alt'] = arg
+            elif opt in ("--A1"): p_dict['A1'] = arg
+            elif opt in ("--A2"): p_dict['A2'] = arg
             elif opt in ("--reffreq"): p_dict['reffreq'] = arg
             elif opt in ("--info"): p_dict['info'] = arg
             elif opt in ("--rs"): p_dict['rs'] = arg
             elif opt in ("--pval"): p_dict['pval'] = arg
-            elif opt in ("--eff"): p_dict['effalt'] = arg
+            elif opt in ("--eff"): p_dict['eff'] = arg
             elif opt in ("--ncol"): p_dict['ncol'] = arg
             else:
                 print "Unkown option:", opt
@@ -276,21 +273,21 @@ def parse_sum_stats(filename=None,
                     n=None,
                     chr=None,
                     pos=None,
-                    ref=None,
-                    alt=None,
+                    A1=None,
+                    A2=None,
                     reffreq=None,
                     info=None,
                     rs=None,
                     pval=None,
-                    effalt=None,
+                    eff=None,
                     ncol=None,
                     beta=False,
                     negative=False):
 # Check required fields are here
-    assert not alt is None, 'Require header for alternative allele'
-    assert not alt is None, 'Require header for reference allele'
+    assert not A2 is None, 'Require header for non-effective allele'
+    assert not A1 is None, 'Require header for effective allele'
     assert not rs is None, 'Require header for RS ID'
-    assert not effalt is None, 'Require header for Statistics'
+    assert not eff is None, 'Require header for Statistics'
     assert not pval is None, 'Require header for pval'
 
     assert not ncol is None or not n is None, 'Require either N or NCOL information'
@@ -327,11 +324,10 @@ def parse_sum_stats(filename=None,
         for col in columns:
             header_dict[col] = index
             index+=1
-
         assert chr is None or chr in header_dict, 'Chromosome header cannot be found in summary statistic file'
-        assert alt in header_dict, 'Alternative allele column cannot be found in summary statistic file'
-        assert ref in header_dict, 'Reference allele column cannot be found in summary statistic file'
-        assert effalt in header_dict, 'Effect size column not found in summary statistic file'
+        assert A2 in header_dict, 'Non-effective allele column cannot be found in summary statistic file'
+        assert A1 in header_dict, 'Effective allele column cannot be found in summary statistic file'
+        assert eff in header_dict, 'Effect size column not found in summary statistic file'
         assert rs in header_dict, 'SNP ID column not found in summary statistic file'
         assert pos is None or pos in header_dict, 'Position column not found in summary statistic file'
         assert pval in header_dict, 'P Value column not found in summary statistic file'
@@ -374,7 +370,7 @@ def parse_sum_stats(filename=None,
                 chrom_dict[chrom]['infos'].append(info)
                 pval_read = float(l[header_dict[pval]])
                 chrom_dict[chrom]['ps'].append(pval_read)
-                nt = [l[header_dict[ref]].upper(), l[header_dict[alt]].upper()]
+                nt = [l[header_dict[A1]].upper(), l[header_dict[A2]].upper()]
                 chrom_dict[chrom]['nts'].append(nt)
                 # GIANT & DECODE: raw_beta = float(l[header_dict[effalt]])
                 # PGC: raw_beta = sp.log(float(l[6]))
@@ -383,7 +379,7 @@ def parse_sum_stats(filename=None,
                 # but use the p-value converted beta instead
                 # this will lead to problem when their p-value is 0 or 1
                 # which will lead to inf (as Saskia has encountered)
-                raw_beta = float(l[header_dict[effalt]])
+                raw_beta = float(l[header_dict[eff]])
                 if not beta:
                     raw_beta = sp.log(raw_beta)
                     chrom_dict[chrom]['log_odds'].append(raw_beta)
@@ -1316,35 +1312,35 @@ def main():
         p_dict['effalt'] = 'effalt'
     if p_dict['ssf_format'] == 'STANDARD':
         parse_sum_stats(filename=p_dict['ssf'], bimfile=bimfile, hdf5_file=h5f, n=p_dict['N'], chr='chr',
-                        ref='ref', alt='alt', reffreq='reffreq', info='info',
-                        rs='rs', pval='pval', effalt='effalt', ncol='ncol',
+                        A1='ref', A2='alt', reffreq='reffreq', info='info',
+                        rs='rs', pval='pval', eff='effalt', ncol='ncol',
                         pos='pos', negative=True)
     elif p_dict['ssf_format'] == 'PGC':
         parse_sum_stats(filename=p_dict['ssf'], bimfile=bimfile, hdf5_file=h5f, n=p_dict['N'], chr='hg19chrc',
-                        ref='a1', alt='a2', info='info', rs='snpid', pval='pval', effalt='or', pos='bp', beta=False)
+                        A1='a1', A2='a2', info='info', rs='snpid', pval='pval', eff='or', pos='bp', beta=False)
     elif p_dict['ssf_format'] == 'PGC_large':
         # Keep it as is for now, hard coded the frequency number which seems odd
         parse_sum_stats_pgc(filename=p_dict['ssf'], bimfile=bimfile, hdf5_file=h5f, n=p_dict['N'])
     elif p_dict['ssf_format'] == 'BASIC':
         parse_sum_stats(filename=p_dict['ssf'], bimfile=bimfile, hdf5_file=h5f, n=p_dict['N'], chr='hg19chrc',
-                        ref='a1', alt='a2', rs='snpid', pval='p', effalt='or', pos='bp', beta=False)
+                        A1='a1', A2='a2', rs='snpid', pval='p', eff='or', pos='bp', beta=False)
     elif p_dict['ssf_format'] == 'GIANT':
-        parse_sum_stats(filename=p_dict['ssf'], bimfile=bimfile, hdf5_file=h5f, n=p_dict['N'], ref='Allele1',
-            alt='Allele2', rs='MarkerName', pval='p', effalt='b',
+        parse_sum_stats(filename=p_dict['ssf'], bimfile=bimfile, hdf5_file=h5f, n=p_dict['N'], A1='Allele1',
+            A2='Allele2', rs='MarkerName', pval='p', eff='b',
             reffreq='Freq.Allele1.HapMapCEU', beta=True)
     elif p_dict['ssf_format'] == 'GIANT2':
-        parse_sum_stats(filename=p_dict['ssf'], bimfile=bimfile, hdf5_file=h5f, n=p_dict['N'], ref='A1',
-            alt='A2', rs='MarkerName', pval='Freq.Hapmap.Ceu', effalt='BETA',
+        parse_sum_stats(filename=p_dict['ssf'], bimfile=bimfile, hdf5_file=h5f, n=p_dict['N'], A1='A1',
+            A2='A2', rs='MarkerName', pval='Freq.Hapmap.Ceu', eff='BETA',
             reffreq='Freq.Hapmap.Ceu', beta=True)
     elif p_dict['ssf_format'] == 'DECODE':
         parse_sum_stats(filename=p_dict['ssf'], bimfile=bimfile, hdf5_file=h5f, chr='chr',
-                        ref='ref', alt='alt', reffreq='frq1', rs='mn', pval='pval',
-                        effalt='wt1', ncol='Weight',
+                        A1='ref', A2='alt', reffreq='frq1', rs='mn', pval='pval',
+                        eff='wt1', ncol='Weight',
                         pos='pos', beta=True)
     else:
         parse_sum_stats(filename=p_dict['ssf'], bimfile=bimfile, hdf5_file=h5f, n=p_dict['N'], chr=p_dict['chr'],
-                        ref=p_dict['ref'], alt=p_dict['alt'], reffreq=p_dict['reffreq'], info=p_dict['info'],
-                        rs=p_dict['rs'], pval=p_dict['pval'], effalt=p_dict['effalt'], ncol=p_dict['ncol'],
+                        A1=p_dict['A1'], A2=p_dict['A2'], reffreq=p_dict['reffreq'], info=p_dict['info'],
+                        rs=p_dict['rs'], pval=p_dict['pval'], eff=p_dict['eff'], ncol=p_dict['ncol'],
                         pos=p_dict['pos'], beta=p_dict['beta'])
     if not p_dict['vgf'] == None:
         assert p_dict['gf_format'] == 'PLINK', 'The validation genotype option currently only works with the PLINK format'
