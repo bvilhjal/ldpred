@@ -44,7 +44,7 @@ With these three packages in place, you should be all set to install and use LDp
 
 As with most Python packages, configurating LDpred is simple.  You can either use **git** (which is installed on most systems) and clone this repository using the following git command:
 
-`git clone git@bitbucket.org:bjarni_vilhjalmsson/ldpred.git`
+`git clone https://github.com/bvilhjal/ldpred.git`
 
 Alternatively, you can simply download the source files and place them somewhere.
 
@@ -60,7 +60,7 @@ We encourage users to extend the code, and adapt it too their needs.  Currently 
 contributions, and pull requests will be reviewed on a case by case basis.
 
 ### Who do I talk to? ###
-If you have any questions or trouble getting the method to work, please contact Bjarni Vilhjalmsson (bjarni.vilhjalmsson@gmail.com).
+If you have any questions or trouble getting the method to work, try first to look at issues, to see if it is reported there. In emergencies, please contact Bjarni Vilhjalmsson (bjarni.vilhjalmsson@gmail.com), but expect extreme slow replies (as I left science as of 2016).  
 
 ## Using LDpred ##
 To run LDpred, at least two steps are required:
