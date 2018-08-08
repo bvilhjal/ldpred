@@ -60,7 +60,9 @@ We encourage users to extend the code, and adapt it too their needs.  Currently 
 contributions, and pull requests will be reviewed on a case by case basis.
 
 ### Who do I talk to? ###
-If you have any questions or trouble getting the method to work, try first to look at issues, to see if it is reported there. In emergencies, please contact Bjarni Vilhjalmsson (bjarni.vilhjalmsson@gmail.com), but expect extreme slow replies (as I left science as of 2016).  
+If you have any questions or trouble getting the method to work, try first to look at issues, to see if it is reported there.  Also, you can check if some of the cloned LDpred repos have addressed your issue.
+
+In emergencies, please contact Bjarni Vilhjalmsson (bjarni.vilhjalmsson@gmail.com), but expect extremely slow replies (as I left science as of 2016).  
 
 ## Using LDpred ##
 To run LDpred, at least two steps are required:
