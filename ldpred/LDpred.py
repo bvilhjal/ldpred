@@ -215,6 +215,7 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
             snp_stds = snp_stds.flatten()
             ok_snps_filter = snp_stds > 0
             pval_derived_betas = g['betas'][...]
+            n_snps = len(pval_derived_betas)
             pval_derived_betas = pval_derived_betas[ok_snps_filter]
             if h2 is not None:
                 h2_chrom = h2 * (n_snps / float(num_snps))            
