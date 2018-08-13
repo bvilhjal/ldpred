@@ -281,7 +281,7 @@ def parse_sum_stats(filename=None,
                     pval=None,
                     eff=None,
                     ncol=None,
-                    beta=False,
+                    input_is_beta=False,
                     negative=False):
 # Check required fields are here
     assert not A2 is None, 'Require header for non-effective allele'
@@ -380,7 +380,7 @@ def parse_sum_stats(filename=None,
                 # this will lead to problem when their p-value is 0 or 1
                 # which will lead to inf (as Saskia has encountered)
                 raw_beta = float(l[header_dict[eff]])
-                if not beta:
+                if not input_is_beta:
                     raw_beta = sp.log(raw_beta)
                     chrom_dict[chrom]['log_odds'].append(raw_beta)
                     beta = sp.sign(raw_beta) * stats.norm.ppf(pval_read / 2.0)
