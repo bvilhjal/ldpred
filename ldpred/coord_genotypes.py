@@ -1341,7 +1341,7 @@ def main():
         parse_sum_stats(filename=p_dict['ssf'], bimfile=bimfile, hdf5_file=h5f, n=p_dict['N'], chr=p_dict['chr'],
                         A1=p_dict['A1'], A2=p_dict['A2'], reffreq=p_dict['reffreq'], info=p_dict['info'],
                         rs=p_dict['rs'], pval=p_dict['pval'], eff=p_dict['eff'], ncol=p_dict['ncol'],
-                        pos=p_dict['pos'], beta=p_dict['beta'])
+                        pos=p_dict['pos'], input_is_beta=p_dict['beta'])
     if not p_dict['vgf'] == None:
         assert p_dict['gf_format'] == 'PLINK', 'The validation genotype option currently only works with the PLINK format'
         coordinate_genotypes_ss_w_ld_ref(genotype_file=p_dict['vgf'], reference_genotype_file=p_dict['gf'],
