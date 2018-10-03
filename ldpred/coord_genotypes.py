@@ -1000,7 +1000,7 @@ def parse_sum_stats_basic(filename=None,
     ssg = hdf5_file.create_group('sum_stats')
     num_snps = 0
     for chrom in chrom_dict.keys():
-        print 'Parsed summary stats for %d SNPs on chromosome %d' % (len(chrom_dict[chrom]['positions']), chrom)
+        print 'Parsed summary stats for %d SNPs on chromosome %s' % (len(chrom_dict[chrom]['positions']), chrom)
         sl = zip(chrom_dict[chrom]['positions'], chrom_dict[chrom]['sids'], chrom_dict[chrom]['nts'],
                  chrom_dict[chrom]['betas'], chrom_dict[chrom]['log_odds'], chrom_dict[chrom]['ps'])
         sl.sort()
