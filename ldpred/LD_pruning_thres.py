@@ -205,7 +205,7 @@ def ld_pruning(data_file=None, ld_radius = None, out_file_prefix=None, p_thres=N
             updated_pval_derived_betas = pval_derived_betas * pruning_vector
             num_snps_used += sp.sum(pruning_vector)
         else:
-            updated_raw_betas = sp.copy(raw_effect_sizes)
+            updated_raw_betas = sp.copy(raw_betas)
             updated_pval_derived_betas = sp.copy(pval_derived_betas) 
             updated_pval_derived_betas = updated_pval_derived_betas / (snp_stds.flatten())
             pruning_vector = sp.ones(len(pval_derived_betas))
