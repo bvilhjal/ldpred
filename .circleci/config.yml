@@ -48,7 +48,7 @@ jobs:
           name: run tests
           command: |
             . venv/bin/activate
-            python ldpred/test.py
+            python test.py
 
       - store_artifacts:
           path: test-reports
