@@ -1,2 +1,3 @@
 plinkio
 h5py
+scipy
