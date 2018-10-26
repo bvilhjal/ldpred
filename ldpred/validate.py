@@ -75,8 +75,6 @@ def parse_parameters():
         except:
             print "Some problems with parameters.  Please read the usage documentation carefully."
             print "Use the -h option for usage information."
-#             traceback.print_exc()
-#             print __doc__
             sys.exit(2)
 
         for opt, arg in opts:
@@ -146,11 +144,6 @@ def get_prs(genotype_file, rs_id_map, phen_map=None):
                 if 'sex' in phen_map[sample.iid].keys():
                     sex.append(phen_map[sample.iid]['sex'])
                 if 'covariates' in phen_map[sample.iid].keys():
-                    # Temp hack...
-                    #                     if phen_map[sample.iid]['sex']==1:
-                    #                         covariates.append([phen_map[sample.iid]['covariates'][0],0])
-                    #                     else:
-                    #                         covariates.append([0,phen_map[sample.iid]['covariates'][0]])
                     covariates.append(phen_map[sample.iid]['covariates'])
         if len(pcs) > 0:
             assert len(pcs) == len(
@@ -191,7 +184,6 @@ def get_prs(genotype_file, rs_id_map, phen_map=None):
         upd_pval_beta = 0
         try:
             # Check rs-ID
-            #             sid = '%d_%d'%(locus.chromosome,locus.bp_position)
             sid = locus.name
             rs_info = rs_id_map[sid]
         except Exception:  # Move on if rsID not found.
@@ -215,8 +207,6 @@ def get_prs(genotype_file, rs_id_map, phen_map=None):
                 upd_pval_beta = -rs_info['upd_pval_beta']
                 num_flipped_nts += 1
             else:
-                # print "Nucleotides don't match after all?: sid=%s, g_nt=%s,
-                # ss_nt=%s" % (locus.name, str(g_nt), str(ss_nt))
                 num_non_matching_nts += 1
                 continue
         else:
@@ -230,16 +220,14 @@ def get_prs(genotype_file, rs_id_map, phen_map=None):
             mode_v = sp.argmax(bin_counts[:2])
             snp[snp == 3] = mode_v
 
-        # Normalize SNP
-#         n_snp = (snp - sp.mean(snp))/sp.std(snp)
 
         # Update scores and move on.
         raw_effects_prs += snp * raw_beta
         assert not sp.any(sp.isnan(raw_effects_prs)
-                          ), 'Raw effects PRS is corrupted'
+                          ), 'Some individual raw effects risk scores are NANs (not a number).  They are corrupted.'
         pval_derived_effects_prs += snp * upd_pval_beta
         assert not sp.any(sp.isnan(pval_derived_effects_prs)
-                          ), 'Weighted effects PRS is corrupted'
+                          ), 'Some individual weighted effects risk scores are NANs (not a number).  They are corrupted.'
 
         if snp_i > 0 and snp_i % 100000 == 0:
             print snp_i
@@ -319,37 +307,6 @@ def parse_phen_file(pf, pf_format):
                     phen_map[iid] = {'phen': phen}
 
             iids = set(phen_map.keys())
-#         elif pf_format=='Other':
-#             print 'Parse phenotype file: %s'%p_dict['pf']
-#             phen_map ={}
-#             """
-#             FID     IID     SEX     PHE     SCZ     BIP     BOTH
-#             00C04395        00C04395        2       SCZ     2       -9      2
-#             00C04941        00C04941        2       SCZ     2       -9      2
-#             01C05110        01C05110        2       SCZ     2       -9      2
-#             01C05278        01C05278        2       SCZ     2       -9      2
-#             01C05402        01C05402        1       SCZ     2       -9      2
-#             01C05566        01C05566        1       BIP     -9      2       2
-#
-#             """
-#             with open(p_dict['pf'],'r') as f:
-#                 print f.next()
-#                 for line in f:
-#                     l = line.split()
-#                     if p_dict['phen']=='SCZ':
-#                         phen = float(l[4])
-#                     elif p_dict['phen']=='BIP':
-#                         phen = float(l[5])
-#                     elif p_dict['phen']=='BOTH':
-#                         phen = float(l[6])
-#
-#                     if phen ==-9:
-#                         continue
-#
-#                     fid = l[0]
-#                     iid = l[1]
-#                     sex = int(l[2])
-#                     phen_map[iid] = {'fid':fid, 'sex':sex, 'phen':phen}
 
         elif pf_format == 'S2':
             """
@@ -444,10 +401,6 @@ def calc_risk_scores(bed_file, rs_id_map, phen_map, out_file=None, split_by_chro
 
                     raw_effects_prs += prs_dict['raw_effects_prs']
                     pval_derived_effects_prs += prs_dict['pval_derived_effects_prs']
-    #                 raw_eff_r2 = (sp.corrcoef(raw_effects_prs, prs_dict['true_phens'])[0,1])**2
-    #                 pval_eff_r2  = (sp.corrcoef(pval_derived_effects_prs, prs_dict['true_phens'])[0,1])**2
-    #                 print 'Overall raw effects PRS r2: %0.4f'%raw_eff_r2
-    #                 print 'Overall weigted effects PRS r2: %0.4f'%pval_eff_r2
             else:
                 print 'Skipping chromosome'
 
@@ -488,11 +441,8 @@ def calc_risk_scores(bed_file, rs_id_map, phen_map, out_file=None, split_by_chro
         sp.ones((len(true_phens), 1)), true_phens)
     (betas, rss, r, s) = linalg.lstsq(Xs, true_phens)
     pred_r2 = 1 - rss / rss00
-# print 'Fitted effects (betas) for PRS, and intercept on true
-# phenotype:',betas
     weights_dict['unadjusted'] = {
         'Intercept': betas[1][0], 'ldpred_prs_effect': betas[0][0]}
-#     print pred_r2
 
     # Adjust for sex
     if adjust_for_sex and 'sex' in prs_dict and len(prs_dict['sex']) > 0:
@@ -614,7 +564,6 @@ def calc_risk_scores(bed_file, rs_id_map, phen_map, out_file=None, split_by_chro
             print 'Cov+PCs+Sex adjusted prediction and PCs+Sex (R^2) for the whole genome PRS with weighted effects was: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs))
             res_dict['Cov_PC_Sex_adj_pred_r2+Cov_PC_Sex'] = pred_r2
 
-#     print sp.corrcoef(true_phens.T,adj_pred_dict['cov_sex_pc_adj'].T)**2
 
     # Now calibration
     y_norm = (true_phens - sp.mean(true_phens)) / sp.std(true_phens)
@@ -629,9 +578,6 @@ def calc_risk_scores(bed_file, rs_id_map, phen_map, out_file=None, split_by_chro
     print 'The slope for predictions with weighted effects is:', regression_slope
 
 
-#     print sp.corrcoef(prs_dict['raw_effects_prs'], prs_dict['true_phens'])[0,1]
-# print sp.corrcoef(prs_dict['pval_derived_effects_prs'],
-# prs_dict['true_phens'])[0,1]
     num_individs = len(prs_dict['pval_derived_effects_prs'])
 
     # Write PRS out to file.

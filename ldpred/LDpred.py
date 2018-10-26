@@ -58,9 +58,6 @@ def parse_parameters():
     """
     Parse the parameters into a dict, etc.
     """
-#    if len(sys.argv) == 1:
-#        print __doc__
-#        sys.exit(2)
 
     long_options_list = ['coord=', 'ld_radius=', 'local_ld_file_prefix=', 'PS=', 'out=', 'N=',
                          'num_iter=', 'H2=', 'gm_ld_radius=', 'h', 'help']
@@ -75,8 +72,6 @@ def parse_parameters():
         except:
             print "Some problems with parameters.  Please read the usage documentation carefully."
             print "Use the -h option for usage information."
-#             traceback.print_exc()
-#             print __doc__
             sys.exit(2)
     
         for opt, arg in opts:
@@ -117,7 +112,6 @@ def calc_auc(y_true, y_hat, show_plot=False):
         
     else:
         print 'Warning: Calculating AUC for a quantiative phenotype.'
-#         print sp.bincount(y_true)
         y_mean = sp.mean(y_true)
         zero_filter = y_true <= y_mean
         one_filter = y_true > y_mean
@@ -126,7 +120,7 @@ def calc_auc(y_true, y_hat, show_plot=False):
 
     num_cases = sp.sum(y_true == 1)
     num_controls = sp.sum(y_true == 0)
-    assert num_cases + num_controls == len(y_true), 'WTF?'
+    assert num_cases + num_controls == len(y_true), 'The phenotype is not defined as expected. It is not binary (0 1 case-control status).'
     print '%d cases, %d controls' % (num_cases, num_controls) 
     
     num_indivs = float(len(y_true))
@@ -280,7 +274,6 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
                     h2_chrom = h2 * (n_snps / float(num_snps))            
                 else:
                     h2_chrom = gw_h2_ld_score_est * (n_snps / float(num_snps))
-                # print 'Prior parameters: p=%0.3f, n=%d, m=%d, h2_chrom=%0.4f' % (p, n, n_snps, h2_chrom)
                 if 'chrom_ld_boundaries' in ld_dict.keys():
                     ld_boundaries = ld_dict['chrom_ld_boundaries'][chrom_str]
                     res_dict = ldpred_gibbs(pval_derived_betas, h2=h2_chrom, n=n, p=p, ld_radius=ld_radius,
@@ -417,7 +410,7 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=1000, l
                             postp = 0
                         else:
                             postp = numerator / (numerator + d_const_b2_exp)
-                            assert sp.isreal(postp), 'Posterior mean is not a real number?' 
+                            assert sp.isreal(postp), 'The posterior mean is not a real number?  Possibly due to problems with summary stats, LD estimates, or parameter settings.' 
                     else:
                         postp = 0
                 else:
@@ -458,7 +451,7 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=1000, l
                             postp = 0
                         else:
                             postp = numerator / (numerator + d_const_b2_exp)
-                            assert sp.isreal(postp), 'Posterior mean is not a real number?' 
+                            assert sp.isreal(postp), 'Posterior mean is not a real number? Possibly due to problems with summary stats, LD estimates, or parameter settings.' 
                     else:
                         postp = 0
                 else:
@@ -534,7 +527,7 @@ If they are a subset of the validation data set, then we suggest recalculate LDp
             
             # Normalize SNPs..
             snps = sp.array((raw_snps - snp_means) / snp_stds, dtype='float32')
-            assert snps.shape == raw_snps.shape, 'Array Shape mismatch'
+            assert snps.shape == raw_snps.shape, 'Problems normalizing SNPs (array shape mismatch).'
             if p_dict['gm_ld_radius'] is not None:
                 assert 'genetic_map' in g.keys(), 'Genetic map is missing.'
                 gm = g['genetic_map'][...]
