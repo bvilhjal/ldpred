@@ -187,3 +187,5 @@ Usage:
  * PVAL_THRESHOLDS: This option is only valid if a P+T result file prefix is supplied.  It's a list of p-value thresholds, separated by a comma (without space), to be used for LDpred. Default values are --TS=1,0.3,0.1,0.03,0.01,0.003,0.001,0.0003,0.0001,3E-5,1E-5,1E-6,1E-7,1E-8
 
  * FRACTIONS_CAUSAL: This option is only valid if a LDPRED result file prefix is supplied.  A list of comma separated (without space) values between 1 and 0, excluding 0.  1 corresponds to the infinitesimal model and will yield results similar to LDpred-inf.  Default values are --PS=1,0.3,0.1,0.03,0.01,0.003,0.001,0.0003,0.0001
+ 
+ ..
