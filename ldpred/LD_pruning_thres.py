@@ -240,8 +240,6 @@ def ld_pruning(data_file=None, ld_radius = None, out_file_prefix=None, p_thres=N
 
         if corr<0:
             risk_scores = -1* risk_scores
-#         auc = calc_auc(y,risk_scores_pval_derived)
-#         print 'AUC for the whole genome was: %0.4f'%auc
 
         #Now calibration                               
         denominator = sp.dot(risk_scores.T, risk_scores)

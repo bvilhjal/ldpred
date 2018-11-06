@@ -47,10 +47,10 @@ import os
 import traceback
 import scipy as sp
 from scipy import linalg
-from plinkio import plinkfile
 import itertools as it
 import time
 import h5py
+import plinkfiles
 
 ok_nts = ['A', 'T', 'C', 'G']
 opp_strand_dict = {'A': 'T', 'G': 'C', 'T': 'A', 'C': 'G'}
@@ -122,7 +122,7 @@ def parse_parameters():
 
 
 def get_prs(genotype_file, rs_id_map, phen_map=None):
-    plinkf = plinkfile.PlinkFile(genotype_file)
+    plinkf = plinkfiles.plinkfile.PlinkFile(genotype_file)
     samples = plinkf.get_samples()
 
     # 1. Figure out indiv filter and get true phenotypes

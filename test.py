@@ -3,7 +3,7 @@ A test file for LDpred.
 """
 
 import tempfile
-import os
+import os    
 
 tf = tempfile.NamedTemporaryFile()
 tmp_file_prefix = next(tempfile._get_candidate_names())

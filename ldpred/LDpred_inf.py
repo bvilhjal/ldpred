@@ -40,7 +40,7 @@ import time
 import os
 import gzip
 import itertools as it
-import LDpred 
+import util
 
 def parse_parameters():
     """
@@ -56,7 +56,7 @@ def parse_parameters():
 
     if len(sys.argv) > 1:
         try:
-            opts, args = getopt.getopt(sys.argv[1:], "h", long_options_list)
+            opts, = getopt.getopt(sys.argv[1:], "h", long_options_list)
     
         except:
             print "Some problems with usage.  Please read the usage documentation carefully."
@@ -234,7 +234,7 @@ def ldpred_inf_genomewide(data_file=None, ld_radius = None, ld_dict=None, out_fi
 
         if corr<0:
             risk_scores_pval_derived = -1* risk_scores_pval_derived
-        auc = LDpred.calc_auc(y,risk_scores_pval_derived)
+        auc = util.calc_auc(y,risk_scores_pval_derived)
         print 'AUC for the whole genome was: %0.4f'%auc
 
         #Now calibration                               

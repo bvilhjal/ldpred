@@ -59,13 +59,13 @@ coord --gf=PLINK_LD_REF_GENOTYPE_FILE --ssf=SUM_STATS_FILE --N=SS_SAMPLE_SIZE  -
 import getopt
 import sys
 import os
-import h5py
 import scipy as sp
 from scipy import stats
 import itertools as it
 import gzip
 import random
 import plinkfiles
+import h5py
 
 ambig_nts = set([('A', 'T'), ('T', 'A'), ('G', 'C'), ('C', 'G')])
 opp_strand_dict = {'A': 'T', 'G': 'C', 'T': 'A', 'C': 'G'}
@@ -96,7 +96,7 @@ def parse_parameters():
         print __doc__
     elif len(sys.argv) > 1:
         try:
-            opts, args = getopt.getopt(sys.argv[1:], "h", long_options_list)
+            opts, = getopt.getopt(sys.argv[1:], "h", long_options_list)
 
         except:
             print "Some problems with parameters.  Please read the usage documentation carefully."
@@ -590,8 +590,7 @@ def parse_sum_stats_giant2(filename=None,
 
 
 def parse_sum_stats_decode(filename=None,
-                           hdf5_file=None,
-                           debug_filter=1):
+                           hdf5_file=None):
     """
     Input format:
 
@@ -1003,7 +1002,7 @@ def parse_sum_stats_basic(filename=None,
 
 def coordinate_decode_genot_ss(genotype_file=None,
                                hdf5_file=None,
-                               genetic_map_dir=None, indiv_file=None):
+                               indiv_file=None):
     """
     Assumes deCODE genotype files.  Imputes missing genotypes.
     """

@@ -3,8 +3,8 @@ Code for handling plink files.
 
 Uses plinkio.
 """
-from plinkio import plinkfile
 import scipy as sp
+from plinkio import plinkfile
 
 def get_chrom_dict(loci, chromosomes):
     chr_dict = {}
