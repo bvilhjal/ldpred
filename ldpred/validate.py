@@ -629,13 +629,14 @@ def main():
     p_dict = parse_parameters()
     non_zero_chromosomes = set()
 
-    # Parse phenotypes
     if p_dict['pf'] is None:
         if p_dict['vgf'] is not None:
+            print 'Parsing phenotypes'
             phen_map = parse_phen_file(p_dict['vgf'] + '.fam', 'FAM')
         else:
             raise Exception('Validation phenotypes were not found.')
     else:
+        print 'Parsing phenotypes'
         phen_map = parse_phen_file(p_dict['pf'], p_dict['pf_format'])
 
     if p_dict['cov_file'] != None:
@@ -673,9 +674,11 @@ def main():
     num_individs = len(phen_map)
     assert num_individs > 0, 'No phenotypes were found!'
 
+    prs_file_is_missing = True
     res_dict = {}
     if p_dict['res_format'] == 'LDPRED':
         weights_file = '%s_LDpred-inf.txt' % (p_dict['rf'])
+        
         if os.path.isfile(weights_file):
             print ''
             print 'Calculating LDpred-inf risk scores'
@@ -684,6 +687,7 @@ def main():
             calc_risk_scores(p_dict['vgf'], rs_id_map, phen_map, out_file=out_file, split_by_chrom=p_dict['split_by_chrom'],
                              adjust_for_sex=p_dict['adjust_for_sex'], adjust_for_covariates=p_dict['adjust_for_covariates'],
                              adjust_for_pcs=p_dict['adjust_for_pcs'])
+            prs_file_is_missing = False
 
         for p in p_dict['PS']:
             weights_file = '%s_LDpred_p%0.4e.txt' % (p_dict['rf'], p)
@@ -697,6 +701,7 @@ def main():
                                                         split_by_chrom=p_dict['split_by_chrom'], adjust_for_sex=p_dict['adjust_for_sex'],
                                                         adjust_for_covariates=p_dict['adjust_for_covariates'],
                                                         adjust_for_pcs=p_dict['adjust_for_pcs'])
+                prs_file_is_missing=False
 
         # Plot results?
 
@@ -711,6 +716,8 @@ def main():
                                                     split_by_chrom=p_dict['split_by_chrom'], adjust_for_sex=p_dict['adjust_for_sex'],
                                                     adjust_for_covariates=p_dict['adjust_for_covariates'],
                                                     adjust_for_pcs=p_dict['adjust_for_pcs'])
+            prs_file_is_missing=False
+
 
         for p_thres in p_dict['TS']:
             weights_file = '%s_P+T_p%0.4e.txt' % (p_dict['rf'], p_thres)
@@ -726,11 +733,16 @@ def main():
                                                         adjust_for_covariates=p_dict['adjust_for_covariates'],
                                                         adjust_for_pcs=p_dict['adjust_for_pcs'],
                                                         non_zero_chromosomes=non_zero_chromosomes)
+                prs_file_is_missing=False
 
         # Plot results?
     else:
         raise NotImplementedError(
             'Results file format missing or unknown: %s' % p_dict['res_format'])
+    
+    if prs_file_is_missing:
+        print 'PRS weights files were not found.  This could be due to a misspecified --rf flag, or other issues.'
+
 
 
 if __name__ == '__main__':
