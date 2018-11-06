@@ -44,11 +44,9 @@ validate --vgf=PLINK_VAL_GENOTYPE_FILE  --rf=RESULT_FILE_PREFIX  --out=OUTPUT_FI
 import getopt
 import sys
 import os
-import traceback
 import scipy as sp
 from scipy import linalg
 import itertools as it
-import time
 import h5py
 import plinkfiles
 
@@ -70,7 +68,7 @@ def parse_parameters():
 
     if len(sys.argv) > 1:
         try:
-            opts, args = getopt.getopt(sys.argv[1:], "h", long_options_list)
+            opts,  = getopt.getopt(sys.argv[1:], "h", long_options_list)
 
         except:
             print "Some problems with parameters.  Please read the usage documentation carefully."
@@ -271,6 +269,7 @@ def get_prs(genotype_file, rs_id_map, phen_map=None):
 def parse_phen_file(pf, pf_format):
     print pf
     phen_map = {}
+    num_phens_found = 0
     if pf != None:
         if pf_format == 'FAM':
             """
@@ -286,13 +285,11 @@ def parse_phen_file(pf, pf_format):
                 for line in f:
                     l = line.split()
                     iid = l[1]
-                    # iid = iid[:-4]
                     sex = int(l[4])
                     phen = float(l[5])
                     if sex != 0 and phen != -9:
                         phen_map[iid] = {'phen': phen, 'sex': sex}
-
-            iids = set(phen_map.keys())
+                        num_phens_found +=1
 
         if pf_format == 'STANDARD':
             """
@@ -305,8 +302,7 @@ def parse_phen_file(pf, pf_format):
                     iid = l[0]
                     phen = float(l[1])
                     phen_map[iid] = {'phen': phen}
-
-            iids = set(phen_map.keys())
+                    num_phens_found +=1
 
         elif pf_format == 'S2':
             """
@@ -326,7 +322,9 @@ def parse_phen_file(pf, pf_format):
                         raise Exception('Sex missing')
                     phen = float(l[3])
                     phen_map[iid] = {'phen': phen, 'age': age, 'sex': sex}
+                    num_phens_found +=1
 
+    print "Parsed %d phenotypes successfully"%num_phens_found
     return phen_map
 
 
@@ -639,7 +637,6 @@ def main():
             raise Exception('Validation phenotypes were not found.')
     else:
         phen_map = parse_phen_file(p_dict['pf'], p_dict['pf_format'])
-    iids = set(phen_map.keys())
 
     if p_dict['cov_file'] != None:
         print 'Parsing additional covariates'
