@@ -640,7 +640,7 @@ def parse_sum_stats_decode(filename=None,
     ssg = hdf5_file.create_group('sum_stats')
     num_snps = 0
     for chrom in chrom_dict.keys():
-        print '%d SNPs on chromosome %d' % (len(chrom_dict[chrom]['positions']), chrom)
+        print '%d SNPs on chromosome %s' % (len(chrom_dict[chrom]['positions']), chrom)
         sl = zip(chrom_dict[chrom]['positions'], chrom_dict[chrom]['sids'], chrom_dict[chrom]['nts'],
                  chrom_dict[chrom]['betas'], chrom_dict[chrom]['log_odds'],
                  chrom_dict[chrom]['freqs'], chrom_dict[chrom]['ps'])
@@ -666,7 +666,7 @@ def parse_sum_stats_decode(filename=None,
             positions.append(pos)
             log_odds.append(lo)
             freqs.append(frq)
-        print 'Still %d SNPs on chromosome %d' % (len(ps), chrom)
+        print 'Still %d SNPs on chromosome %s' % (len(ps), chrom)
         g = ssg.create_group('chrom_%d' % chrom)
         ps = sp.array(ps)
         assert not sp.any(sp.isnan(ps)), 'Some p-values are NANs (not a number)'
@@ -989,7 +989,7 @@ def parse_sum_stats_basic(filename=None,
             sids.append(sid)
             positions.append(pos)
             log_odds.append(lo)
-        g = ssg.create_group('chrom_%d' % chrom)
+        g = ssg.create_group('chrom_%s' % chrom)
         g.create_dataset('ps', data=sp.array(ps))
         g.create_dataset('betas', data=betas)
         g.create_dataset('log_odds', data=log_odds)
