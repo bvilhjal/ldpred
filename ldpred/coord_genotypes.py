@@ -96,7 +96,7 @@ def parse_parameters():
         print __doc__
     elif len(sys.argv) > 1:
         try:
-            opts, = getopt.getopt(sys.argv[1:], "h", long_options_list)
+            opts, args = getopt.getopt(sys.argv[1:], "h", long_options_list)
 
         except:
             print "Some problems with parameters.  Please read the usage documentation carefully."
