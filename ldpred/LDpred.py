@@ -430,80 +430,12 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=1000, l
 
 def main():
     p_dict = parse_parameters()
-    local_ld_dict_file = '%s_ldradius%d.pickled.gz' % (p_dict['local_ld_file_prefix'], p_dict['ld_radius'])
     
     print """
 Note: For maximal accuracy all SNPs with LDpred weights should be included in the validation data set.
 If they are a subset of the validation data set, then we suggest recalculate LDpred for the overlapping SNPs. 
 """
-    if not os.path.isfile(local_ld_dict_file):
-        df = h5py.File(p_dict['coord'])
-                 
-        chrom_ld_scores_dict = {}
-        chrom_ld_dict = {}
-        chrom_ref_ld_mats = {}
-        if p_dict['gm_ld_radius'] is not None:
-            chrom_ld_boundaries = {}
-        ld_score_sum = 0
-        num_snps = 0
-        print 'Calculating LD information w. radius %d' % p_dict['ld_radius']
-
-        cord_data_g = df['cord_data']
-
-        for chrom_str in cord_data_g.keys():
-            print 'Working on %s' % chrom_str
-            g = cord_data_g[chrom_str]
-            if 'raw_snps_ref' in g.keys():
-                raw_snps = g['raw_snps_ref'][...]
-                snp_stds = g['snp_stds_ref'][...]
-                snp_means = g['snp_means_ref'][...]
-            
-            
-            # Filter monomorphic SNPs
-            ok_snps_filter = snp_stds > 0
-            ok_snps_filter = ok_snps_filter.flatten()
-            raw_snps = raw_snps[ok_snps_filter]
-            snp_means = snp_means[ok_snps_filter]
-            snp_stds = snp_stds[ok_snps_filter]
-
-            n_snps = len(raw_snps)
-            snp_means.shape = (n_snps, 1)   
-            snp_stds.shape = (n_snps, 1)   
-            
-            
-            # Normalize SNPs..
-            snps = sp.array((raw_snps - snp_means) / snp_stds, dtype='float32')
-            assert snps.shape == raw_snps.shape, 'Problems normalizing SNPs (array shape mismatch).'
-            if p_dict['gm_ld_radius'] is not None:
-                assert 'genetic_map' in g.keys(), 'Genetic map is missing.'
-                gm = g['genetic_map'][...]
-                ret_dict = ld.get_LDpred_ld_tables(snps, gm=gm, gm_ld_radius=p_dict['gm_ld_radius'])
-                chrom_ld_boundaries[chrom_str] = ret_dict['ld_boundaries']
-            else:
-                ret_dict = ld.get_LDpred_ld_tables(snps, ld_radius=p_dict['ld_radius'], ld_window_size=2 * p_dict['ld_radius'])
-            chrom_ld_dict[chrom_str] = ret_dict['ld_dict']
-            chrom_ref_ld_mats[chrom_str] = ret_dict['ref_ld_matrices']
-            ld_scores = ret_dict['ld_scores']
-            chrom_ld_scores_dict[chrom_str] = {'ld_scores':ld_scores, 'avg_ld_score':sp.mean(ld_scores)}
-            ld_score_sum += sp.sum(ld_scores)
-            num_snps += n_snps
-        avg_gw_ld_score = ld_score_sum / float(num_snps)
-        ld_scores_dict = {'avg_gw_ld_score': avg_gw_ld_score, 'chrom_dict':chrom_ld_scores_dict}    
-        
-        print 'Done calculating the LD table and LD score, writing to file:', local_ld_dict_file
-        print 'Genome-wide average LD score was:', ld_scores_dict['avg_gw_ld_score']
-        ld_dict = {'ld_scores_dict':ld_scores_dict, 'chrom_ld_dict':chrom_ld_dict, 'chrom_ref_ld_mats':chrom_ref_ld_mats}
-        if p_dict['gm_ld_radius'] is not None:
-            ld_dict['chrom_ld_boundaries'] = chrom_ld_boundaries 
-        f = gzip.open(local_ld_dict_file, 'wb')
-        cPickle.dump(ld_dict, f, protocol=2)
-        f.close()
-        print 'LD information is now pickled.'
-    else:
-        print 'Loading LD information from file: %s' % local_ld_dict_file
-        f = gzip.open(local_ld_dict_file, 'r')
-        ld_dict = cPickle.load(f)
-        f.close()
+    ld_dict = ld.get_ld_dict(p_dict['coord'], p_dict['local_ld_file_prefix'], p_dict['ld_radius'], p_dict['gm_ld_radius'])
         
     ldpred_genomewide(data_file=p_dict['coord'], out_file_prefix=p_dict['out'], ps=p_dict['PS'], ld_radius=p_dict['ld_radius'],
                       ld_dict=ld_dict, n=p_dict['N'], num_iter=p_dict['num_iter'], h2=p_dict['H2'], verbose=False)

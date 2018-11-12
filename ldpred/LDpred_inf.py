@@ -50,9 +50,9 @@ def parse_parameters():
 #        print __doc__
 #        sys.exit(2)
 
-    long_options_list = ['coord=', 'ld_radius=', 'ld_prefix=', 'out=', 'N=', 'H2=',]
+    long_options_list = ['coord=', 'ld_radius=', 'local_ld_file_prefix=', 'out=', 'N=', 'H2=',]
 
-    p_dict = {'coord':None, 'ld_radius':None, 'ld_prefix':None, 'out':None, 'N':None, 'H2':None}
+    p_dict = {'coord':None, 'ld_radius':None, 'gm_ld_radius':None, 'local_ld_file_prefix':None, 'out':None, 'N':None, 'H2':None}
 
     if len(sys.argv) > 1:
         try:
@@ -70,7 +70,7 @@ def parse_parameters():
                 sys.exit(0)
             elif opt in ("--coord"): p_dict['coord'] = arg
             elif opt in ("--ld_radius"): p_dict['ld_radius'] = int(arg)
-            elif opt in ("--ld_prefix"): p_dict['ld_prefix'] = arg
+            elif opt in ("--local_ld_file_prefix"): p_dict['local_ld_file_prefix'] = arg
             elif opt in ("--out"): p_dict['out'] = arg
             elif opt in ("--N"): p_dict['N'] = int(arg)
             elif opt in ("--H2"): p_dict['H2'] = float(arg)
@@ -257,59 +257,12 @@ def ldpred_inf_genomewide(data_file=None, ld_radius = None, ld_dict=None, out_fi
 def main():
     p_dict = parse_parameters()
 
-    #Use the same LD file as LDpred
-    local_ld_dict_file = '%s_ldradius%d.pickled.gz'%(p_dict['ld_prefix'], p_dict['ld_radius'])
     
     print """
 Note: For maximal accuracy all SNPs with LDpred weights should be included in the validation data set.
 If they are a subset of the validation data set, then we suggest recalculate LDpred for the overlapping SNPs. 
 """
-    if not os.path.isfile(local_ld_dict_file):
-        df = h5py.File(p_dict['coord'])
-                 
-        chrom_ld_scores_dict = {}
-        chrom_ld_dict = {}
-        chrom_ref_ld_mats = {}
-        ld_score_sum = 0
-        num_snps = 0
-        print 'Calculating LD information w. radius %d'% p_dict['ld_radius']
-
-        cord_data_g = df['cord_data']
-
-        for chrom_str in cord_data_g.keys():
-            print 'Working on %s'%chrom_str
-            g = cord_data_g[chrom_str]
-            if 'raw_snps_ref' in g.keys():
-                raw_snps = g['raw_snps_ref'][...]
-                snp_stds = g['snp_stds_ref'][...]
-                snp_means = g['snp_means_ref'][...]
-            
-            n_snps = len(raw_snps)
-            snp_means.shape = (n_snps,1)   
-            snp_stds.shape = (n_snps,1)   
-            
-            # Normalize SNPs..
-            snps = sp.array((raw_snps - snp_means)/snp_stds,dtype='float32')
-            ret_dict = ld.get_LDpred_ld_tables(snps, ld_radius=p_dict['ld_radius'], ld_window_size=2*p_dict['ld_radius'])
-            chrom_ld_dict[chrom_str] = ret_dict['ld_dict']
-            chrom_ref_ld_mats[chrom_str] = ret_dict['ref_ld_matrices']
-            ld_scores = ret_dict['ld_scores']
-            chrom_ld_scores_dict[chrom_str] = {'ld_scores':ld_scores, 'avg_ld_score':sp.mean(ld_scores)}
-            ld_score_sum += sp.sum(ld_scores)
-            num_snps += n_snps
-        avg_gw_ld_score = ld_score_sum / float(num_snps)
-        ld_scores_dict = {'avg_gw_ld_score': avg_gw_ld_score, 'chrom_dict':chrom_ld_scores_dict}    
-        
-        print 'Done calculating the LD table and LD score, writing to file:', local_ld_dict_file
-        print 'Genome-wide average LD score was:', ld_scores_dict['avg_gw_ld_score']
-        ld_dict = {'ld_scores_dict':ld_scores_dict, 'chrom_ld_dict':chrom_ld_dict, 'chrom_ref_ld_mats':chrom_ref_ld_mats}
-        with gzip.open(local_ld_dict_file, 'wb') as f:
-            cPickle.dump(ld_dict, f, protocol=2)
-        print 'LD information is now pickled.'
-    else:
-        print 'Loading LD information from file: %s'%local_ld_dict_file
-        with gzip.open(local_ld_dict_file, 'r') as f:
-            ld_dict = cPickle.load(f)
+    ld_dict = ld.get_ld_dict(p_dict['coord'], p_dict['local_ld_file_prefix'], p_dict['ld_radius'], p_dict['gm_ld_radius'])
     
     ldpred_inf_genomewide(data_file=p_dict['coord'], out_file_prefix=p_dict['out'], ld_radius=p_dict['ld_radius'], 
                           ld_dict = ld_dict, n=p_dict['N'], h2=p_dict['H2'], verbose=False)
