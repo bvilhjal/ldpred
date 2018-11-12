@@ -32,7 +32,7 @@ assert os.system(cmd_str) == 0, 'Problems when running LDpred!  Testing stopped'
 
 out_file = tmp_file_prefix + '.res'
 print 'Coordinating test data with LD file and results file prefix: %s ' % tmp_file_prefix
-cmd_str = 'python ./ldpred/LD_pruning_thres.py --coord=%s  --ld_radius=100  --TS=0.001 --out=%s' % (coord_file, tmp_file_prefix, tmp_file_prefix)
+cmd_str = 'python ./ldpred/LD_pruning_thres.py --coord=%s  --ld_radius=100  --TS=0.001 --out=%s' % (coord_file, tmp_file_prefix)
 print cmd_str + '\n'
 assert os.system(cmd_str) == 0, 'Problems when running P+T!  Testing stopped'
 
