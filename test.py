@@ -20,15 +20,33 @@ assert os.system(cmd_str) == 0, 'Problems when coordinating data!  Testing stopp
 
 out_file = tmp_file_prefix + '.res'
 print 'Coordinating test data with LD file and results file prefix: %s ' % tmp_file_prefix
+cmd_str = 'python ./ldpred/LDpred_inf.py --coord=%s  --ld_radius=100   --local_ld_file_prefix=%s  --N=10000  --out=%s' % (coord_file, tmp_file_prefix, tmp_file_prefix)
+print cmd_str + '\n'
+assert os.system(cmd_str) == 0, 'Problems when running LDpred_inf!  Testing stopped'
+
+out_file = tmp_file_prefix + '.res'
+print 'Coordinating test data with LD file and results file prefix: %s ' % tmp_file_prefix
 cmd_str = 'python ./ldpred/LDpred.py --coord=%s  --ld_radius=100   --local_ld_file_prefix=%s  --PS=0.001 --N=10000  --out=%s' % (coord_file, tmp_file_prefix, tmp_file_prefix)
 print cmd_str + '\n'
 assert os.system(cmd_str) == 0, 'Problems when running LDpred!  Testing stopped'
+
+out_file = tmp_file_prefix + '.res'
+print 'Coordinating test data with LD file and results file prefix: %s ' % tmp_file_prefix
+cmd_str = 'python ./ldpred/LD_pruning_thres.py --coord=%s  --ld_radius=100  --TS=0.001 --out=%s' % (coord_file, tmp_file_prefix, tmp_file_prefix)
+print cmd_str + '\n'
+assert os.system(cmd_str) == 0, 'Problems when running P+T!  Testing stopped'
 
 out_file = tmp_file_prefix + '.res'
 print 'Validating results with output file prefix: %s' % tmp_file_prefix
 cmd_str = 'python ./ldpred/validate.py --vgf=./test_data/LDpred_data_p0.001_test_0  --rf=%s  --out=%s' % (tmp_file_prefix, tmp_file_prefix)
 print cmd_str + '\n'
 assert os.system(cmd_str) == 0, 'Problems with the validation step!  Testing stopped'
+
+out_file = tmp_file_prefix + '.res'
+print 'Validating results with output file prefix: %s' % tmp_file_prefix
+cmd_str = 'python ./ldpred/validate.py --vgf=./test_data/LDpred_data_p0.001_test_0  --rf=%s  --res_format=P+T --out=%s' % (tmp_file_prefix, tmp_file_prefix)
+print cmd_str + '\n'
+assert os.system(cmd_str) == 0, 'Problems with the P+T validation step!  Testing stopped'
 
 
 print 'Cleaning up files.'

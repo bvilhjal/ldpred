@@ -34,10 +34,7 @@ ldpred --coord=COORD_DATA_FILE  --ld_radius=LD_RADIUS   --local_ld_file_prefix=L
  
  """
 
-import cPickle
 import getopt
-import gzip
-import os
 import sys
 import time
 

@@ -29,12 +29,8 @@ import sys
 import traceback
 import h5py
 import scipy as sp
-from scipy import linalg
 import ld
-import cPickle
 import time
-import os
-import gzip
 import itertools as it
 
 def parse_parameters():
