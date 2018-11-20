@@ -41,7 +41,7 @@ def parse_plink_snps(genotype_file, snp_indices):
     next_i = ordered_snp_indices.pop()
     line_i = 0
     max_i = ordered_snp_indices[0]
-    while line_i <= max_i:
+    while line_i <= max_i: 
         if line_i < next_i:
             plinkf.next()
         elif line_i == next_i:

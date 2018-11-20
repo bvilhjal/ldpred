@@ -46,7 +46,6 @@ import itertools as it
 import ld
 import scipy as sp
 
-from coord_genotypes import chromosomes_list
 import util
 
 
@@ -123,7 +122,7 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
     sum_beta2s = 0
     cord_data_g = df['cord_data']
 
-    for chrom_str in chromosomes_list: 
+    for chrom_str in util.chromosomes_list: 
         if chrom_str in cord_data_g.keys():
             g = cord_data_g[chrom_str]
             betas = g['betas'][...]
@@ -142,7 +141,7 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
     
     LDpred_inf_chrom_dict = {}
     print 'Calculating LDpred-inf weights'
-    for chrom_str in chromosomes_list:
+    for chrom_str in util.chromosomes_list:
         if chrom_str in cord_data_g.keys():
             print 'Calculating scores for Chromosome %s' % ((chrom_str.split('_'))[1])           
             g = cord_data_g[chrom_str]
@@ -178,7 +177,7 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
             out_positions = []
             out_nts = []
             
-        for chrom_str in chromosomes_list:
+        for chrom_str in util.chromosomes_list:
             if chrom_str in cord_data_g.keys():
                 g = cord_data_g[chrom_str]
                 if has_phenotypes:

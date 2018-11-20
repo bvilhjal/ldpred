@@ -213,7 +213,7 @@ def ld_pruning(data_file=None, ld_radius = None, out_file_prefix=None, p_thres=N
 
                 
         if has_phenotypes:
-            print 'Calculating scores for Chromosome %s'%chrom_str
+            print 'Calculating scores for Chromosome %s'%chrom_str 
             prs = sp.dot(updated_raw_betas, raw_snps)
             risk_scores += prs
             corr = sp.corrcoef(y, prs)[0, 1]

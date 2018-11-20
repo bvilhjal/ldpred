@@ -42,7 +42,7 @@ validate --vgf=PLINK_VAL_GENOTYPE_FILE  --rf=RESULT_FILE_PREFIX  --out=OUTPUT_FI
  """
 
 import getopt
-import sys
+import sys 
 import os
 import scipy as sp
 from scipy import linalg

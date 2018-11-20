@@ -4,6 +4,25 @@ Various general utility functions.
 """
 import scipy as sp
 
+#Various auxiliary variables
+ambig_nts = set([('A', 'T'), ('T', 'A'), ('G', 'C'), ('C', 'G')])
+opp_strand_dict = {'A': 'T', 'G': 'C', 'T': 'A', 'C': 'G'}
+
+valid_nts = set(['A', 'T', 'C', 'G'])
+
+lc_CAPs_dict = {'a': 'A', 'c': 'C', 'g': 'G', 't': 'T'}
+
+# LDpred currently ignores the Y and MT chromosomes.
+valid_chromosomes = ['%d' % (x) for x in range(1, 24)]
+valid_chromosomes.append('X')
+
+chromosomes_list = ['chrom_%s' % (chrom) for chrom in valid_chromosomes]
+
+def check_chromosomes(missing_chromosomes):
+        if len(missing_chromosomes) > 0:
+            print 'Ignored chromosomes:', ','.join(list(missing_chromosomes))
+            print 'Please note that only data on chromosomes 1-23, and X is parsed.'
+
 
 def calc_auc(y_true, y_hat, show_plot=False):
     """
@@ -19,7 +38,7 @@ def calc_auc(y_true, y_hat, show_plot=False):
             y_true[y_true == y_max] = 1
         
     else:
-        print 'Warning: Calculating AUC for a quantiative phenotype.'
+        print 'Warning: Calculating AUC for a quantitative phenotype.'
         y_mean = sp.mean(y_true)
         zero_filter = y_true <= y_mean
         one_filter = y_true > y_mean

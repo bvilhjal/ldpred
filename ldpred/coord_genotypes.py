@@ -66,19 +66,8 @@ import gzip
 import random
 import plinkfiles
 import h5py
+import util
 
-ambig_nts = set([('A', 'T'), ('T', 'A'), ('G', 'C'), ('C', 'G')])
-opp_strand_dict = {'A': 'T', 'G': 'C', 'T': 'A', 'C': 'G'}
-
-valid_nts = set(['A', 'T', 'C', 'G'])
-
-lc_CAPs_dict = {'a': 'A', 'c': 'C', 'g': 'G', 't': 'T'}
-
-
-# LDpred currently ignores the Y and MT chromosomes.
-ok_chromosomes = ['%d' % (x) for x in range(1, 23)]
-ok_chromosomes.append('X')
-chromosomes_list = ['chrom_%s' % (chrom) for chrom in ok_chromosomes]
 
 
 def parse_parameters():
@@ -285,12 +274,12 @@ def parse_sum_stats_standard(filename=None,
     print 'Parsing the file: %s' % filename
     with open(filename) as f:
         print f.next()
-        bad_chromosomes = set()
+        missing_chromosomes = set()
         for line in f:
             l = (line.strip()).split()
             chrom = l[0][3:]
-            if not chrom in ok_chromosomes:
-                bad_chromosomes.add(chrom)
+            if not chrom in util.valid_chromosomes:
+                missing_chromosomes.add(chrom)
                 continue
             pos = int(l[1])
             sid = l[6]
@@ -313,9 +302,7 @@ def parse_sum_stats_standard(filename=None,
 
                 chrom_dict[chrom]['betas'].append(beta / sp.sqrt(n))
 
-        if len(bad_chromosomes) > 0:
-            print 'Ignored chromosomes:', ','.join(list(bad_chromosomes))
-            print 'Please note that only data on chromosomes 1-23, and X is parsed.'
+        util.check_chromosomes(missing_chromosomes)
 
     print 'SS file loaded, now sorting and storing in HDF5 file.'
     assert not 'sum_stats' in hdf5_file.keys(), 'Something is wrong with HDF5 file.  Summary stats already found.'
@@ -396,7 +383,7 @@ def parse_sum_stats_giant(filename=None,
     print 'Parsing the file: %s' % filename
     with open(filename) as f:
         print f.next()
-        bad_chromosomes = set()
+        missing_chromosomes = set()
         for line in f:
             l = (line.strip()).split()
             sid = l[0]
@@ -405,8 +392,8 @@ def parse_sum_stats_giant(filename=None,
             if sid in valid_sids:
                 pos = snps_pos_map[sid]['pos']
                 chrom = snps_pos_map[sid]['chrom']
-                if not chrom in ok_chromosomes:
-                    bad_chromosomes.add(chrom)
+                if not chrom in util.valid_chromosomes:
+                    missing_chromosomes.add(chrom)
                     continue
                 if not chrom in chrom_dict.keys():
                     chrom_dict[chrom] = {'ps': [], 'log_odds': [], 'freqs': [],
@@ -427,9 +414,8 @@ def parse_sum_stats_giant(filename=None,
                 beta = sp.sign(raw_beta) * stats.norm.ppf(pval / 2.0)
                 chrom_dict[chrom]['betas'].append(beta / sp.sqrt(n))
                 chrom_dict[chrom]['log_odds'].append(beta / sp.sqrt(n))
-        if len(bad_chromosomes) > 0:
-            print 'Ignored chromosomes:', ','.join(list(bad_chromosomes))
-            print 'Please note that only data on chromosomes 1-23, and X is parsed.'
+
+        util.check_chromosomes(missing_chromosomes)
 
     print 'SS file loaded, now sorting and storing in HDF5 file.'
     assert not 'sum_stats' in hdf5_file.keys(), 'Something is wrong with HDF5 file?  Summary stats already found.'
@@ -508,7 +494,7 @@ def parse_sum_stats_giant2(filename=None,
     print 'Parsing the file: %s' % filename
     with open(filename) as f:
         print f.next()
-        bad_chromosomes = set()
+        missing_chromosomes = set()
         for line in f:
             l = (line.strip()).split()
             sid = l[0]
@@ -517,8 +503,8 @@ def parse_sum_stats_giant2(filename=None,
             if sid in valid_sids:
                 pos = snps_pos_map[sid]['pos']
                 chrom = snps_pos_map[sid]['chrom']
-                if not chrom in ok_chromosomes:
-                    bad_chromosomes.add(chrom)
+                if not chrom in util.valid_chromosomes:
+                    missing_chromosomes.add(chrom)
                     continue
 
                 if not chrom in chrom_dict.keys():
@@ -540,9 +526,9 @@ def parse_sum_stats_giant2(filename=None,
                 beta = sp.sign(raw_beta) * stats.norm.ppf(pval / 2.0)
                 chrom_dict[chrom]['betas'].append(beta / sp.sqrt(n))
                 chrom_dict[chrom]['log_odds'].append(beta / sp.sqrt(n))
-        if len(bad_chromosomes) > 0:
-            print 'Ignored chromosomes:', ','.join(list(bad_chromosomes))
-            print 'Please note that only data on chromosomes 1-23, and X is parsed.'
+
+        
+        util.check_chromosomes(missing_chromosomes)
 
     print 'SS file loaded, now sorting and storing in HDF5 file.'
     assert not 'sum_stats' in hdf5_file.keys(), 'Something is wrong with HDF5 file?  Summary stats already found.'
@@ -603,7 +589,7 @@ def parse_sum_stats_decode(filename=None,
     print 'Parsing the file: %s' % filename
     with open(filename) as f:
         print f.next()
-        bad_chromosomes = set()
+        missing_chromosomes = set()
         for line in f:
             #             if random.random()>debug_filter:
             #                 continue
@@ -611,8 +597,8 @@ def parse_sum_stats_decode(filename=None,
             sid = l[14]
             pos = l[11]
             chrom = l[10][3:]
-            if not chrom in ok_chromosomes:
-                bad_chromosomes.add(chrom)
+            if not chrom in util.valid_chromosomes:
+                missing_chromosomes.add(chrom)
                 continue
             if not chrom in chrom_dict.keys():
                 chrom_dict[chrom] = {'ps': [], 'log_odds': [], 'freqs': [],
@@ -630,9 +616,8 @@ def parse_sum_stats_decode(filename=None,
             chrom_dict[chrom]['log_odds'].append(raw_beta)
             beta = sp.sign(raw_beta) * stats.norm.ppf(pval / 2.0)
             chrom_dict[chrom]['betas'].append(beta / sp.sqrt(n))
-        if len(bad_chromosomes) > 0:
-            print 'Ignored chromosomes:', ','.join(list(bad_chromosomes))
-            print 'Please note that only data on chromosomes 1-23, and X is parsed.'
+        util.check_chromosomes(missing_chromosomes)
+
 
     print 'SS file loaded, now sorting and storing in HDF5 file.'
     assert not 'sum_stats' in hdf5_file.keys(), 'Something is wrong with HDF5 file? Summary stats already found.'
@@ -714,12 +699,12 @@ def parse_sum_stats_pgc(filename=None,
     u_scalar = 40629 / denom
     with open(filename) as f:
         print f.next()
-        bad_chromosomes = set()
+        missing_chromosomes = set()
         for line in f:
             l = (line.strip()).split()
             chrom = l[0]
-            if not chrom in ok_chromosomes:
-                bad_chromosomes.add(chrom)
+            if not chrom in util.valid_chromosomes:
+                missing_chromosomes.add(chrom)
                 continue
             pos = int(l[2])
             sid = l[1]
@@ -744,9 +729,7 @@ def parse_sum_stats_pgc(filename=None,
                 beta = sp.sign(raw_beta) * stats.norm.ppf(pval / 2.0)
 
                 chrom_dict[chrom]['betas'].append(beta / sp.sqrt(n))
-        if len(bad_chromosomes) > 0:
-            print 'Ignored chromosomes:', ','.join(list(bad_chromosomes))
-            print 'Please note that only data on chromosomes 1-23, and X is parsed.'
+        util.check_chromosomes(missing_chromosomes)
 
     print 'SS file loaded, now sorting and storing in HDF5 file.'
     assert not 'sum_stats' in hdf5_file.keys(), 'Something is wrong with HDF5 file? Summary stats already found.'
@@ -824,13 +807,13 @@ def parse_sum_stats_pgc_small(filename=None,
     print 'Parsing the file: %s' % filename
     with open(filename) as f:
         print f.next()
-        bad_chromosomes = set()
+        missing_chromosomes = set()
         for line in f:
             l = (line.strip()).split()
             chrom_str = l[0]
             chrom = chrom_str[3:]
-            if not chrom in ok_chromosomes:
-                bad_chromosomes.add(chrom)
+            if not chrom in util.valid_chromosomes:
+                missing_chromosomes.add(chrom)
                 continue
             pos = int(l[4])
             sid = l[1]
@@ -852,9 +835,7 @@ def parse_sum_stats_pgc_small(filename=None,
                 beta = sp.sign(raw_beta) * stats.norm.ppf(pval / 2.0)
 
                 chrom_dict[chrom]['betas'].append(beta / sp.sqrt(n))
-        if len(bad_chromosomes) > 0:
-            print 'Ignored chromosomes:', ','.join(list(bad_chromosomes))
-            print 'Please note that only data on chromosomes 1-23, and X is parsed.'
+        util.check_chromosomes(missing_chromosomes)
 
     print 'SS file loaded, now sorting and storing in HDF5 file.'
     assert not 'sum_stats' in hdf5_file.keys(), 'Something is wrong with HDF5 file? Summary stats already found.'
@@ -927,14 +908,14 @@ def parse_sum_stats_basic(filename=None,
 
     print 'Parsing the file: %s' % filename
     with open(filename) as f:
-        bad_chromosomes = set()
+        missing_chromosomes = set()
         print f.next()
         for line in f:
             l = (line.strip()).split()
             chrom_str = l[0]
             chrom = chrom_str[3:]
-            if not chrom in ok_chromosomes:
-                bad_chromosomes.add(chrom)
+            if not chrom in util.valid_chromosomes:
+                missing_chromosomes.add(chrom)
                 continue
             pos = int(l[4])
             sid = l[1]
@@ -956,9 +937,7 @@ def parse_sum_stats_basic(filename=None,
                 beta = sp.sign(raw_beta) * stats.norm.ppf(pval / 2.0)
                 chrom_dict[chrom]['betas'].append(beta / sp.sqrt(n))
 
-        if len(bad_chromosomes) > 0:
-            print 'Ignored chromosomes:', ','.join(list(bad_chromosomes))
-            print 'Please note that only data on chromosomes 1-23, and X is parsed.'
+        util.check_chromosomes(missing_chromosomes)
 
     print 'SS file loaded, now sorting and storing in HDF5 file.'
     assert not 'sum_stats' in hdf5_file.keys(), 'Something is wrong with HDF5 file? Summary stats already found.'
@@ -1161,12 +1140,12 @@ def coordinate_genot_ss(genotype_file=None,
             g_nt = [g_nts[g_i][0], g_nts[g_i][1]]
 
             if not skip_coordination:
-                if tuple(g_nt) in ambig_nts:
+                if tuple(g_nt) in util.ambig_nts:
                     num_ambig_nts += 1
                     tot_num_non_matching_nts += 1
                     continue
 
-                if (not g_nt[0] in valid_nts) or (not g_nt[1] in valid_nts):
+                if (not g_nt[0] in util.valid_nts) or (not g_nt[1] in util.valid_nts):
                     num_non_matching_nts += 1
                     tot_num_non_matching_nts += 1
                     continue
@@ -1176,7 +1155,7 @@ def coordinate_genot_ss(genotype_file=None,
                 # Are the nucleotides the same?
                 flip_nts = False
                 os_g_nt = sp.array(
-                    [opp_strand_dict[g_nt[0]], opp_strand_dict[g_nt[1]]])
+                    [util.opp_strand_dict[g_nt[0]], util.opp_strand_dict[g_nt[1]]])
                 if not (sp.all(g_nt == ss_nt) or sp.all(os_g_nt == ss_nt)):
                     # Opposite strand nucleotides
                     flip_nts = (g_nt[1] == ss_nt[0] and g_nt[0] == ss_nt[1]) or (
@@ -1475,19 +1454,19 @@ def coordinate_genotypes_ss_w_ld_ref(genotype_file=None,
 
                 # Is the nucleotide ambiguous.
                 g_nt = [g_nts[g_i][0], g_nts[g_i][1]]
-                if tuple(g_nt) in ambig_nts:
+                if tuple(g_nt) in util.ambig_nts:
                     num_ambig_nts += 1
                     tot_num_non_matching_nts += 1
                     continue
 
                 # First check if nucleotide is sane?
-                if (not g_nt[0] in valid_nts) or (not g_nt[1] in valid_nts):
+                if (not g_nt[0] in util.valid_nts) or (not g_nt[1] in util.valid_nts):
                     num_non_matching_nts += 1
                     tot_num_non_matching_nts += 1
                     continue
 
                 os_g_nt = sp.array(
-                    [opp_strand_dict[g_nt[0]], opp_strand_dict[g_nt[1]]])
+                    [util.opp_strand_dict[g_nt[0]], util.opp_strand_dict[g_nt[1]]])
 
                 flip_nts = False
                 if not ((sp.all(g_nt == ss_nt) or sp.all(os_g_nt == ss_nt)) and (sp.all(g_nt == rg_nt) or sp.all(os_g_nt == rg_nt))):

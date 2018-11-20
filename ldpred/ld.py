@@ -3,12 +3,7 @@ Various useful LD functions.
 
 
 """
-try: 
-    import scipy as sp
-except Exception:
-    print 'Using Numpy instead of Scipy.'
-    import numpy as sp
-    
+import scipy as sp    
 import sys, os, gzip, cPickle
 import time
 import h5py
