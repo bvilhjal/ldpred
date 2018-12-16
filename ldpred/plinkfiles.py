@@ -3,8 +3,8 @@ Code for handling plink files.
 
 Uses plinkio.
 """
-from plinkio import plinkfile
 import scipy as sp
+from plinkio import plinkfile
 
 def get_chrom_dict(loci, chromosomes):
     chr_dict = {}
@@ -17,7 +17,6 @@ def get_chrom_dict(loci, chromosomes):
         pos = l.bp_position
         chr_str = 'chrom_%d' % chrom
         chr_dict[chr_str]['sids'].append(l.name)
-#         chr_dict[chr_str]['sids'].append('%d_%d'%(chrom,pos))
         chr_dict[chr_str]['snp_indices'].append(i)
         chr_dict[chr_str]['positions'].append(pos)
         chr_dict[chr_str]['nts'].append([l.allele1, l.allele2])
@@ -59,7 +58,7 @@ def parse_plink_snps(genotype_file, snp_indices):
             snp_i += 1
         line_i += 1
     plinkf.close()
-    assert snp_i == len(raw_snps), 'Failed to parse SNPs?'
+    assert snp_i == len(raw_snps), 'Parsing SNPs from plink file failed.'
     num_indivs = len(raw_snps[0])
     freqs = sp.sum(raw_snps, 1, dtype='float32') / (2 * float(num_indivs))
     return raw_snps, freqs

@@ -35,7 +35,6 @@ def get_LDpred_ld_tables(snps, ld_radius=100, ld_window_size=0, h2=None, n_train
             r2s = D_i ** 2
             ld_dict[snp_i] = D_i
             lds_i = sp.sum(r2s - (1 - r2s) / (n - 2), dtype='float32')
-            # lds_i = sp.sum(r2s - (1-r2s)*empirical_null_r2)
             ld_scores[snp_i] = lds_i
     else:
         assert gm is not None, 'Genetic map is missing.'
@@ -68,7 +67,6 @@ def get_LDpred_ld_tables(snps, ld_radius=100, ld_window_size=0, h2=None, n_train
             r2s = D_i ** 2
             ld_dict[snp_i] = D_i
             lds_i = sp.sum(r2s - (1 - r2s) / (n - 2), dtype='float32')
-            # lds_i = sp.sum(r2s - (1-r2s)*empirical_null_r2)
             ld_scores[snp_i] = lds_i
         
         avg_window_size = sp.mean(window_sizes)
@@ -153,38 +151,6 @@ def calc_ld_table(snps, max_ld_dist=2000, min_r2=0.2, verbose=True, normalize=Fa
         print '\nIt took %d minutes and %0.2f seconds to calculate the LD table' % (t / 60, t % 60)
     del snps
     return ld_table
-
-
-
-# def calc_full_ld_table(ld_mat, min_ld=0.2, verbose=True):
-#     """
-#     Calculate LD between all SNPs using an efficient sliding LD square
-#     """
-#     if verbose:
-#         print 'Calculating LD table'
-#     t0 = time.time()
-#     m = ld_mat.shape[0]
-#     ld_table = {}
-#     for i in range(m):
-#         ld_table[i] = {}
-# 
-#     D2 = sp.array(ld_mat) ** 2
-#     # print D2
-#     for i in range(m - 1):
-#         for j in range(i + 1, m):
-#             if D2[i, j] > min_ld:
-#                 ld_table[j][i] = D2[i, j]
-#                 ld_table[i][j] = D2[i, j]
-#         if verbose:
-#             sys.stdout.write('\b\b\b\b\b\b\b%0.2f%%' % (100.0 * (min(1, float(i + 1) / (m)))))
-#             sys.stdout.flush()
-#     t1 = time.time()
-#     t = (t1 - t0)
-#     if verbose:
-#         print '\nIt took %d minutes and %0.2f seconds to calculate the LD table' % (t / 60, t % 60)
-#     return ld_table
-
-
 
 
 def ml_LD_shrink(beta_hats, genotypes=None, reference_ld_mats=None, window_method='sliding',
@@ -285,7 +251,7 @@ def ml_iter(beta_hats, genotypes, ld_radius=20,
     genotypes = sp.array(genotypes)
     n_test = len(genotypes[0])
     genotypes = sp.array(genotypes)
-    assert len(genotypes) == m, 'WTF?'
+    assert len(genotypes) == m, "The number of SNPs differs between genotypes and effect estimates."
     if verbose:
         print '# SNPs: %d' % m
 
@@ -320,7 +286,6 @@ def ml_iter(beta_hats, genotypes, ld_radius=20,
                 D_inv = linalg.pinv(D)
                 ld_table['D_inv'] = D_inv
                 updated_beta = sp.dot(D_inv[0], bs)
-                # assert updated_beta != beta_hats[i]
                 updated_beta_hats[i] = updated_beta
     for i in range(m):
         if not i in selected_indices:

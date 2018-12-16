@@ -50,6 +50,7 @@ import ld
 import scipy as sp
 
 from coord_genotypes import chromosomes_list
+import util
 
 
 __version__ = '0.9.1'
@@ -58,9 +59,6 @@ def parse_parameters():
     """
     Parse the parameters into a dict, etc.
     """
-#    if len(sys.argv) == 1:
-#        print __doc__
-#        sys.exit(2)
 
     long_options_list = ['coord=', 'ld_radius=', 'local_ld_file_prefix=', 'PS=', 'out=', 'N=',
                          'num_iter=', 'H2=', 'gm_ld_radius=', 'h', 'help']
@@ -75,8 +73,6 @@ def parse_parameters():
         except:
             print "Some problems with parameters.  Please read the usage documentation carefully."
             print "Use the -h option for usage information."
-#             traceback.print_exc()
-#             print __doc__
             sys.exit(2)
     
         for opt, arg in opts:
@@ -102,63 +98,7 @@ def parse_parameters():
     return p_dict
 
 
-def calc_auc(y_true, y_hat, show_plot=False):
-    """
-    Calculate the Area Under the Curve (AUC) for a predicted and observed case-control phenotype.
-    """
-    y_true = sp.copy(y_true)
-    if len(sp.unique(y_true)) == 2:
-        y_min = y_true.min()
-        y_max = y_true.max()
-        if y_min != 0 or y_max != 1:
-            print 'Transforming back to a dichotomous trait'
-            y_true[y_true == y_min] = 0
-            y_true[y_true == y_max] = 1
-        
-    else:
-        print 'Warning: Calculating AUC for a quantiative phenotype.'
-#         print sp.bincount(y_true)
-        y_mean = sp.mean(y_true)
-        zero_filter = y_true <= y_mean
-        one_filter = y_true > y_mean
-        y_true[zero_filter] = 0
-        y_true[one_filter] = 1
 
-    num_cases = sp.sum(y_true == 1)
-    num_controls = sp.sum(y_true == 0)
-    assert num_cases + num_controls == len(y_true), 'WTF?'
-    print '%d cases, %d controls' % (num_cases, num_controls) 
-    
-    num_indivs = float(len(y_true))
-    tot_num_pos = float(sp.sum(y_true))
-    tot_num_neg = float(num_indivs - tot_num_pos)
-        
-    l = y_hat.tolist()
-    l.sort(reverse=True)
-    roc_x = []
-    roc_y = []
-    auc = 0.0
-    prev_fpr = 0.0
-    for thres in l:
-        thres_filter = y_hat >= thres
-        y_t = y_true[thres_filter]
-        n = len(y_t)
-        tp = sp.sum(y_t)
-        fp = n - tp
-        
-        fpr = fp / tot_num_neg
-        tpr = tp / tot_num_pos
-        roc_x.append(fpr)
-        roc_y.append(tpr)
-        delta_fpr = fpr - prev_fpr
-        auc += tpr * delta_fpr
-        prev_fpr = fpr
-    print 'AUC: %0.4f' % auc
-    if show_plot:
-        import pylab
-        pylab.plot(roc_x, roc_y)
-        pylab.show()
-    return auc
 
 
 def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_prefix=None, ps=None,
@@ -215,6 +155,7 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
             snp_stds = snp_stds.flatten()
             ok_snps_filter = snp_stds > 0
             pval_derived_betas = g['betas'][...]
+            n_snps = len(pval_derived_betas)
             pval_derived_betas = pval_derived_betas[ok_snps_filter]
             if h2 is not None:
                 h2_chrom = h2 * (n_snps / float(num_snps))            
@@ -279,7 +220,6 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
                     h2_chrom = h2 * (n_snps / float(num_snps))            
                 else:
                     h2_chrom = gw_h2_ld_score_est * (n_snps / float(num_snps))
-                # print 'Prior parameters: p=%0.3f, n=%d, m=%d, h2_chrom=%0.4f' % (p, n, n_snps, h2_chrom)
                 if 'chrom_ld_boundaries' in ld_dict.keys():
                     ld_boundaries = ld_dict['chrom_ld_boundaries'][chrom_str]
                     res_dict = ldpred_gibbs(pval_derived_betas, h2=h2_chrom, n=n, p=p, ld_radius=ld_radius,
@@ -325,7 +265,7 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
     
             if corr < 0:
                 risk_scores_pval_derived = -1 * risk_scores_pval_derived
-            auc = calc_auc(y, risk_scores_pval_derived)
+            auc = util.calc_auc(y, risk_scores_pval_derived)
             print 'AUC for the whole genome was: %0.4f' % auc
     
             # Now calibration                               
@@ -416,7 +356,7 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=1000, l
                             postp = 0
                         else:
                             postp = numerator / (numerator + d_const_b2_exp)
-                            assert sp.isreal(postp), 'Posterior mean is not a real number?' 
+                            assert sp.isreal(postp), 'The posterior mean is not a real number?  Possibly due to problems with summary stats, LD estimates, or parameter settings.' 
                     else:
                         postp = 0
                 else:
@@ -457,7 +397,7 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=1000, l
                             postp = 0
                         else:
                             postp = numerator / (numerator + d_const_b2_exp)
-                            assert sp.isreal(postp), 'Posterior mean is not a real number?' 
+                            assert sp.isreal(postp), 'Posterior mean is not a real number? Possibly due to problems with summary stats, LD estimates, or parameter settings.' 
                     else:
                         postp = 0
                 else:
@@ -533,7 +473,7 @@ If they are a subset of the validation data set, then we suggest recalculate LDp
             
             # Normalize SNPs..
             snps = sp.array((raw_snps - snp_means) / snp_stds, dtype='float32')
-            assert snps.shape == raw_snps.shape, 'Array Shape mismatch'
+            assert snps.shape == raw_snps.shape, 'Problems normalizing SNPs (array shape mismatch).'
             if p_dict['gm_ld_radius'] is not None:
                 assert 'genetic_map' in g.keys(), 'Genetic map is missing.'
                 gm = g['genetic_map'][...]
