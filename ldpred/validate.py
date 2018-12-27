@@ -110,7 +110,7 @@ def parse_parameters():
             elif opt in ("--adjust_for_pcs"):
                 p_dict['adjust_for_pcs'] = True
             else:
-                print("Unkown option:", opt)
+                print('Unkown option: %s'% opt)
                 print("Use -h option for usage information.")
                 sys.exit(2)
     else:
@@ -587,12 +587,12 @@ def calc_risk_scores(bed_file, rs_id_map, phen_map, out_file=None, split_by_chro
     denominator = sp.dot(raw_effects_prs.T, raw_effects_prs)
     numerator = sp.dot(raw_effects_prs.T, y_norm)
     regression_slope = (numerator / denominator)[0][0]
-    print('The slope for predictions with raw effects is:', regression_slope)
+    print('The slope for predictions with raw effects is: %0.4f'% regression_slope)
 
     denominator = sp.dot(pval_derived_effects_prs.T, pval_derived_effects_prs)
     numerator = sp.dot(pval_derived_effects_prs.T, y_norm)
     regression_slope = (numerator / denominator)[0][0]
-    print('The slope for predictions with weighted effects is:', regression_slope)
+    print('The slope for predictions with weighted effects is: %0.4f'% regression_slope)
 
 
     num_individs = len(prs_dict['pval_derived_effects_prs'])

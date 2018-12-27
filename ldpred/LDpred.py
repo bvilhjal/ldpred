@@ -228,7 +228,7 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
                 updated_inf_betas = res_dict['inf_betas']
                 sum_sqr_effects = sp.sum(updated_betas ** 2)
                 if sum_sqr_effects > herit_dict['gw_h2_ld_score_est']:
-                    print('Sum of squared updated effects estimates seems too large:', sum_sqr_effects)
+                    print('Sum of squared updated effects estimates seems too large: %0.4f'% sum_sqr_effects)
                     print('This suggests that the Gibbs sampler did not convergence.')
                 
                 print('Calculating scores for Chromosome %s' % ((chrom_str.split('_'))[1]))
@@ -265,7 +265,7 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
             y_norm = (y - sp.mean(y)) / sp.std(y)
             numerator = sp.dot(risk_scores_pval_derived.T, y_norm)
             regression_slope = (numerator / denominator)  # [0][0]
-            print('The slope for predictions with P-value derived  effects is:', regression_slope)
+            print('The slope for predictions with P-value derived  effects is: %0.4f' % regression_slope)
             results_dict[p_str]['slope_pd'] = regression_slope
         
         weights_out_file = '%s_LDpred_p%0.4e.txt' % (out_file_prefix, p)

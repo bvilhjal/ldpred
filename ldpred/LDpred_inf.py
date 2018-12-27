@@ -242,7 +242,7 @@ def ldpred_inf_genomewide(data_file=None, ld_radius = None, ld_dict=None, out_fi
         y_norm = (y-sp.mean(y))/sp.std(y)
         numerator = sp.dot(risk_scores_pval_derived.T, y_norm)
         regression_slope = (numerator / denominator)#[0][0]
-        print('The slope for predictions with P-value derived  effects is:',regression_slope)
+        print('The slope for predictions with P-value derived  effects is: %0.4f'%regression_slope)
         results_dict['slope_pd']=regression_slope
     
     weights_out_file = '%s.txt'%(out_file_prefix)

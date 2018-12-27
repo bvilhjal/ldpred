@@ -68,7 +68,7 @@ def parse_parameters():
             elif opt in ("--out"): p_dict['out'] = arg
             elif opt in ("--max_r2"): p_dict['max_r2'] = float(arg)
             else:
-                print("Unkown option:", opt)
+                print('Unkown option: %s'% opt)
                 print(__doc__)
                 sys.exit(2)
     else:
@@ -242,7 +242,7 @@ def ld_pruning(data_file=None, ld_radius = None, out_file_prefix=None, p_thres=N
         y_norm = (y-sp.mean(y))/sp.std(y)
         numerator = sp.dot(risk_scores.T, y_norm)
         regression_slope = (numerator / denominator)
-        print('The slope for predictions with P-value derived  effects is:',regression_slope)
+        print('The slope for predictions with P-value derived  effects is: %0.4f' %regression_slope)
         results_dict[p_str]['slope_pd']=regression_slope
     
     if max_r2==1:

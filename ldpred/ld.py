@@ -420,8 +420,8 @@ def get_ld_dict(cord_data_file, local_ld_file_prefix, ld_radius, gm_ld_radius):
         avg_gw_ld_score = ld_score_sum / float(num_snps)
         ld_scores_dict = {'avg_gw_ld_score': avg_gw_ld_score, 'chrom_dict':chrom_ld_scores_dict}    
         
-        print('Done calculating the LD table and LD score, writing to file:', local_ld_dict_file)
-        print('Genome-wide average LD score was:', ld_scores_dict['avg_gw_ld_score'])
+        print('Done calculating the LD table and LD score, writing to file: %s'%local_ld_dict_file)
+        print('Genome-wide average LD score was: %0.4f' %ld_scores_dict['avg_gw_ld_score'])
         ld_dict = {'ld_scores_dict':ld_scores_dict, 'chrom_ld_dict':chrom_ld_dict, 'chrom_ref_ld_mats':chrom_ref_ld_mats}
         if gm_ld_radius is not None:
             ld_dict['chrom_ld_boundaries'] = chrom_ld_boundaries 
@@ -439,7 +439,7 @@ def get_ld_dict(cord_data_file, local_ld_file_prefix, ld_radius, gm_ld_radius):
 
 def get_chromosome_herits(cord_data_g, ld_scores_dict, n, h2=None):
     """
-    Calculating genome-wide heritability using LD score regression, and partition heritability by chromsomes
+    Calculating genome-wide heritability using LD score regression, and partition heritability by chromosome
     """
     num_snps = 0
     sum_beta2s = 0
@@ -457,10 +457,10 @@ def get_chromosome_herits(cord_data_g, ld_scores_dict, n, h2=None):
 
     L = ld_scores_dict['avg_gw_ld_score']
     chi_square_lambda = sp.mean(n * sum_beta2s / float(num_snps))
-    print('Genome-wide lambda inflation:', chi_square_lambda)
-    print('Genome-wide mean LD score:', L)
+    print('Genome-wide lambda inflation: %0.4f'% chi_square_lambda)
+    print('Genome-wide mean LD score: %0.4f'% L)
     gw_h2_ld_score_est = max(0.0001, (max(1, chi_square_lambda) - 1) / (n * (L / num_snps)))
-    print('Estimated genome-wide heritability:', gw_h2_ld_score_est)
+    print('Estimated genome-wide heritability: %0.4f'% gw_h2_ld_score_est)
     assert chi_square_lambda>1, 'Something is wrong with the GWAS summary statistics, parsing of them, or the given GWAS sample size (N). Lambda (the mean Chi-square statistic) is too small.  '
 
     #Only use LD score heritability if it is not given as argument. 
