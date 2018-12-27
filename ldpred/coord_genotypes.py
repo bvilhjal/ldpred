@@ -80,7 +80,7 @@ def parse_parameters():
 
     p_dict = {'gf': None, 'vgf': None, 'ssf': None, 'out': None, 'vbim': None, 'N': None, 'ssf_format': 'STANDARD', 'gmdir': None,
               'indiv_list': None, 'gf_format': 'PLINK', 'maf': 0.01, 'skip_coordination': False, 'debug': False, 'check_mafs': False}
-
+    
     if len(sys.argv) == 1:
         print(__doc__)
     elif len(sys.argv) > 1:
@@ -125,14 +125,38 @@ def parse_parameters():
             elif opt in ("--N"):
                 p_dict['N'] = int(arg)
             else:
-                print("Unkown option:", opt)
-                print("Use -h option for usage information.")
+                print('Unkown option: %s'% opt)
+                print('Use -h option for usage information.')
                 sys.exit(2)
     else:
         print(__doc__)
         sys.exit(0)
+    
+    if _validate_parameters_(p_dict):
+        print ('Use -h flag to print documentation.')
+        sys.exit(0)
+
     return p_dict
 
+
+def _validate_parameters_(p_dict):
+    any_missing = False
+    if p_dict['gf'] is None:
+        print('--gf flag missing:  Please provide a LD reference genotype file.')
+        any_missing = True
+    if p_dict['ssf'] is None:
+        print('--ssf flag missing: Please provide a summary statistics file.')
+        any_missing = True
+    if p_dict['vgf'] is None and p_dict['vbim'] is None:
+        print('--vgf or --vbim flag missing: Please provide validation genotypes.')
+        any_missing = True
+    if p_dict['N'] is None:
+        print('--N flag missing: Please specify an integer value for the sample size used to calculate the GWAS summary statistics.')
+        any_missing = True
+    if p_dict['out'] is None:
+        print('--out flag missing: Please provide an output filename (prefix).')
+        any_missing = True
+    return any_missing
 
 def get_chrom_dict_bim(bim_file, chromosomes):
     chr_dict = {}
@@ -1637,8 +1661,6 @@ def main():
     You can coordinate across the three data sets by either using the same LD reference and the validation data, or using 
     the --vbim argument, and supply the validation data set PLINK formatted bim file. 
     """)
-    if p_dict['N'] is None:
-        print('Please specify an integer value for the sample size used to calculate the GWAS summary statistics.')
     print('Preparing to parse summary statistics')
     if p_dict['vbim'] is not None:
         bimfile = p_dict['vbim']

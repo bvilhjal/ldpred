@@ -90,9 +90,31 @@ def parse_parameters():
     else:
         print(__doc__)
         sys.exit(0)
+
+    if _validate_parameters_(p_dict):
+        print ('Use -h flag to print documentation.')
+        sys.exit(0)
+   
     return p_dict
 
-
+def _validate_parameters_(p_dict):
+    any_missing = False
+    if p_dict['coord'] is None:
+        print('--coord flag missing:  Please provide a coordinated data file (generated using "python coord_genotypes.py").')
+        any_missing = True
+    if p_dict['ld_radius'] is None:
+        print('--ld_radius flag missing: Please provide a LD radius size (in number of SNPs).')
+        any_missing = True
+    if p_dict['local_ld_file_prefix'] is None:
+        print('--local_ld_file_prefix flag missing: Please provide a LD file (prefix).')
+        any_missing = True
+    if p_dict['N'] is None:
+        print('--N flag missing: Please provide estimated sample size used to calculate the GWAS summary statistics.')
+        any_missing = True
+    if p_dict['out'] is None:
+        print('--out flag missing: Please provide an output filename (prefix).')
+        any_missing = True
+    return any_missing
 
 
 

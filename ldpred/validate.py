@@ -116,7 +116,26 @@ def parse_parameters():
     else:
         print(__doc__)
         sys.exit(0)
+
+    if _validate_parameters_(p_dict):
+        print ('Use -h flag to print documentation.')
+        sys.exit(0)
+   
     return p_dict
+
+def _validate_parameters_(p_dict):
+    any_missing = False
+    if p_dict['vgf'] is None:
+        print('--vgf flag missing:  Please provide validation genotype file (prefix).')
+        any_missing = True
+    if p_dict['rf'] is None:
+        print('--rf flag missing: Please provide LDpred/LDpred-inf weights file (prefix).  These files are obtained by running LDpred or LDpred-inf.')
+        any_missing = True
+    if p_dict['out'] is None:
+        print('--out flag missing: Please provide an output filename (prefix).')
+        any_missing = True
+    return any_missing
+
 
 
 def get_prs(genotype_file, rs_id_map, phen_map=None):
