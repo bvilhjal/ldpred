@@ -64,9 +64,9 @@ from scipy import stats
 import itertools as it
 import gzip
 import random
-from . import plinkfiles
+import plinkfiles
 import h5py
-from . import util
+import util
 
 
 

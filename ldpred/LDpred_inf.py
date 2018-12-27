@@ -34,10 +34,10 @@ import traceback
 import h5py
 import scipy as sp
 from scipy import linalg
-from . import ld
+import ld
 import time
 import itertools as it
-from . import util
+import util
 
 def parse_parameters():
     """

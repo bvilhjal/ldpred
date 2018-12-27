@@ -48,7 +48,7 @@ import scipy as sp
 from scipy import linalg
 import itertools as it
 import h5py
-from . import plinkfiles
+import plinkfiles
 
 ok_nts = ['A', 'T', 'C', 'G']
 opp_strand_dict = {'A': 'T', 'G': 'C', 'T': 'A', 'C': 'G'}

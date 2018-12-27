@@ -29,7 +29,7 @@ import sys
 import traceback
 import h5py
 import scipy as sp
-from . import ld
+import ld
 import time
 import itertools as it
 

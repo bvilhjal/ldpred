@@ -7,7 +7,7 @@ import scipy as sp
 import sys, os, gzip, pickle
 import time
 import h5py
-from . import util
+import util
 from numpy import linalg 
 
 
@@ -457,7 +457,7 @@ def get_chromosome_herits(cord_data_g, ld_scores_dict, n, h2=None):
 
     L = ld_scores_dict['avg_gw_ld_score']
     chi_square_lambda = sp.mean(n * sum_beta2s / float(num_snps))
-    print('Genome-wide lambda inflation:', chi_square_lambda, end=' ')
+    print('Genome-wide lambda inflation:', chi_square_lambda)
     print('Genome-wide mean LD score:', L)
     gw_h2_ld_score_est = max(0.0001, (max(1, chi_square_lambda) - 1) / (n * (L / num_snps)))
     print('Estimated genome-wide heritability:', gw_h2_ld_score_est)

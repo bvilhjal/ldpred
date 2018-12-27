@@ -41,13 +41,12 @@ import time
 from scipy import stats
 import h5py
 
-from . import LDpred_inf
+import LDpred_inf
 import itertools as it
-from . import ld
+import ld
 import scipy as sp
 
-from . import util
-
+import util
 
 __version__ = '0.9.1'
 
