@@ -118,27 +118,11 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
         
     print 'Applying LDpred with LD radius: %d' % ld_radius
     results_dict = {}
-    num_snps = 0
-    sum_beta2s = 0
     cord_data_g = df['cord_data']
 
-    for chrom_str in util.chromosomes_list: 
-        if chrom_str in cord_data_g.keys():
-            g = cord_data_g[chrom_str]
-            betas = g['betas'][...]
-            n_snps = len(betas)
-            num_snps += n_snps
-            sum_beta2s += sp.sum(betas ** 2)
-        
-    L = ld_scores_dict['avg_gw_ld_score']
-    chi_square_lambda = sp.mean(n * sum_beta2s / float(num_snps))
-    print 'Genome-wide lambda inflation:', chi_square_lambda,
-    print 'Genome-wide mean LD score:', L
-    gw_h2_ld_score_est = max(0.0001, (max(1, chi_square_lambda) - 1) / (n * (L / num_snps)))
-    print 'Estimated genome-wide heritability:', gw_h2_ld_score_est
-    
-    assert chi_square_lambda > 1, 'Something is wrong with the GWAS summary statistics.  Perhaps there were issues parsing of them, or the given GWAS sample size (N) was too small. Either way, lambda (the mean Chi-square statistic) is too small.  '
-    
+    #Calculating genome-wide heritability using LD score regression, and partition heritability by chromsomes
+    herit_dict = ld.get_chromosome_herits(cord_data_g, ld_scores_dict, n, h2)
+
     LDpred_inf_chrom_dict = {}
     print 'Calculating LDpred-inf weights'
     for chrom_str in util.chromosomes_list:
@@ -151,12 +135,8 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
             snp_stds = snp_stds.flatten()
             ok_snps_filter = snp_stds > 0
             pval_derived_betas = g['betas'][...]
-            n_snps = len(pval_derived_betas)
-            pval_derived_betas = pval_derived_betas[ok_snps_filter]
-            if h2 is not None:
-                h2_chrom = h2 * (n_snps / float(num_snps))            
-            else:
-                h2_chrom = gw_h2_ld_score_est * (n_snps / float(num_snps))
+            pval_derived_betas = pval_derived_betas[ok_snps_filter]            
+            h2_chrom = herit_dict[chrom_str]
             start_betas = LDpred_inf.ldpred_inf(pval_derived_betas, genotypes=None, reference_ld_mats=chrom_ref_ld_mats[chrom_str],
                                                 h2=h2_chrom, n=n, ld_window_size=2 * ld_radius, verbose=False)
             LDpred_inf_chrom_dict[chrom_str] = start_betas
@@ -210,12 +190,8 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
                     raw_effect_sizes.extend(log_odds)
                     out_nts.extend(nts)
         
-                n_snps = len(pval_derived_betas)
                 
-                if h2 is not None:
-                    h2_chrom = h2 * (n_snps / float(num_snps))            
-                else:
-                    h2_chrom = gw_h2_ld_score_est * (n_snps / float(num_snps))
+                h2_chrom = herit_dict[chrom_str]
                 if 'chrom_ld_boundaries' in ld_dict.keys():
                     ld_boundaries = ld_dict['chrom_ld_boundaries'][chrom_str]
                     res_dict = ldpred_gibbs(pval_derived_betas, h2=h2_chrom, n=n, p=p, ld_radius=ld_radius,
@@ -230,7 +206,7 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
                 updated_betas = res_dict['betas']
                 updated_inf_betas = res_dict['inf_betas']
                 sum_sqr_effects = sp.sum(updated_betas ** 2)
-                if sum_sqr_effects > gw_h2_ld_score_est:
+                if sum_sqr_effects > herit_dict['gw_h2_ld_score_est']:
                     print 'Sum of squared updated effects estimates seems too large:', sum_sqr_effects
                     print 'This suggests that the Gibbs sampler did not convergence.'
                 
@@ -247,7 +223,6 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
                     print 'The R2 prediction accuracy of PRS using %s was: %0.4f' % (chrom_str, r2)
         
                     
-        print 'There were %d (SNP) effects' % num_snps
         if has_phenotypes:
             num_indivs = len(y)
             results_dict[p_str]['y'] = y

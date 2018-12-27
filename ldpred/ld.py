@@ -7,6 +7,7 @@ import scipy as sp
 import sys, os, gzip, cPickle
 import time
 import h5py
+import util
 from numpy import linalg 
 
 
@@ -435,3 +436,40 @@ def get_ld_dict(cord_data_file, local_ld_file_prefix, ld_radius, gm_ld_radius):
         f.close()
     return ld_dict
 
+
+def get_chromosome_herits(cord_data_g, ld_scores_dict, n, h2=None):
+    """
+    Calculating genome-wide heritability using LD score regression, and partition heritability by chromsomes
+    """
+    num_snps = 0
+    sum_beta2s = 0
+    herit_dict = {}
+    for chrom_str in util.chromosomes_list:
+        if chrom_str in cord_data_g.keys():
+            g = cord_data_g[chrom_str]
+            betas = g['betas'][...]
+            n_snps = len(betas)
+            num_snps += n_snps
+            sum_beta2s += sp.sum(betas ** 2)
+            herit_dict[chrom_str] = n_snps
+    
+    print '%d SNP effects were found' % num_snps
+
+    L = ld_scores_dict['avg_gw_ld_score']
+    chi_square_lambda = sp.mean(n * sum_beta2s / float(num_snps))
+    print 'Genome-wide lambda inflation:', chi_square_lambda,
+    print 'Genome-wide mean LD score:', L
+    gw_h2_ld_score_est = max(0.0001, (max(1, chi_square_lambda) - 1) / (n * (L / num_snps)))
+    print 'Estimated genome-wide heritability:', gw_h2_ld_score_est
+    assert chi_square_lambda>1, 'Something is wrong with the GWAS summary statistics, parsing of them, or the given GWAS sample size (N). Lambda (the mean Chi-square statistic) is too small.  '
+
+    #Only use LD score heritability if it is not given as argument. 
+    if h2==None:
+        h2 = gw_h2_ld_score_est
+
+    #Distributing heritabilities among chromosomes.
+    for k in herit_dict.keys():
+        herit_dict[k] = h2 * herit_dict[k]/float(num_snps)
+    
+    herit_dict['gw_h2_ld_score_est'] = gw_h2_ld_score_est
+    return herit_dict

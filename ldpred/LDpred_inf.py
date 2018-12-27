@@ -151,26 +151,10 @@ def ldpred_inf_genomewide(data_file=None, ld_radius = None, ld_dict=None, out_fi
         
     print 'Applying LDpred-inf with LD radius: %d' % ld_radius
     results_dict = {}
-    num_snps = 0
-    sum_beta2s = 0
     cord_data_g = df['cord_data']
 
-    for chrom_str in cord_data_g.keys():
-        g = cord_data_g[chrom_str]
-        betas = g['betas'][...]
-        n_snps = len(betas)
-        num_snps += n_snps
-        sum_beta2s += sp.sum(betas ** 2)
-        
-    L = ld_scores_dict['avg_gw_ld_score']
-    chi_square_lambda = sp.mean(n * sum_beta2s / float(num_snps))
-    print 'Genome-wide lambda inflation:', chi_square_lambda,
-    print 'Genome-wide mean LD score:', L
-    gw_h2_ld_score_est = max(0.0001, (max(1, chi_square_lambda) - 1) / (n * (L / num_snps)))
-    print 'Estimated genome-wide heritability:', gw_h2_ld_score_est
-    
-    assert chi_square_lambda>1, 'Something is wrong with the GWAS summary statistics, parsing of them, or the given GWAS sample size (N). Lambda (the mean Chi-square statistic) is too small.  '
-    
+    #Calculating genome-wide heritability using LD score regression, and partition heritability by chromsomes
+    herit_dict = ld.get_chromosome_herits(cord_data_g, ld_scores_dict, n, h2)
 
     if out_file_prefix:
         #Preparing output files
@@ -181,43 +165,41 @@ def ldpred_inf_genomewide(data_file=None, ld_radius = None, ld_dict=None, out_fi
         positions = []
         nts = []
         
-    for chrom_str in cord_data_g.keys():
-        g = cord_data_g[chrom_str]
-        if has_phenotypes:
-            if 'raw_snps_val' in g.keys():
-                raw_snps = g['raw_snps_val'][...]
-            else:
-                raw_snps = g['raw_snps_ref'][...]
+    for chrom_str in util.chromosomes_list:
+        for chrom_str in cord_data_g.keys():
+            g = cord_data_g[chrom_str]
+            if has_phenotypes:
+                if 'raw_snps_val' in g.keys():
+                    raw_snps = g['raw_snps_val'][...]
+                else:
+                    raw_snps = g['raw_snps_ref'][...]
+            
+            snp_stds = g['snp_stds_ref'][...]
+            pval_derived_betas = g['betas'][...]
+            if out_file_prefix:
+                chromosomes.extend([chrom_str]*len(pval_derived_betas))
+                positions.extend(g['positions'][...])
+                sids.extend(g['sids'][...])
+                raw_effect_sizes.extend(g['log_odds'][...])
+                nts.extend(g['nts'][...])
         
-        snp_stds = g['snp_stds_ref'][...]
-        pval_derived_betas = g['betas'][...]
-        if out_file_prefix:
-            chromosomes.extend([chrom_str]*len(pval_derived_betas))
-            positions.extend(g['positions'][...])
-            sids.extend(g['sids'][...])
-            raw_effect_sizes.extend(g['log_odds'][...])
-            nts.extend(g['nts'][...])
-
-        n_snps = len(pval_derived_betas)
-
-        h2_chrom = gw_h2_ld_score_est * (n_snps / float(num_snps))
-        #print 'Prior parameters: p=%0.3f, n=%d, m=%d, h2_chrom=%0.4f' % (p, n, n_snps, h2_chrom)
-        updated_betas = ldpred_inf(pval_derived_betas, genotypes=None, reference_ld_mats=chrom_ref_ld_mats[chrom_str], 
-                                            h2=h2_chrom, n=n, ld_window_size=2*ld_radius, verbose=False)
-
-                
-        print 'Calculating scores for Chromosome %s'%((chrom_str.split('_'))[1])
-        updated_betas = updated_betas / (snp_stds.flatten())
-        ldpred_effect_sizes.extend(updated_betas)
-        if has_phenotypes:
-            prs = sp.dot(updated_betas, raw_snps)
-            risk_scores_pval_derived += prs
-            corr = sp.corrcoef(y, prs)[0, 1]
-            r2 = corr ** 2
-            print 'The R2 prediction accuracy of PRS using %s was: %0.4f' %(chrom_str, r2)
+            h2_chrom = herit_dict[chrom_str] 
+            #print 'Prior parameters: p=%0.3f, n=%d, m=%d, h2_chrom=%0.4f' % (p, n, n_snps, h2_chrom)
+            updated_betas = ldpred_inf(pval_derived_betas, genotypes=None, reference_ld_mats=chrom_ref_ld_mats[chrom_str], 
+                                                h2=h2_chrom, n=n, ld_window_size=2*ld_radius, verbose=False)
+    
+                    
+            print 'Calculating scores for Chromosome %s'%((chrom_str.split('_'))[1])
+            updated_betas = updated_betas / (snp_stds.flatten())
+            ldpred_effect_sizes.extend(updated_betas)
+            if has_phenotypes:
+                prs = sp.dot(updated_betas, raw_snps)
+                risk_scores_pval_derived += prs
+                corr = sp.corrcoef(y, prs)[0, 1]
+                r2 = corr ** 2
+                print 'The R2 prediction accuracy of PRS using %s was: %0.4f' %(chrom_str, r2)
 
                 
-    print 'There were %d (SNP) effects' % num_snps
     if has_phenotypes:
         num_indivs = len(y)
         results_dict['y']=y
