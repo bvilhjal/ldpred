@@ -166,7 +166,7 @@ def ldpred_inf_genomewide(data_file=None, ld_radius = None, ld_dict=None, out_fi
         nts = []
         
     for chrom_str in util.chromosomes_list:
-        for chrom_str in cord_data_g.keys():
+        if chrom_str in cord_data_g.keys():
             g = cord_data_g[chrom_str]
             if has_phenotypes:
                 if 'raw_snps_val' in g.keys():
