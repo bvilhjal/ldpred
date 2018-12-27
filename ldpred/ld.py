@@ -4,10 +4,10 @@ Various useful LD functions.
 
 """
 import scipy as sp    
-import sys, os, gzip, cPickle
+import sys, os, gzip, pickle
 import time
 import h5py
-import util
+from . import util
 from numpy import linalg 
 
 
@@ -19,7 +19,7 @@ def get_LDpred_ld_tables(snps, ld_radius=100, ld_window_size=0, h2=None, n_train
     
     ld_dict = {}
     m, n = snps.shape
-    print m, n
+    print(m, n)
     ld_scores = sp.ones(m)
     ret_dict = {}
     if gm_ld_radius is None:
@@ -67,7 +67,7 @@ def get_LDpred_ld_tables(snps, ld_radius=100, ld_window_size=0, h2=None, n_train
             ld_scores[snp_i] = lds_i
         
         avg_window_size = sp.mean(window_sizes)
-        print 'Average # of SNPs in LD window was %0.2f' % avg_window_size
+        print('Average # of SNPs in LD window was %0.2f' % avg_window_size)
         if ld_window_size == 0:
             ld_window_size = avg_window_size * 2
         ret_dict['ld_boundaries'] = ld_boundaries
@@ -108,7 +108,7 @@ def calc_ld_table(snps, max_ld_dist=2000, min_r2=0.2, verbose=True, normalize=Fa
 
     
     if verbose:
-        print 'Calculating LD table'
+        print('Calculating LD table')
     t0 = time.time()
     num_snps, num_indivs = snps.shape    
     ld_table = {}
@@ -118,7 +118,7 @@ def calc_ld_table(snps, max_ld_dist=2000, min_r2=0.2, verbose=True, normalize=Fa
     a = min(max_ld_dist, num_snps)
     num_pairs = (a * (num_snps - 1)) - a * (a + 1) * 0.5
     if verbose:
-        print 'Correlation between %d pairs will be tested' % num_pairs
+        print('Correlation between %d pairs will be tested' % num_pairs)
     num_stored = 0
     for i in range(0, num_snps - 1):
         start_i = i + 1
@@ -139,13 +139,13 @@ def calc_ld_table(snps, max_ld_dist=2000, min_r2=0.2, verbose=True, normalize=Fa
     if verbose:
         sys.stdout.write('Done.\n')
         if num_pairs > 0:
-            print 'Stored %d (%0.4f%%) correlations that made the cut (r^2>%0.3f).' % (num_stored, 100 * (num_stored / float(num_pairs)), min_r2)
+            print('Stored %d (%0.4f%%) correlations that made the cut (r^2>%0.3f).' % (num_stored, 100 * (num_stored / float(num_pairs)), min_r2))
         else:
-            print '-'
+            print('-')
     t1 = time.time()
     t = (t1 - t0)
     if verbose:
-        print '\nIt took %d minutes and %0.2f seconds to calculate the LD table' % (t / 60, t % 60)
+        print('\nIt took %d minutes and %0.2f seconds to calculate the LD table' % (t / 60, t % 60))
     del snps
     return ld_table
 
@@ -160,7 +160,7 @@ def ml_LD_shrink(beta_hats, genotypes=None, reference_ld_mats=None, window_metho
     If reference_ld_mats are supplied, it uses those, otherwise it uses the LD in the genotype data.
     """    
     if verbose:
-        print 'Doing LD correction'
+        print('Doing LD correction')
     t0 = time.time()
     num_betas = len(beta_hats)
     updated_betas = sp.empty(num_betas)
@@ -214,7 +214,7 @@ def ml_LD_shrink(beta_hats, genotypes=None, reference_ld_mats=None, window_metho
     t1 = time.time()
     t = (t1 - t0)
     if verbose:
-        print '\nIt took %d minutes and %0.2f seconds to perform the Infinitesimal LD shrink' % (t / 60, t % 60)
+        print('\nIt took %d minutes and %0.2f seconds to perform the Infinitesimal LD shrink' % (t / 60, t % 60))
     return updated_betas
 
 
@@ -236,7 +236,7 @@ def ml_iter(beta_hats, genotypes, ld_radius=20,
     """
 
     if verbose:
-        print 'Performing iterative approach'
+        print('Performing iterative approach')
     
     # Ordering the beta_hats, and storing the order
     m = len(beta_hats)
@@ -250,14 +250,14 @@ def ml_iter(beta_hats, genotypes, ld_radius=20,
     genotypes = sp.array(genotypes)
     assert len(genotypes) == m, "The number of SNPs differs between genotypes and effect estimates."
     if verbose:
-        print '# SNPs: %d' % m
+        print('# SNPs: %d' % m)
 
     max_num_selected = int(m * iter_percentile)
     selected_indices = set()
     updated_beta_hats = beta_hats[:]
     while len(selected_indices) < max_num_selected:
         # Sort and select beta
-        l = zip((sp.array(updated_beta_hats) ** 2).tolist(), range(m))
+        l = list(zip((sp.array(updated_beta_hats) ** 2).tolist(), list(range(m))))
         l.sort(reverse=True)
         for beta_hat, beta_i in l:
             if not beta_i in selected_indices:
@@ -299,14 +299,14 @@ def smart_ld_pruning(scores, ld_table, max_ld=0.5, verbose=False, reverse=False)
     If using betas, set reversed to True.
     """
     if verbose:
-        print 'Performing smart LD pruning'
+        print('Performing smart LD pruning')
     t0 = time.time()
     if type(scores) == type([]):
-        l = zip(scores, range(len(scores)))
+        l = list(zip(scores, list(range(len(scores)))))
     else:
-        l = zip(scores.tolist(), range(len(scores)))
+        l = list(zip(scores.tolist(), list(range(len(scores)))))
     l.sort(reverse=reverse)
-    l = map(list, zip(*l))
+    l = list(map(list, list(zip(*l))))
     rank_order = l[1]
     indices_to_keep = []
     remaining_indices = set(rank_order)
@@ -326,7 +326,7 @@ def smart_ld_pruning(scores, ld_table, max_ld=0.5, verbose=False, reverse=False)
     t1 = time.time()
     t = (t1 - t0)
     if verbose:
-        print '\nIt took %d minutes and %0.2f seconds to LD-prune' % (t / 60, t % 60)
+        print('\nIt took %d minutes and %0.2f seconds to LD-prune' % (t / 60, t % 60))
     return pruning_vector             
 
 
@@ -336,7 +336,7 @@ def ld_pruning(ld_table, max_ld=0.5, verbose=False):
     Prunes SNPs in LD, in random order. 
     """
     if verbose:
-        print 'Calculating LD table'
+        print('Calculating LD table')
     t0 = time.time()
     indices_to_keep = []
     num_snps = len(ld_table)
@@ -357,7 +357,7 @@ def ld_pruning(ld_table, max_ld=0.5, verbose=False):
     t1 = time.time()
     t = (t1 - t0)
     if verbose:
-        print '\nIt took %d minutes and %0.2f seconds to LD-prune' % (t / 60, t % 60)
+        print('\nIt took %d minutes and %0.2f seconds to LD-prune' % (t / 60, t % 60))
     return filter_vector
 
 
@@ -375,15 +375,15 @@ def get_ld_dict(cord_data_file, local_ld_file_prefix, ld_radius, gm_ld_radius):
             chrom_ld_boundaries = {}
         ld_score_sum = 0
         num_snps = 0
-        print 'Calculating LD information w. radius %d' % ld_radius
+        print('Calculating LD information w. radius %d' % ld_radius)
 
         df = h5py.File(cord_data_file)
         cord_data_g = df['cord_data']
 
-        for chrom_str in cord_data_g.keys():
-            print 'Working on %s' % chrom_str
+        for chrom_str in list(cord_data_g.keys()):
+            print('Working on %s' % chrom_str)
             g = cord_data_g[chrom_str]
-            if 'raw_snps_ref' in g.keys():
+            if 'raw_snps_ref' in list(g.keys()):
                 raw_snps = g['raw_snps_ref'][...]
                 snp_stds = g['snp_stds_ref'][...]
                 snp_means = g['snp_means_ref'][...]
@@ -405,7 +405,7 @@ def get_ld_dict(cord_data_file, local_ld_file_prefix, ld_radius, gm_ld_radius):
             snps = sp.array((raw_snps - snp_means) / snp_stds, dtype='float32')
             assert snps.shape == raw_snps.shape, 'Problems normalizing SNPs (array shape mismatch).'
             if gm_ld_radius is not None:
-                assert 'genetic_map' in g.keys(), 'Genetic map is missing.'
+                assert 'genetic_map' in list(g.keys()), 'Genetic map is missing.'
                 gm = g['genetic_map'][...]
                 ret_dict = get_LDpred_ld_tables(snps, gm=gm, gm_ld_radius=gm_ld_radius)
                 chrom_ld_boundaries[chrom_str] = ret_dict['ld_boundaries']
@@ -420,19 +420,19 @@ def get_ld_dict(cord_data_file, local_ld_file_prefix, ld_radius, gm_ld_radius):
         avg_gw_ld_score = ld_score_sum / float(num_snps)
         ld_scores_dict = {'avg_gw_ld_score': avg_gw_ld_score, 'chrom_dict':chrom_ld_scores_dict}    
         
-        print 'Done calculating the LD table and LD score, writing to file:', local_ld_dict_file
-        print 'Genome-wide average LD score was:', ld_scores_dict['avg_gw_ld_score']
+        print('Done calculating the LD table and LD score, writing to file:', local_ld_dict_file)
+        print('Genome-wide average LD score was:', ld_scores_dict['avg_gw_ld_score'])
         ld_dict = {'ld_scores_dict':ld_scores_dict, 'chrom_ld_dict':chrom_ld_dict, 'chrom_ref_ld_mats':chrom_ref_ld_mats}
         if gm_ld_radius is not None:
             ld_dict['chrom_ld_boundaries'] = chrom_ld_boundaries 
         f = gzip.open(local_ld_dict_file, 'wb')
-        cPickle.dump(ld_dict, f, protocol=2)
+        pickle.dump(ld_dict, f, protocol=2)
         f.close()
-        print 'LD information is now pickled.'
+        print('LD information is now pickled.')
     else:
-        print 'Loading LD information from file: %s' % local_ld_dict_file
+        print('Loading LD information from file: %s' % local_ld_dict_file)
         f = gzip.open(local_ld_dict_file, 'r')
-        ld_dict = cPickle.load(f)
+        ld_dict = pickle.load(f)
         f.close()
     return ld_dict
 
@@ -445,7 +445,7 @@ def get_chromosome_herits(cord_data_g, ld_scores_dict, n, h2=None):
     sum_beta2s = 0
     herit_dict = {}
     for chrom_str in util.chromosomes_list:
-        if chrom_str in cord_data_g.keys():
+        if chrom_str in list(cord_data_g.keys()):
             g = cord_data_g[chrom_str]
             betas = g['betas'][...]
             n_snps = len(betas)
@@ -453,14 +453,14 @@ def get_chromosome_herits(cord_data_g, ld_scores_dict, n, h2=None):
             sum_beta2s += sp.sum(betas ** 2)
             herit_dict[chrom_str] = n_snps
     
-    print '%d SNP effects were found' % num_snps
+    print('%d SNP effects were found' % num_snps)
 
     L = ld_scores_dict['avg_gw_ld_score']
     chi_square_lambda = sp.mean(n * sum_beta2s / float(num_snps))
-    print 'Genome-wide lambda inflation:', chi_square_lambda,
-    print 'Genome-wide mean LD score:', L
+    print('Genome-wide lambda inflation:', chi_square_lambda, end=' ')
+    print('Genome-wide mean LD score:', L)
     gw_h2_ld_score_est = max(0.0001, (max(1, chi_square_lambda) - 1) / (n * (L / num_snps)))
-    print 'Estimated genome-wide heritability:', gw_h2_ld_score_est
+    print('Estimated genome-wide heritability:', gw_h2_ld_score_est)
     assert chi_square_lambda>1, 'Something is wrong with the GWAS summary statistics, parsing of them, or the given GWAS sample size (N). Lambda (the mean Chi-square statistic) is too small.  '
 
     #Only use LD score heritability if it is not given as argument. 
@@ -468,7 +468,7 @@ def get_chromosome_herits(cord_data_g, ld_scores_dict, n, h2=None):
         h2 = gw_h2_ld_score_est
 
     #Distributing heritabilities among chromosomes.
-    for k in herit_dict.keys():
+    for k in list(herit_dict.keys()):
         herit_dict[k] = h2 * herit_dict[k]/float(num_snps)
     
     herit_dict['gw_h2_ld_score_est'] = gw_h2_ld_score_est

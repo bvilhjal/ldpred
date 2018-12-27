@@ -29,7 +29,7 @@ import sys
 import traceback
 import h5py
 import scipy as sp
-import ld
+from . import ld
 import time
 import itertools as it
 
@@ -53,27 +53,27 @@ def parse_parameters():
             opts, args = getopt.getopt(sys.argv[1:], "h", long_options_list)
     
         except:
-            print "Some problems with usage.  Please read the usage documentation carefully."
+            print("Some problems with usage.  Please read the usage documentation carefully.")
             traceback.print_exc()
-            print __doc__
+            print(__doc__)
             sys.exit(2)
     
         for opt, arg in opts:
             if opt in ("-h"):
-                print __doc__
+                print(__doc__)
                 return
             elif opt in ("--coord"): p_dict['coord'] = arg
             elif opt in ("--ld_radius"): p_dict['ld_radius'] = int(arg)
-            elif opt in ("--TS"): p_dict['TS'] = map(float,arg.split(','))
+            elif opt in ("--TS"): p_dict['TS'] = list(map(float,arg.split(',')))
             elif opt in ("--out"): p_dict['out'] = arg
             elif opt in ("--max_r2"): p_dict['max_r2'] = float(arg)
             else:
-                print "Unkown option:", opt
-                print __doc__
+                print("Unkown option:", opt)
+                print(__doc__)
                 sys.exit(2)
     else:
-        print "Options are missing.\n"
-        print __doc__
+        print("Options are missing.\n")
+        print(__doc__)
         sys.exit(2)
         
     return p_dict
@@ -84,7 +84,7 @@ def smart_ld_pruning(beta_hats, ld_table, pvalues=None, max_ld=0.2, verbose=Fals
     Smart LD pruning.
     """    
     if verbose:
-        print 'Doing smart LD pruning'
+        print('Doing smart LD pruning')
     t0 = time.time()
     m = len(beta_hats)
     if pvalues is not None:
@@ -94,13 +94,13 @@ def smart_ld_pruning(beta_hats, ld_table, pvalues=None, max_ld=0.2, verbose=Fals
 
     if verbose:
         if sp.sum(pruning_vector) == 0:
-            print 'No SNPs, skipping chromosome'
+            print('No SNPs, skipping chromosome')
     shrunk_betas = beta_hats * pruning_vector
     
     t1 = time.time()
     t = (t1 - t0)
     if verbose:
-        print '\nIt took %d minutes and %0.2f seconds to perform the LD shrink' % (t / 60, t % 60)
+        print('\nIt took %d minutes and %0.2f seconds to perform the LD shrink' % (t / 60, t % 60))
     return shrunk_betas, pruning_vector
 
 
@@ -113,7 +113,7 @@ def ld_pruning(data_file=None, ld_radius = None, out_file_prefix=None, p_thres=N
     
     df = h5py.File(data_file,'r')
     has_phenotypes=False
-    if 'y' in df.keys():
+    if 'y' in list(df.keys()):
         'Validation phenotypes found.'
         y = df['y'][...]  # Phenotype
         num_individs = len(y)
@@ -121,20 +121,20 @@ def ld_pruning(data_file=None, ld_radius = None, out_file_prefix=None, p_thres=N
         has_phenotypes=True
 
         
-    print ''
+    print('')
     if max_r2<1:
-        print 'Applying LD-pruning + P-value thresholding with p-value threshold of %0.2e, a LD radius of %d SNPs, and a max r2 of %0.2f' %(p_thres, ld_radius, max_r2)
+        print('Applying LD-pruning + P-value thresholding with p-value threshold of %0.2e, a LD radius of %d SNPs, and a max r2 of %0.2f' %(p_thres, ld_radius, max_r2))
     else:
         if p_thres<1:
-            print 'Applying P-value thresholding with p-value threshold of %0.2e' %(p_thres)
+            print('Applying P-value thresholding with p-value threshold of %0.2e' %(p_thres))
         else:
-            print 'Calculating polygenic risk score using all SNPs'        
+            print('Calculating polygenic risk score using all SNPs')        
     results_dict = {}
     num_snps = 0
     cord_data_g = df['cord_data']
 
     chromsomes = []
-    for chrom_str in cord_data_g.keys():
+    for chrom_str in list(cord_data_g.keys()):
         g = cord_data_g[chrom_str]
         betas = g['betas'][...]
         n_snps = len(betas)
@@ -171,7 +171,7 @@ def ld_pruning(data_file=None, ld_radius = None, out_file_prefix=None, p_thres=N
         tot_num_snps += num_snps
 
         pvalues = pvalues[snp_filter]
-        if 'raw_snps_val' in g.keys():
+        if 'raw_snps_val' in list(g.keys()):
             raw_snps = g['raw_snps_val'][...][snp_filter]
 
         else:
@@ -213,26 +213,26 @@ def ld_pruning(data_file=None, ld_radius = None, out_file_prefix=None, p_thres=N
 
                 
         if has_phenotypes:
-            print 'Calculating scores for Chromosome %s'%chrom_str 
+            print('Calculating scores for Chromosome %s'%chrom_str) 
             prs = sp.dot(updated_raw_betas, raw_snps)
             risk_scores += prs
             corr = sp.corrcoef(y, prs)[0, 1]
             r2 = corr ** 2
-            print 'The R2 prediction accuracy of PRS using %s was: %0.4f' %(chrom_str, r2)
+            print('The R2 prediction accuracy of PRS using %s was: %0.4f' %(chrom_str, r2))
 
                 
-    print 'There were %d (SNP) effects after p-value thresholding' % tot_num_snps
-    print 'After LD-pruning %d SNPs had non-zero effects'%num_snps_used
+    print('There were %d (SNP) effects after p-value thresholding' % tot_num_snps)
+    print('After LD-pruning %d SNPs had non-zero effects'%num_snps_used)
     if has_phenotypes:
         num_indivs = len(y)
         results_dict[p_str]['y']=y
         results_dict[p_str]['risk_scores']=risk_scores
-        print 'Prediction accuracy was assessed using %d individuals.'%(num_indivs)
+        print('Prediction accuracy was assessed using %d individuals.'%(num_indivs))
 
         corr = sp.corrcoef(y, risk_scores)[0, 1]
         r2 = corr ** 2
         results_dict[p_str]['r2_pd']=r2
-        print 'The  R2 prediction accuracy (observed scale) for the whole genome was: %0.4f (%0.6f)' % (r2, ((1-r2)**2)/num_indivs)
+        print('The  R2 prediction accuracy (observed scale) for the whole genome was: %0.4f (%0.6f)' % (r2, ((1-r2)**2)/num_indivs))
 
         if corr<0:
             risk_scores = -1* risk_scores
@@ -242,7 +242,7 @@ def ld_pruning(data_file=None, ld_radius = None, out_file_prefix=None, p_thres=N
         y_norm = (y-sp.mean(y))/sp.std(y)
         numerator = sp.dot(risk_scores.T, y_norm)
         regression_slope = (numerator / denominator)
-        print 'The slope for predictions with P-value derived  effects is:',regression_slope
+        print('The slope for predictions with P-value derived  effects is:',regression_slope)
         results_dict[p_str]['slope_pd']=regression_slope
     
     if max_r2==1:

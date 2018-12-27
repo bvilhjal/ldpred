@@ -21,7 +21,7 @@ def get_chrom_dict(loci, chromosomes):
         chr_dict[chr_str]['positions'].append(pos)
         chr_dict[chr_str]['nts'].append([l.allele1, l.allele2])
       
-    print 'Genotype dictionary filled'
+    print('Genotype dictionary filled')
     return chr_dict
 
 
@@ -36,16 +36,16 @@ def parse_plink_snps(genotype_file, snp_indices):
     snp_order = sp.argsort(snp_indices)
     ordered_snp_indices = list(snp_indices[snp_order])
     ordered_snp_indices.reverse()
-    print 'Iterating over file to load SNPs'
+    print('Iterating over file to load SNPs')
     snp_i = 0
     next_i = ordered_snp_indices.pop()
     line_i = 0
     max_i = ordered_snp_indices[0]
     while line_i <= max_i: 
         if line_i < next_i:
-            plinkf.next()
+            next(plinkf)
         elif line_i == next_i:
-            line = plinkf.next()
+            line = next(plinkf)
             snp = sp.array(line, dtype='int8')
             bin_counts = line.allele_counts()
             if bin_counts[-1] > 0:
@@ -72,14 +72,14 @@ def get_phenotypes(plinkf):
     iids = [s.iid for s in samples]
     unique_phens = sp.unique(Y)
     if len(unique_phens) == 1:
-        print 'Unable to find phenotype values.'
+        print('Unable to find phenotype values.')
         has_phenotype = False
     elif len(unique_phens) == 2:
         cc_bins = sp.bincount(Y)
         assert len(cc_bins) == 2, 'Problems with loading phenotype'
-        print 'Loaded %d controls and %d cases' % (cc_bins[0], cc_bins[1])
+        print('Loaded %d controls and %d cases' % (cc_bins[0], cc_bins[1]))
         has_phenotype = True
     else:
-        print 'Found quantitative phenotype values'
+        print('Found quantitative phenotype values')
         has_phenotype = True
     return {'has_phenotype':has_phenotype, 'fids':fids, 'iids':iids, 'phenotypes':Y, 'num_individs':num_individs}

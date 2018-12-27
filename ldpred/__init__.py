@@ -8,8 +8,8 @@ described in Vilhjalmsson et al. (AJHG 2015) [http://www.cell.com/ajhg/abstract/
 """
 
 #Load ldpred packages..
-import LDpred
-import validate
-import LD_pruning_thres
-import LDpred_inf
-import coord_genotypes
+from . import LDpred
+from . import validate
+from . import LD_pruning_thres
+from . import LDpred_inf
+from . import coord_genotypes

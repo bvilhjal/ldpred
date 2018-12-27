@@ -20,8 +20,8 @@ chromosomes_list = ['chrom_%s' % (chrom) for chrom in valid_chromosomes]
 
 def check_chromosomes(missing_chromosomes):
         if len(missing_chromosomes) > 0:
-            print 'Ignored chromosomes:', ','.join(list(missing_chromosomes))
-            print 'Please note that only data on chromosomes 1-23, and X is parsed.'
+            print('Ignored chromosomes:', ','.join(list(missing_chromosomes)))
+            print('Please note that only data on chromosomes 1-23, and X is parsed.')
 
 
 def calc_auc(y_true, y_hat, show_plot=False):
@@ -33,12 +33,12 @@ def calc_auc(y_true, y_hat, show_plot=False):
         y_min = y_true.min()
         y_max = y_true.max()
         if y_min != 0 or y_max != 1:
-            print 'Transforming back to a dichotomous trait'
+            print('Transforming back to a dichotomous trait')
             y_true[y_true == y_min] = 0
             y_true[y_true == y_max] = 1
         
     else:
-        print 'Warning: Calculating AUC for a quantitative phenotype.'
+        print('Warning: Calculating AUC for a quantitative phenotype.')
         y_mean = sp.mean(y_true)
         zero_filter = y_true <= y_mean
         one_filter = y_true > y_mean
@@ -48,7 +48,7 @@ def calc_auc(y_true, y_hat, show_plot=False):
     num_cases = sp.sum(y_true == 1)
     num_controls = sp.sum(y_true == 0)
     assert num_cases + num_controls == len(y_true), 'The phenotype is not defined as expected. It is not binary (0 1 case-control status).'
-    print '%d cases, %d controls' % (num_cases, num_controls) 
+    print('%d cases, %d controls' % (num_cases, num_controls)) 
     
     num_indivs = float(len(y_true))
     tot_num_pos = float(sp.sum(y_true))
@@ -74,7 +74,7 @@ def calc_auc(y_true, y_hat, show_plot=False):
         delta_fpr = fpr - prev_fpr
         auc += tpr * delta_fpr
         prev_fpr = fpr
-    print 'AUC: %0.4f' % auc
+    print('AUC: %0.4f' % auc)
     if show_plot:
         import pylab
         pylab.plot(roc_x, roc_y)

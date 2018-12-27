@@ -41,12 +41,12 @@ import time
 from scipy import stats
 import h5py
 
-import LDpred_inf
+from . import LDpred_inf
 import itertools as it
-import ld
+from . import ld
 import scipy as sp
 
-import util
+from . import util
 
 
 __version__ = '0.9.1'
@@ -67,29 +67,29 @@ def parse_parameters():
             opts, args = getopt.getopt(sys.argv[1:], "h", long_options_list)
     
         except:
-            print "Some problems with parameters.  Please read the usage documentation carefully."
-            print "Use the -h option for usage information."
+            print("Some problems with parameters.  Please read the usage documentation carefully.")
+            print("Use the -h option for usage information.")
             sys.exit(2)
     
         for opt, arg in opts:
             if opt == "-h" or opt == "--h" or opt == '--help':
-                print __doc__
+                print(__doc__)
                 sys.exit(0)
             elif opt == "--coord": p_dict['coord'] = arg
             elif opt == "--ld_radius": p_dict['ld_radius'] = int(arg)
             elif opt == "--local_ld_file_prefix": p_dict['local_ld_file_prefix'] = arg
-            elif opt == "--PS": p_dict['PS'] = map(float, arg.split(','))
+            elif opt == "--PS": p_dict['PS'] = list(map(float, arg.split(',')))
             elif opt == "--out": p_dict['out'] = arg
             elif opt == "--N": p_dict['N'] = int(arg)
             elif opt == "--num_iter": p_dict['num_iter'] = int(arg)
             elif opt == "--H2": p_dict['H2'] = float(arg)
             elif opt == "--gm_ld_radius": p_dict['gm_ld_radius'] = float(arg)
             else:
-                print "Unkown option:", opt
-                print "Use -h option for usage information."
+                print("Unkown option:", opt)
+                print("Use -h option for usage information.")
                 sys.exit(2)
     else:
-        print __doc__
+        print(__doc__)
         sys.exit(0)
     return p_dict
 
@@ -105,7 +105,7 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
     
     df = h5py.File(data_file, 'r')
     has_phenotypes = False
-    if 'y' in df.keys():
+    if 'y' in list(df.keys()):
         'Validation phenotypes found.'
         y = df['y'][...]  # Phenotype
         num_individs = len(y)
@@ -116,7 +116,7 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
     chrom_ld_dict = ld_dict['chrom_ld_dict']
     chrom_ref_ld_mats = ld_dict['chrom_ref_ld_mats']
         
-    print 'Applying LDpred with LD radius: %d' % ld_radius
+    print('Applying LDpred with LD radius: %d' % ld_radius)
     results_dict = {}
     cord_data_g = df['cord_data']
 
@@ -124,10 +124,10 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
     herit_dict = ld.get_chromosome_herits(cord_data_g, ld_scores_dict, n, h2)
 
     LDpred_inf_chrom_dict = {}
-    print 'Calculating LDpred-inf weights'
+    print('Calculating LDpred-inf weights')
     for chrom_str in util.chromosomes_list:
-        if chrom_str in cord_data_g.keys():
-            print 'Calculating scores for Chromosome %s' % ((chrom_str.split('_'))[1])           
+        if chrom_str in list(cord_data_g.keys()):
+            print('Calculating scores for Chromosome %s' % ((chrom_str.split('_'))[1]))           
             g = cord_data_g[chrom_str]
 
             # Filter monomorphic SNPs
@@ -143,7 +143,7 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
     
     
     for p in ps:
-        print 'Starting LDpred with p=%0.4f' % p
+        print('Starting LDpred with p=%0.4f' % p)
         p_str = '%0.4f' % p
         results_dict[p_str] = {}
     
@@ -158,10 +158,10 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
             out_nts = []
             
         for chrom_str in util.chromosomes_list:
-            if chrom_str in cord_data_g.keys():
+            if chrom_str in list(cord_data_g.keys()):
                 g = cord_data_g[chrom_str]
                 if has_phenotypes:
-                    if 'raw_snps_val' in g.keys():
+                    if 'raw_snps_val' in list(g.keys()):
                         raw_snps = g['raw_snps_val'][...]
                     else:
                         raw_snps = g['raw_snps_ref'][...]
@@ -192,7 +192,7 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
         
                 
                 h2_chrom = herit_dict[chrom_str]
-                if 'chrom_ld_boundaries' in ld_dict.keys():
+                if 'chrom_ld_boundaries' in list(ld_dict.keys()):
                     ld_boundaries = ld_dict['chrom_ld_boundaries'][chrom_str]
                     res_dict = ldpred_gibbs(pval_derived_betas, h2=h2_chrom, n=n, p=p, ld_radius=ld_radius,
                                             verbose=verbose, num_iter=num_iter, burn_in=burn_in, ld_dict=chrom_ld_dict[chrom_str],
@@ -207,10 +207,10 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
                 updated_inf_betas = res_dict['inf_betas']
                 sum_sqr_effects = sp.sum(updated_betas ** 2)
                 if sum_sqr_effects > herit_dict['gw_h2_ld_score_est']:
-                    print 'Sum of squared updated effects estimates seems too large:', sum_sqr_effects
-                    print 'This suggests that the Gibbs sampler did not convergence.'
+                    print('Sum of squared updated effects estimates seems too large:', sum_sqr_effects)
+                    print('This suggests that the Gibbs sampler did not convergence.')
                 
-                print 'Calculating scores for Chromosome %s' % ((chrom_str.split('_'))[1])
+                print('Calculating scores for Chromosome %s' % ((chrom_str.split('_'))[1]))
                 updated_betas = updated_betas / (snp_stds.flatten())
                 updated_inf_betas = updated_inf_betas / (snp_stds.flatten())
                 ldpred_effect_sizes.extend(updated_betas)
@@ -220,31 +220,31 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
                     risk_scores_pval_derived += prs
                     corr = sp.corrcoef(y, prs)[0, 1]
                     r2 = corr ** 2
-                    print 'The R2 prediction accuracy of PRS using %s was: %0.4f' % (chrom_str, r2)
+                    print('The R2 prediction accuracy of PRS using %s was: %0.4f' % (chrom_str, r2))
         
                     
         if has_phenotypes:
             num_indivs = len(y)
             results_dict[p_str]['y'] = y
             results_dict[p_str]['risk_scores_pd'] = risk_scores_pval_derived
-            print 'Prediction accuracy was assessed using %d individuals.' % (num_indivs)
+            print('Prediction accuracy was assessed using %d individuals.' % (num_indivs))
     
             corr = sp.corrcoef(y, risk_scores_pval_derived)[0, 1]
             r2 = corr ** 2
             results_dict[p_str]['r2_pd'] = r2
-            print 'The  R2 prediction accuracy (observed scale) for the whole genome was: %0.4f (%0.6f)' % (r2, ((1 - r2) ** 2) / num_indivs)
+            print('The  R2 prediction accuracy (observed scale) for the whole genome was: %0.4f (%0.6f)' % (r2, ((1 - r2) ** 2) / num_indivs))
     
             if corr < 0:
                 risk_scores_pval_derived = -1 * risk_scores_pval_derived
             auc = util.calc_auc(y, risk_scores_pval_derived)
-            print 'AUC for the whole genome was: %0.4f' % auc
+            print('AUC for the whole genome was: %0.4f' % auc)
     
             # Now calibration                               
             denominator = sp.dot(risk_scores_pval_derived.T, risk_scores_pval_derived)
             y_norm = (y - sp.mean(y)) / sp.std(y)
             numerator = sp.dot(risk_scores_pval_derived.T, y_norm)
             regression_slope = (numerator / denominator)  # [0][0]
-            print 'The slope for predictions with P-value derived  effects is:', regression_slope
+            print('The slope for predictions with P-value derived  effects is:', regression_slope)
             results_dict[p_str]['slope_pd'] = regression_slope
         
         weights_out_file = '%s_LDpred_p%0.4e.txt' % (out_file_prefix, p)
@@ -274,8 +274,8 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=1000, l
     
     # If no starting values for effects were given, then use the infinitesimal model starting values.
     if start_betas is None:
-        print 'Initializing LDpred effects with posterior mean LDpred-inf effects.'
-        print 'Calculating LDpred-inf effects.'
+        print('Initializing LDpred effects with posterior mean LDpred-inf effects.')
+        print('Calculating LDpred-inf effects.')
         start_betas = LDpred_inf.ldpred_inf(beta_hats, genotypes=genotypes, reference_ld_mats=reference_ld_mats,
                                             h2=h2, n=n, ld_window_size=2 * ld_radius, verbose=False)
     curr_betas = sp.copy(start_betas)
@@ -395,17 +395,17 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=1000, l
     t1 = time.time()
     t = (t1 - t0)
     if verbose:
-        print '\nTook %d minutes and %0.2f seconds' % (t / 60, t % 60)
+        print('\nTook %d minutes and %0.2f seconds' % (t / 60, t % 60))
     return {'betas':avg_betas, 'inf_betas':start_betas}
 
 
 def main():
     p_dict = parse_parameters()
     
-    print """
+    print("""
 Note: For maximal accuracy all SNPs with LDpred weights should be included in the validation data set.
 If they are a subset of the validation data set, then we suggest recalculate LDpred for the overlapping SNPs. 
-"""
+""")
     ld_dict = ld.get_ld_dict(p_dict['coord'], p_dict['local_ld_file_prefix'], p_dict['ld_radius'], p_dict['gm_ld_radius'])
         
     ldpred_genomewide(data_file=p_dict['coord'], out_file_prefix=p_dict['out'], ps=p_dict['PS'], ld_radius=p_dict['ld_radius'],
