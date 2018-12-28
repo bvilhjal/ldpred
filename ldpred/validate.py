@@ -36,6 +36,7 @@ validate --vgf=PLINK_VAL_GENOTYPE_FILE  --rf=RESULT_FILE_PREFIX  --out=OUTPUT_FI
                      (without space) values between 1 and 0, excluding 0.  1 corresponds to the infinitesimal model 
                      and will yield results similar to LDpred-inf.  Default values are 
                      --PS=1,0.3,0.1,0.03,0.01,0.003,0.001,0.0003,0.0001 
+ - PCS_FILE: The file containing principle component information, with first column assume to contain the IID. 
  
  2015 (c) Bjarni J Vilhjalmsson: bjarni.vilhjalmsson@gmail.com
  
