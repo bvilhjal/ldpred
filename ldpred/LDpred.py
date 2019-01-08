@@ -329,7 +329,7 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=1000, l
         alpha = min(1 - zero_jump_prob, 1.0 / h2_est, (h2 + 1 / sp.sqrt(n)) / h2_est)
 
         rand_ps = sp.random.random(m)
-        rand_norms = stats.norm.rvs(0, (hdmp_hdmpn) * (1 / n), size=m)
+        rand_norms = stats.norm.rvs(0, (hdmp_hdmpn) * (1.0 / n), size=m)
 
         if ld_boundaries is None:
             for i, snp_i in enumerate(iter_order):
