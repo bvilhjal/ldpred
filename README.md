@@ -92,7 +92,7 @@ Usage:
 
  * PLINK_LD_REF_GENOTYPE_FILE (and PLINK_VAL_GENOTYPE_FILE) should be a (full path) filename prefix to a standard PLINK bed file (without .bed) Make sure that the fam and bim files with same names are in the same directory. PLINK_LD_REF_GENOTYPE_FILE refers LD reference genotypes, and PLINK_VAL_GENOTYPE_FILE refers to validation genotypes. It is not necessary to have LD validation genotypes at this stage.
 
- * SUM_STATS_FILE should be a (full path) filename prefix for a text file with the GWAS summary statistics.  Several formats are supported, see below.
+ * SUM_STATS_FILE should be a (full path) filename ~prefix~ for a text file with the GWAS summary statistics.  Several formats are supported, see below.
 
 
  * SS_SAMPLE_SIZE should be the approximate number of individuals used for calculating the GWAS summary statistics.
