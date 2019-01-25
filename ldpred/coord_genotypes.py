@@ -1,61 +1,8 @@
 #!/usr/bin/env python
 """
-Coordinate genotypes and summary statistics datasets for calculating polygenic risk scores.
-Only SNPs that overlap between the two (or three) different datasets are retained.
+LDpred v. 1.0
 
-Usage:
-coord --gf=PLINK_LD_REF_GENOTYPE_FILE --ssf=SUM_STATS_FILE --N=SS_SAMPLE_SIZE  --out=OUT_COORD_FILE
-                            [--vgf=PLINK_VAL_GENOTYPE_FILE --vbim=VAL_PLINK_BIM_FILE  --ssf_format=SSF_FORMAT --gmdir=GENETIC_MAP_DIR
-                             --gf_format=GENOTYPE_FILE_FORMAT --indiv_list=INDIV_LIST_FILE  --maf=MAF_THRES  --skip_coordination  --check_mafs
-                             --chr=ChR_COLUMN_HEADER --pos=POSITION_COLUMN_HEADER --ref=REF_ALLELE_COLUMN_HEADER --alt=ALT_ALLELE_COLUMN_HEADER
-                             --reffreq=REF_FRE_COLUMN_HEADER --info=INFO_COLUMN_HEADER --rs=RSID_COLUMN_HEADER --pval=PVAL_COLUMN_HEADER
-                             --eff=EFFECT_SIZE_COLUMN_HEADER --ncol=SAMPLE_SIZE --beta]
-
- - PLINK_LD_REF_GENOTYPE_FILE (and PLINK_VAL_GENOTYPE_FILE) should be a (full path) filename prefix to a standard PLINK bed file
-   (without .bed) Make sure that the fam and bim files with same names are in the same directory.  PLINK_LD_REF_GENOTYPE_FILE refers
-   LD reference genotypes, and PLINK_VAL_GENOTYPE_FILE refers to validation genotypes. It is not necessary to have LD validation
-   genotypes at this stage.
-
- - SUM_STATS_FILE should be a (full path) filename prefix for a text file with the GWAS summary statistics.  The STANDARD format
-   (see below) of this file should be:
-     chr     pos     ref     alt     reffrq  info    rs       pval    effalt
-    chr1    1020428 C       T       0.85083 0.98732 rs6687776    0.0587  -0.0100048507289348
-    chr1    1020496 G       A       0.85073 0.98751 rs6678318    0.1287  -0.00826075392985992
-    ..
-    ..
-
- - SS_SAMPLE_SIZE: This is the approximate number of individuals used for calculating the GWAS summary statistics.
-
- - OUT_COORD_FILE: The output file.  This file will follow a HDF5 format and contain both LD-reference genotypes and summary
-   statistics.
-
- - VAL_PLINK_BIM_FILE (optional): This is a PLINK BIM file which can be used to filter the set of SNPs down to the set of validation SNPs.  To
-   maximize accuracy, it's best to calculate the LDpred weights for the SNPs that are used to calculate the risk scores.
-
- - SSF_FORMAT (optional): This is the format type of the summary statistics file.  Currently there are two implementations, "STANDARD", "BASIC",
-   "GIANT", "PGC", and "PGC_large".  The standard format is described above.
-
-   "BASIC" format, which contains of the basic required information, is as follows:
-    hg19chrc    snpid    a1    a2    bp    or    p
-    chr1    rs4951859    C    G    729679    0.97853    0.2083
-    chr1    rs142557973    T    C    731718    1.01949    0.3298
-    ..
-    ..
-
- - GENOTYPE_FILE_FORMAT (optional): The expected genotype format.  The standard format is PLINK.  Other formats implemented is
-   DECODE format.  If the DECODE format is used, then the program assumes that the data directory is supplied in the --gf flag.
-
- - INDIV_LIST_FILE (optional): List of individuals to include in the analysis.  Currently required for the DECODE format.
-
- - MAF_THRES (optional): Minor allele frequency threshold, i.e. SNPs with MAF smaller than threshold will be excluded from analysis.
-
- - --skip_cordination flag assumes that the alleles have already been coordinated between LD reference, validation samples,
-   and the summary statistics files.
-
- - GENETIC_MAP_DIR (optional): The directory of genetic a genetic map.
-
-
- 2019 (c) Bjarni J Vilhjalmsson: bjarni.vilhjalmsson@gmail.com
+2019 (c) Bjarni J Vilhjalmsson: bjarni.vilhjalmsson@gmail.com
 """
 
 import argparse
