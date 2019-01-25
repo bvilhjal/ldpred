@@ -687,7 +687,7 @@ def parse_sum_stats_pgc(filename=None,
             for line in f:
                 l = line.split()
                 valid_sids.add(l[1])
-        print(len(valid_sids))
+        print('Parsed %d SNP IDs from bim file.'%len(valid_sids))
 
     chrom_dict = {}
 
@@ -700,14 +700,11 @@ def parse_sum_stats_pgc(filename=None,
             line_i +=1
             l = (line.strip()).split()
             chrom = l[0]
-            pos = int(l[2])
-            sid = l[1]
-            if line_i%100000==0: 
-                print ('chrom=%s; pos=%d; sid=%s'%(chrom,pos,sid))
-                print (sid in valid_sids)
             if not chrom in util.valid_chromosomes:
                 missing_chromosomes.add(chrom)
                 continue
+            pos = int(l[2])
+            sid = l[1]
             if sid in valid_sids:
                 if not chrom in chrom_dict.keys():
                     chrom_dict[chrom] = {'ps': [], 'log_odds': [], 'infos': [], 'freqs': [],
