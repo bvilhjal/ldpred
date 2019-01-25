@@ -3,6 +3,12 @@ Various general utility functions.
 
 """
 import scipy as sp
+from scipy import stats
+
+# LDpred currently ignores the Y and MT chromosomes.
+ok_chromosomes = ['%d' % (x) for x in range(1, 23)]
+ok_chromosomes.append('X')
+chromosomes_list = ['chrom_%s' % (chrom) for chrom in ok_chromosomes]
 
 #Various auxiliary variables
 ambig_nts = set([('A', 'T'), ('T', 'A'), ('G', 'C'), ('C', 'G')])
@@ -11,6 +17,7 @@ opp_strand_dict = {'A': 'T', 'G': 'C', 'T': 'A', 'C': 'G'}
 valid_nts = set(['A', 'T', 'C', 'G'])
 
 lc_CAPs_dict = {'a': 'A', 'c': 'C', 'g': 'G', 't': 'T'}
+
 
 # LDpred currently ignores the Y and MT chromosomes.
 valid_chromosomes = ['%d' % (x) for x in range(1, 24)]
@@ -80,4 +87,37 @@ def calc_auc(y_true, y_hat, show_plot=False):
         pylab.plot(roc_x, roc_y)
         pylab.show()
     return auc
+
+
+
+def obs_h2_to_liab(R2_osb,K=0.01,P=0.5):
+    """
+    Transformation from observed to liability scale.
+    
+    Lee et al. AJHG 2011 conversion? 
+    
+    For heritability only?
+    """
+    t = stats.norm.ppf(1-K)
+    z = stats.norm.pdf(t)
+    c = P*(1-P)*z**2/(K**2*(1-K)**2)
+    R2_liab = R2_osb/c
+    return R2_liab
+
+
+def obs_r2_to_liab(R2_osb,K=0.01,P=0.5):
+    """
+    Lee et al., Gen Epi 2012 conversion
+    
+    For R2 only?
+
+    """
+    t = stats.norm.ppf(K)
+    z = stats.norm.pdf(t)
+    m = z/K
+    C = (K*(1-K))**2/((z**2)*(P*(1-P)))
+    d =  m*((P-K)/(1-K))
+    theta =d**2 - d*t
+    R2_liab_cc =  (R2_osb*C)/(1+(R2_osb*C*theta))
+    return R2_liab_cc
 
