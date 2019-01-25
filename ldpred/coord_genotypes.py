@@ -80,25 +80,33 @@ parser.add_argument('--gf', type=str, required=True,
 parser.add_argument('--ssf', type=str, required=True,
                     help='Summary Statistic File. '
                          'Filename prefix for a text file with the GWAS summary statistics')
-parser.add_argument('--N', type=int, required=True,
-                    help='Number of Individual in Summary Statistic File.')
+parser.add_argument('--N', type=int, default=None,
+                    help='Number of Individuals in Summary Statistic File.  Required for most summary '
+                         'statistics formats.')
 parser.add_argument('--out', type=str, required=True,
                     help='Output Prefix')
-parser.add_argument('--vbim', type=str,
+parser.add_argument('--vbim', type=str, default=None,
                     help='Validation SNP file. '
-                         'This is a PLINK BIM file which can be used to filter the set of SNPs down'
-                         ' to the set of validation SNPs. To maximize accuracy, it is best to calculate '
-                         'the LDpred weights for the SNPs that are used to calculate the risk scores.')
+                         'This is a PLINK BIM file which can be used to filter the set of SNPs down '
+                         'to the set of validation SNPs. To maximize accuracy, we recommend calculating LDpred '
+                         'weights for the subset of SNPs that are used to calculate the risk scores in the '
+                         'target (validation) sample.')
+parser.add_argument('--vgf', type=str, default=None,
+                    help='Validation genotype file. '
+                         'This is a PLINK BIM file which can be used to filter the set of SNPs down to the '
+                         'set of validation SNPs.  To maximize accuracy, we recommend calculating LDpred '
+                         'weights for the subset of SNPs that are used to calculate the risk scores in the '
+                         'target (validation) sample.')
 parser.add_argument('--gf-format', type=str, default="PLINK",
                     help='The expected genotype format. The standard format is PLINK. '
                          'Other formats implemented is DECODE format. '
                          'If the DECODE format is used, then the program assumes that '
-                         'the data directory is supplied in the --gf flag.')
+                         'the data directory is supplied in the --gf flag.', default="PLINK")
 parser.add_argument('--indiv-list', type=str,
                     help='List of individuals to include in the analysis. '
-                         'Currently required for the DECODE format.')
+                         'Currently required for the DECODE format.', default=None)
 parser.add_argument('--gmdir', type=str,
-                    help='The directory of genetic map.')
+                    help='The directory of genetic map.', default=None)
 parser.add_argument('--skip-coordination', default=False, action='store_true',
                     help="Assumes that the alleles have already been coordinated between LD reference, "
                          "validation samples, and the summary statistics files")
@@ -110,6 +118,10 @@ parser.add_argument('--check-maf', default=False, action='store_true',
                     help="Perform MAF checking")
 parser.add_argument('--maf', type=float, default=0.01,
                     help='MAF filtering threshold')
+parser.add_argument('--ssf_format', type=str, default="CUSTOM", 
+                    help='This is the format type of the summary statistics file. '
+                    'Currently there are two implementations, "STANDARD", "BASIC", "GIANT", '
+                    '"PGC", and "PGC_large".  The standard format is described above.')
 parser.add_argument('--rs', type=str, default="SNP",
                     help="Column header of SNP ID")
 parser.add_argument('--A1', type=str, default="A1",
@@ -133,43 +145,6 @@ parser.add_argument('--eff', type=str, default="OR",
                     help="Column header containing effect size information")
 
 
-
-
-def parse_parameters(parameters):
-    """
-    Parse the parameters into a dict, etc.
-    """
-
-    #Default parameter values:
-    p_dict = {'gf': None, 'vgf': None, 'ssf': None, 'out': None, 'vbim': None, 'N': None,
-              'gmdir': None, 'indiv_list': None, 'gf_format': 'PLINK',
-              'maf': 0.01, 'skip_coordination': False, 'debug': False, 'check_mafs': False,
-              'rs': "SNP", 'chr': "CHR", 'pos': "BP", 'A1': "A1", 'A2' : "A2", 'info': "INFO",
-              'reffreq': "MAF", 'pval' : "P", 'beta': False, 'ssf_format': 'CUSTOM'}
-    
-    p_dict['gf'] = parameters.gf
-    p_dict['vgf'] = parameters.vgf
-    p_dict['ssf'] = parameters.ssf
-    p_dict['out'] = parameters.out
-    p_dict['vbim'] = parameters.vbim
-    p_dict['gmdir'] = parameters.gmdir
-    p_dict['indiv_list'] = parameters.indiv_list
-    p_dict['gf_format'] = parameters.gf_format
-    p_dict['skup_coordination'] = parameters.skip_coordination
-    p_dict['check_mafs'] = parameters.check_mafs
-    p_dict['maf'] = parameters.maf
-    p_dict['debug'] = parameters.debug
-    p_dict['N'] = parameters.N
-    p_dict['rs'] = parameters.rs
-    p_dict['chr'] = parameters.chr
-    p_dict['pos'] = parameters.pos
-    p_dict['A1'] = parameters.A1
-    p_dict['A2'] = parameters.A2
-    p_dict['info'] = parameters.info
-    p_dict['reffreq'] = parameters.reffreq
-    p_dict['pval'] = parameters.pval
-    p_dict['eff'] = parameters.eff
-    p_dict['beta'] = parameters.beta
 
 def get_chrom_dict_bim(bim_file, chromosomes):
     chr_dict = {}
@@ -788,13 +763,15 @@ def coordinate_genotypes_ss_w_ld_ref(genotype_file=None,
 
 def main():
     parameters = parser.parse_args()
-    p_dict = parse_parameters(parameters)
+    p_dict= vars(parameters)
+ 
     print """
     Note: For maximal accuracy all SNPs with LDpred weights should be included in the validation data set.
     If they are a subset of the validation data set, then we suggest recalculate LDpred for the overlapping SNPs.
     You can coordinate across the three data sets by either using the same LD reference and the validation data, or using
     the --vbim argument, and supply the validation data set PLINK formatted bim file.
     """
+    
     bimfile = None
     if p_dict['N'] is None:
         print 'Please specify an integer value for the sample size used to calculate the GWAS summary statistics.'
