@@ -143,6 +143,8 @@ parser.add_argument('--pval', type=str, default="P",
                     help="Column header containing the P-value information")
 parser.add_argument('--eff', type=str, default="OR",
                     help="Column header containing effect size information")
+parser.add_argument('--ncol', type=str, default="N",
+                    help="Column header containing sample size information")
 
 
 
