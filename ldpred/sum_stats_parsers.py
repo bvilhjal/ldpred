@@ -9,33 +9,33 @@ import re
 
 
 def parse_sum_stats(h5f, p_dict, bimfile):
-    if p_dict['ssf_format'] == 'STANDARD':
+    if p_dict['ssf-format'] == 'STANDARD':
         if p_dict['N'] is None: 
             raise Exception('This summary statistics format requires summary statistics sample size to be given, i.e. set --N flag.')        
         parse_sum_stats_standard(
             filename=p_dict['ssf'], bimfile=bimfile, hdf5_file=h5f, n=p_dict['N'])
-    elif p_dict['ssf_format'] == 'PGC':
+    elif p_dict['ssf-format'] == 'PGC':
         if p_dict['N'] is None: 
             raise Exception('This summary statistics format requires summary statistics sample size to be given, i.e. set --N flag.')        
         parse_sum_stats_pgc_small(
             filename=p_dict['ssf'], bimfile=bimfile, hdf5_file=h5f, n=p_dict['N'])
-    elif p_dict['ssf_format'] == 'PGC_LARGE':
+    elif p_dict['ssf-format'] == 'PGC_LARGE':
         if p_dict['N'] is None: 
             raise Exception('This summary statistics format requires summary statistics sample size to be given, i.e. set --N flag.')        
         parse_sum_stats_pgc(
             filename=p_dict['ssf'], bimfile=bimfile, hdf5_file=h5f, n=p_dict['N'])
-    elif p_dict['ssf_format'] == 'BASIC':
+    elif p_dict['ssf-format'] == 'BASIC':
         if p_dict['N'] is None: 
             raise Exception('This summary statistics format requires summary statistics sample size to be given, i.e. set --N flag.')        
         parse_sum_stats_basic(
             filename=p_dict['ssf'], bimfile=bimfile, hdf5_file=h5f, n=p_dict['N'])
-    elif p_dict['ssf_format'] == 'GIANT':
+    elif p_dict['ssf-format'] == 'GIANT':
         parse_sum_stats_giant(
             filename=p_dict['ssf'], bimfile=bimfile, hdf5_file=h5f, debug=p_dict['debug'])
-    elif p_dict['ssf_format'] == 'GIANT2':
+    elif p_dict['ssf-format'] == 'GIANT2':
         parse_sum_stats_giant2(
             filename=p_dict['ssf'], bimfile=bimfile, hdf5_file=h5f, debug=p_dict['debug'])
-    elif p_dict['ssf_format'] == 'CUSTOM':
+    elif p_dict['ssf-format'] == 'CUSTOM':
         parse_sum_stats_custom(filename=p_dict['ssf'], bimfile=bimfile, hdf5_file=h5f, n=p_dict['N'], chr=p_dict['chr'],
                     A1=p_dict['A1'], A2=p_dict['A2'], reffreq=p_dict['reffreq'], info=p_dict['info'],
                     rs=p_dict['rs'], pval=p_dict['pval'], eff=p_dict['eff'], ncol=p_dict['ncol'],

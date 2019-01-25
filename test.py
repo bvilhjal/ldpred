@@ -14,7 +14,7 @@ print('Please report bugs on gihub (https://github.com/bvilhjal/ldpred) or to Bj
 
 coord_file = tmp_file_prefix + '.coord.hdf5'
 print('Coordinating test data into file %s' % coord_file)
-cmd_str = 'python ./ldpred/coord_genotypes.py --gf=./test_data/LDpred_data_p0.001_train_0 --vgf=./test_data/LDpred_data_p0.001_test_0 --ssf=./test_data/LDpred_data_p0.001_ss_0.txt --ssf_format=STANDARD  --N=10000  --out=%s' % coord_file
+cmd_str = 'python ./ldpred/coord_genotypes.py --gf=./test_data/LDpred_data_p0.001_train_0 --vgf=./test_data/LDpred_data_p0.001_test_0 --ssf=./test_data/LDpred_data_p0.001_ss_0.txt --ssf-format=STANDARD  --N=10000  --out=%s' % coord_file
 print(cmd_str + '\n')
 assert os.system(cmd_str) == 0, 'Problems when coordinating data!  Testing stopped'
 

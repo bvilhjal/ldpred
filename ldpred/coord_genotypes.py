@@ -118,7 +118,7 @@ parser.add_argument('--check-maf', default=False, action='store_true',
                     help="Perform MAF checking")
 parser.add_argument('--maf', type=float, default=0.01,
                     help='MAF filtering threshold')
-parser.add_argument('--ssf_format', type=str, default="CUSTOM", 
+parser.add_argument('--ssf-format', type=str, default="CUSTOM", 
                     help='This is the format type of the summary statistics file. '
                     'Currently there are two implementations, "STANDARD", "BASIC", "GIANT", '
                     '"PGC", and "PGC_large".  The standard format is described above.')
@@ -797,17 +797,17 @@ def main():
     ssp.parse_sum_stats(h5f, p_dict, bimfile)
     
     if not p_dict['vgf'] == None:
-        assert p_dict['gf_format'] == 'PLINK', 'The validation genotype option currently only works with the PLINK format'
+        assert p_dict['gf-format'] == 'PLINK', 'The validation genotype option currently only works with the PLINK format'
         coordinate_genotypes_ss_w_ld_ref(genotype_file=p_dict['vgf'], reference_genotype_file=p_dict['gf'],
-                                         genetic_map_dir=p_dict['gmdir'], check_mafs=p_dict['check_mafs'],
+                                         genetic_map_dir=p_dict['gmdir'], check_mafs=p_dict['check-maf'],
                                          hdf5_file=h5f, min_maf=p_dict['maf'], skip_coordination=p_dict['skip_coordination'])
     else:
-        if p_dict['gf_format'] == 'PLINK':
-            coordinate_genot_ss(genotype_file=p_dict['gf'], genetic_map_dir=p_dict['gmdir'], check_mafs=p_dict['check_mafs'],
-                                hdf5_file=h5f, min_maf=p_dict['maf'], skip_coordination=p_dict['skip_coordination'])
+        if p_dict['gf-format'] == 'PLINK':
+            coordinate_genot_ss(genotype_file=p_dict['gf'], genetic_map_dir=p_dict['gmdir'], check_mafs=p_dict['check-maf'],
+                                hdf5_file=h5f, min_maf=p_dict['maf'], skip_coordination=p_dict['skip-coordination'])
         else:
             raise Exception('Unknown genotype file format: %s' %
-                            p_dict['gf_format'])
+                            p_dict['gf-format'])
 
     h5f.close()
 
