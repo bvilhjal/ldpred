@@ -702,14 +702,14 @@ def parse_sum_stats_pgc2(filename=None,
             line_i +=1
             l = (line.strip()).split()
             chrom = l[0]
-            if not chrom in util.valid_chromosomes:
-                missing_chromosomes.add(chrom)
-                continue
             pos = int(l[2])
             sid = l[1]
             if line_i%100000==0: 
                 print ('chrom=%s; pos=%d; sid=%s'%chrom,pos,sid)
                 print (sid in valid_sids)
+            if not chrom in util.valid_chromosomes:
+                missing_chromosomes.add(chrom)
+                continue
             if sid in valid_sids:
                 if not chrom in chrom_dict.keys():
                     chrom_dict[chrom] = {'ps': [], 'log_odds': [], 'infos': [], 'freqs': [],
