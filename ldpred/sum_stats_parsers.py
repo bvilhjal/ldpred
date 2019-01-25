@@ -14,15 +14,15 @@ def parse_sum_stats(h5f, p_dict, bimfile):
             raise Exception('This summary statistics format requires summary statistics sample size to be given, i.e. set --N flag.')        
         parse_sum_stats_standard(
             filename=p_dict['ssf'], bimfile=bimfile, hdf5_file=h5f, n=p_dict['N'])
-    elif p_dict['ssf_format'] == 'PGC':
+    elif p_dict['ssf_format'] == 'PGC_OLD':
         if p_dict['N'] is None: 
             raise Exception('This summary statistics format requires summary statistics sample size to be given, i.e. set --N flag.')        
         parse_sum_stats_pgc_small(
             filename=p_dict['ssf'], bimfile=bimfile, hdf5_file=h5f, n=p_dict['N'])
-    elif p_dict['ssf_format'] == 'PGC2':
+    elif p_dict['ssf_format'] == 'PGC':
         if p_dict['N'] is None: 
             raise Exception('This summary statistics format requires summary statistics sample size to be given, i.e. set --N flag.')        
-        parse_sum_stats_pgc2(
+        parse_sum_stats_pgc(
             filename=p_dict['ssf'], bimfile=bimfile, hdf5_file=h5f, n=p_dict['N'])
     elif p_dict['ssf_format'] == 'BASIC':
         if p_dict['N'] is None: 
@@ -670,7 +670,7 @@ def parse_sum_stats_decode(filename=None,
     print '%d SNPs parsed from summary statistics file.' % num_snps
 
 
-def parse_sum_stats_pgc2(filename=None,
+def parse_sum_stats_pgc(filename=None,
                         bimfile=None,
                         hdf5_file=None):
     """
