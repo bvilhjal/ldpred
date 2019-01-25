@@ -1,9 +1,4 @@
 #!/usr/bin/env python
-"""
-LDpred v. 1.0
-
-2019 (c) Bjarni J Vilhjalmsson: bjarni.vilhjalmsson@gmail.com
-"""
 
 import argparse
 import os
@@ -14,9 +9,6 @@ import plinkfiles
 import h5py
 import util
 import sum_stats_parsers as ssp
-
-
-
 
 
 parser = argparse.ArgumentParser()
