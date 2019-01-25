@@ -101,7 +101,7 @@ parser.add_argument('--gf-format', type=str, default="PLINK",
                     help='The expected genotype format. The standard format is PLINK. '
                          'Other formats implemented is DECODE format. '
                          'If the DECODE format is used, then the program assumes that '
-                         'the data directory is supplied in the --gf flag.', default="PLINK")
+                         'the data directory is supplied in the --gf flag.')
 parser.add_argument('--indiv-list', type=str,
                     help='List of individuals to include in the analysis. '
                          'Currently required for the DECODE format.', default=None)
