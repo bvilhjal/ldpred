@@ -19,16 +19,14 @@ def parse_sum_stats(h5f, p_dict, bimfile):
             raise Exception('This summary statistics format requires summary statistics sample size to be given, i.e. set --N flag.')        
         parse_sum_stats_pgc_small(
             filename=p_dict['ssf'], bimfile=bimfile, hdf5_file=h5f, n=p_dict['N'])
-    elif p_dict['ssf_format'] == 'PGC':
-        if p_dict['N'] is None: 
-            raise Exception('This summary statistics format requires summary statistics sample size to be given, i.e. set --N flag.')        
-        parse_sum_stats_pgc(
-            filename=p_dict['ssf'], bimfile=bimfile, hdf5_file=h5f, n=p_dict['N'])
     elif p_dict['ssf_format'] == 'BASIC':
         if p_dict['N'] is None: 
             raise Exception('This summary statistics format requires summary statistics sample size to be given, i.e. set --N flag.')        
         parse_sum_stats_basic(
             filename=p_dict['ssf'], bimfile=bimfile, hdf5_file=h5f, n=p_dict['N'])
+    elif p_dict['ssf_format'] == 'PGC':
+        parse_sum_stats_pgc(
+            filename=p_dict['ssf'], bimfile=bimfile, hdf5_file=h5f)
     elif p_dict['ssf_format'] == 'GIANT':
         parse_sum_stats_giant(
             filename=p_dict['ssf'], bimfile=bimfile, hdf5_file=h5f, debug=p_dict['debug'])
