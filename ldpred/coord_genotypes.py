@@ -766,6 +766,7 @@ def coordinate_genotypes_ss_w_ld_ref(genotype_file=None,
 def main():
     parameters = parser.parse_args()
     p_dict= vars(parameters)
+    print p_dict
  
     print """
     Note: For maximal accuracy all SNPs with LDpred weights should be included in the validation data set.
@@ -797,17 +798,17 @@ def main():
     ssp.parse_sum_stats(h5f, p_dict, bimfile)
     
     if not p_dict['vgf'] == None:
-        assert p_dict['gf-format'] == 'PLINK', 'The validation genotype option currently only works with the PLINK format'
+        assert p_dict['gf_format'] == 'PLINK', 'The validation genotype option currently only works with the PLINK format'
         coordinate_genotypes_ss_w_ld_ref(genotype_file=p_dict['vgf'], reference_genotype_file=p_dict['gf'],
-                                         genetic_map_dir=p_dict['gmdir'], check_mafs=p_dict['check-maf'],
+                                         genetic_map_dir=p_dict['gmdir'], check_mafs=p_dict['check_maf'],
                                          hdf5_file=h5f, min_maf=p_dict['maf'], skip_coordination=p_dict['skip_coordination'])
     else:
-        if p_dict['gf-format'] == 'PLINK':
-            coordinate_genot_ss(genotype_file=p_dict['gf'], genetic_map_dir=p_dict['gmdir'], check_mafs=p_dict['check-maf'],
+        if p_dict['gf_format'] == 'PLINK':
+            coordinate_genot_ss(genotype_file=p_dict['gf'], genetic_map_dir=p_dict['gmdir'], check_mafs=p_dict['check_maf'],
                                 hdf5_file=h5f, min_maf=p_dict['maf'], skip_coordination=p_dict['skip-coordination'])
         else:
             raise Exception('Unknown genotype file format: %s' %
-                            p_dict['gf-format'])
+                            p_dict['gf_format'])
 
     h5f.close()
 
