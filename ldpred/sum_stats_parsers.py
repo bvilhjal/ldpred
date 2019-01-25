@@ -19,10 +19,10 @@ def parse_sum_stats(h5f, p_dict, bimfile):
             raise Exception('This summary statistics format requires summary statistics sample size to be given, i.e. set --N flag.')        
         parse_sum_stats_pgc_small(
             filename=p_dict['ssf'], bimfile=bimfile, hdf5_file=h5f, n=p_dict['N'])
-    elif p_dict['ssf_format'] == 'PGC_LARGE':
+    elif p_dict['ssf_format'] == 'PGC2':
         if p_dict['N'] is None: 
             raise Exception('This summary statistics format requires summary statistics sample size to be given, i.e. set --N flag.')        
-        parse_sum_stats_pgc(
+        parse_sum_stats_pgc2(
             filename=p_dict['ssf'], bimfile=bimfile, hdf5_file=h5f, n=p_dict['N'])
     elif p_dict['ssf_format'] == 'BASIC':
         if p_dict['N'] is None: 
@@ -670,10 +670,9 @@ def parse_sum_stats_decode(filename=None,
     print '%d SNPs parsed from summary statistics file.' % num_snps
 
 
-def parse_sum_stats_pgc(filename=None,
+def parse_sum_stats_pgc2(filename=None,
                         bimfile=None,
-                        hdf5_file=None,
-                        n=None):
+                        hdf5_file=None):
     """
     Input format:
 
@@ -695,9 +694,6 @@ def parse_sum_stats_pgc(filename=None,
     chrom_dict = {}
 
     print 'Parsing the file: %s' % filename
-    denom = float(30542 + 40629)
-    a_scalar = 30542 / denom
-    u_scalar = 40629 / denom
     with open(filename) as f:
         print f.next()
         missing_chromosomes = set()
@@ -717,6 +713,12 @@ def parse_sum_stats_pgc(filename=None,
                 chrom_dict[chrom]['positions'].append(pos)
                 freq_a = float(l[5])
                 freq_u = float(l[6])
+                n_cases = float(l[15])
+                n_controls = float(l[16])
+                n = n_cases+n_controls
+                a_scalar =  n_cases/ n
+                u_scalar = n_controls / n
+                n_eff = float(l[17])
                 freq = freq_a * a_scalar + freq_u * u_scalar
                 chrom_dict[chrom]['freqs'].append(freq)
                 info = l[7]
@@ -729,7 +731,7 @@ def parse_sum_stats_pgc(filename=None,
                 chrom_dict[chrom]['log_odds'].append(raw_beta)
                 beta = sp.sign(raw_beta) * stats.norm.ppf(pval / 2.0)
 
-                chrom_dict[chrom]['betas'].append(beta / sp.sqrt(n))
+                chrom_dict[chrom]['betas'].append(beta / sp.sqrt(n_eff))
         util.check_chromosomes(missing_chromosomes)
 
     print 'SS file loaded, now sorting and storing in HDF5 file.'

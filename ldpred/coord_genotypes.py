@@ -60,7 +60,7 @@ parser.add_argument('--maf', type=float, default=0.01,
 parser.add_argument('--ssf-format', type=str, default="CUSTOM", 
                     help='This is the format type of the summary statistics file. '
                     'Currently there are two implementations, "STANDARD", "BASIC", "GIANT", '
-                    '"PGC", and "PGC_large".  The standard format is described above.')
+                    'and "PGC".  The standard format is described above.')
 parser.add_argument('--rs', type=str, default="SNP",
                     help="Column header of SNP ID")
 parser.add_argument('--A1', type=str, default="A1",
@@ -705,7 +705,6 @@ def coordinate_genotypes_ss_w_ld_ref(genotype_file=None,
 def main():
     parameters = parser.parse_args()
     p_dict= vars(parameters)
-    print p_dict
  
     print """
     Note: For maximal accuracy all SNPs with LDpred weights should be included in the validation data set.
@@ -744,7 +743,7 @@ def main():
     else:
         if p_dict['gf_format'] == 'PLINK':
             coordinate_genot_ss(genotype_file=p_dict['gf'], genetic_map_dir=p_dict['gmdir'], check_mafs=p_dict['check_maf'],
-                                hdf5_file=h5f, min_maf=p_dict['maf'], skip_coordination=p_dict['skip-coordination'])
+                                hdf5_file=h5f, min_maf=p_dict['maf'], skip_coordination=p_dict['skip_coordination'])
         else:
             raise Exception('Unknown genotype file format: %s' %
                             p_dict['gf_format'])
