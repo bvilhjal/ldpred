@@ -703,7 +703,7 @@ def parse_sum_stats_pgc(filename=None,
             pos = int(l[2])
             sid = l[1]
             if line_i%100000==0: 
-                print ('chrom=%s; pos=%d; sid=%s'%chrom,pos,sid)
+                print ('chrom=%s; pos=%d; sid=%s'%(chrom,pos,sid))
                 print (sid in valid_sids)
             if not chrom in util.valid_chromosomes:
                 missing_chromosomes.add(chrom)
