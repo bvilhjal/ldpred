@@ -380,7 +380,7 @@ def get_ld_dict(cord_data_file, local_ld_file_prefix, ld_radius, gm_ld_radius):
         df = h5py.File(cord_data_file)
         cord_data_g = df['cord_data']
 
-        for chrom_str in list(cord_data_g.keys()):
+        for chrom_str in cord_data_g:
             print('Working on %s' % chrom_str)
             g = cord_data_g[chrom_str]
             if 'raw_snps_ref' in g:
@@ -445,7 +445,7 @@ def get_chromosome_herits(cord_data_g, ld_scores_dict, n, h2=None):
     sum_beta2s = 0
     herit_dict = {}
     for chrom_str in util.chromosomes_list:
-        if chrom_str in list(cord_data_g.keys()):
+        if chrom_str in cord_data_g:
             g = cord_data_g[chrom_str]
             betas = g['betas'][...]
             n_snps = len(betas)
@@ -468,7 +468,7 @@ def get_chromosome_herits(cord_data_g, ld_scores_dict, n, h2=None):
         h2 = gw_h2_ld_score_est
 
     #Distributing heritabilities among chromosomes.
-    for k in list(herit_dict.keys()):
+    for k in herit_dict:
         herit_dict[k] = h2 * herit_dict[k]/float(num_snps)
     
     herit_dict['gw_h2_ld_score_est'] = gw_h2_ld_score_est

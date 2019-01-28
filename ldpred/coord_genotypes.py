@@ -247,7 +247,7 @@ def coordinate_genot_ss(genotype_file=None,
         if debug:
             print('Found %d SNPs present in both datasets' % (len(g_indices)))
 
-        if 'freqs' in list(ssg.keys()):
+        if 'freqs' in ssg:
             ss_freqs = ssg['freqs'][...]
 
         ok_indices = {'g': [], 'ss': []}
@@ -280,7 +280,7 @@ def coordinate_genot_ss(genotype_file=None,
                     if flip_nts:
                         betas[ss_i] = -betas[ss_i]
                         log_odds[ss_i] = -log_odds[ss_i]
-                        if 'freqs' in list(ssg.keys()):
+                        if 'freqs' in ssg:
                             ss_freqs[ss_i] = 1 - ss_freqs[ss_i]
                     else:
                         num_non_matching_nts += 1
@@ -324,7 +324,7 @@ def coordinate_genot_ss(genotype_file=None,
         sids = ssg['sids'][...][ok_indices['ss']]
 
         # Check SNP frequencies..
-        if check_mafs and 'freqs' in list(ssg.keys()):
+        if check_mafs and 'freqs' in ssg:
             ss_freqs = ss_freqs[ok_indices['ss']]
             freq_discrepancy_snp = sp.absolute(ss_freqs - (1 - freqs)) > 0.15
             if sp.any(freq_discrepancy_snp):
@@ -466,7 +466,7 @@ def coordinate_genotypes_ss_w_ld_ref(genotype_file=None,
     chr_dict_ref = plinkfiles.get_chrom_dict(loci_ref, chromosomes)
 
     # Open HDF5 file and prepare out data
-    assert not 'iids' in list(hdf5_file.keys()), 'Something is wrong with the HDF5 file, no individuals IDs were found.'
+    assert not 'iids' in hdf5_file, 'Something is wrong with the HDF5 file, no individuals IDs were found.'
     if plinkf_dict['has_phenotype']:
         hdf5_file.create_dataset('y', data=plinkf_dict['phenotypes'])
 
@@ -553,7 +553,7 @@ def coordinate_genotypes_ss_w_ld_ref(genotype_file=None,
         betas = ssg['betas'][...]
         log_odds = ssg['log_odds'][...]
 
-        if 'freqs' in list(ssg.keys()):
+        if 'freqs' in ssg:
             ss_freqs = ssg['freqs'][...]
 
         g_ss_nt_concord_count = sp.sum(
@@ -607,7 +607,7 @@ def coordinate_genotypes_ss_w_ld_ref(genotype_file=None,
                         if flip_nts:
                             betas[ss_i] = -betas[ss_i]
                             log_odds[ss_i] = -log_odds[ss_i]
-                            if 'freqs' in list(ssg.keys()):
+                            if 'freqs' in ssg:
                                 ss_freqs[ss_i] = 1 - ss_freqs[ss_i]
                         else:
                             if debug:
@@ -667,7 +667,7 @@ def coordinate_genotypes_ss_w_ld_ref(genotype_file=None,
 
 
         # Check SNP frequencies..
-        if check_mafs and 'freqs' in list(ssg.keys()):
+        if check_mafs and 'freqs' in ssg:
             ss_freqs = ss_freqs[ok_indices['ss']]
             freq_discrepancy_snp = sp.absolute(ss_freqs - (1 - freqs)) > 0.15
             if sp.any(freq_discrepancy_snp):

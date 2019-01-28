@@ -126,7 +126,7 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
     
     df = h5py.File(data_file, 'r')
     has_phenotypes = False
-    if 'y' in list(df.keys()):
+    if 'y' in df:
         'Validation phenotypes found.'
         y = df['y'][...]  # Phenotype
         num_individs = len(y)
@@ -147,7 +147,7 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
     LDpred_inf_chrom_dict = {}
     print('Calculating LDpred-inf weights')
     for chrom_str in util.chromosomes_list:
-        if chrom_str in list(cord_data_g.keys()):
+        if chrom_str in cord_data_g:
             print('Calculating scores for Chromosome %s' % ((chrom_str.split('_'))[1]))           
             g = cord_data_g[chrom_str]
 
@@ -179,10 +179,10 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
             out_nts = []
             
         for chrom_str in util.chromosomes_list:
-            if chrom_str in list(cord_data_g.keys()):
+            if chrom_str in cord_data_g:
                 g = cord_data_g[chrom_str]
                 if has_phenotypes:
-                    if 'raw_snps_val' in list(g.keys()):
+                    if 'raw_snps_val' in g:
                         raw_snps = g['raw_snps_val'][...]
                     else:
                         raw_snps = g['raw_snps_ref'][...]

@@ -140,7 +140,7 @@ def parse_sum_stats_custom(filename=None,
                 pos_read = snps_pos_map[sid]['pos']
             # Now check the SNP ID
             if sid in valid_sids:
-                if not chrom in chrom_dict.keys():
+                if not chrom in chrom_dict:
                     chrom_dict[chrom] = {'ps':[], 'log_odds':[], 'infos':[], 'freqs':[],
                              'betas':[], 'nts': [], 'sids': [], 'positions': []}
                 chrom_dict[chrom]['sids'].append(sid)
@@ -190,11 +190,11 @@ def parse_sum_stats_custom(filename=None,
             print('Please note that only data on chromosomes 1-23, and X are parsed.')
 
     print('SS file loaded, now sorting and storing in HDF5 file.')
-    assert not 'sum_stats' in hdf5_file.keys(), 'Something is wrong with HDF5 file?'
+    assert not 'sum_stats' in hdf5_file, 'Something is wrong with HDF5 file?'
     ssg = hdf5_file.create_group('sum_stats')
     num_snps = 0
     num_non_finite = 0
-    for chrom in chrom_dict.keys():
+    for chrom in chrom_dict:
         if debug:
             print ('%d SNPs on chromosome %s' % (len(chrom_dict[chrom]['positions']), chrom))
         sl = zip(chrom_dict[chrom]['positions'], chrom_dict[chrom]['sids'], chrom_dict[chrom]['nts'],
@@ -287,7 +287,7 @@ def parse_sum_stats_standard(filename=None,
             pos = int(l[1])
             sid = l[6]
             if sid in valid_sids:
-                if not chrom in chrom_dict.keys():
+                if not chrom in chrom_dict:
                     chrom_dict[chrom] = {'ps': [], 'log_odds': [], 'infos': [], 'freqs': [],
                                          'betas': [], 'nts': [], 'sids': [], 'positions': []}
                 chrom_dict[chrom]['sids'].append(sid)
@@ -308,10 +308,10 @@ def parse_sum_stats_standard(filename=None,
         util.check_chromosomes(missing_chromosomes)
 
     print 'SS file loaded, now sorting and storing in HDF5 file.'
-    assert not 'sum_stats' in hdf5_file.keys(), 'Something is wrong with HDF5 file.  Summary stats already found.'
+    assert not 'sum_stats' in hdf5_file, 'Something is wrong with HDF5 file.  Summary stats already found.'
     ssg = hdf5_file.create_group('sum_stats')
     num_snps = 0
-    for chrom in chrom_dict.keys():
+    for chrom in chrom_dict:
         if debug:
             print '%d SNPs on chromosome %s' % (len(chrom_dict[chrom]['positions']), chrom)
         sl = zip(chrom_dict[chrom]['positions'], chrom_dict[chrom]['sids'], chrom_dict[chrom]['nts'],
@@ -400,7 +400,7 @@ def parse_sum_stats_giant(filename=None,
                 if not chrom in util.valid_chromosomes:
                     missing_chromosomes.add(chrom)
                     continue
-                if not chrom in chrom_dict.keys():
+                if not chrom in chrom_dict:
                     chrom_dict[chrom] = {'ps': [], 'log_odds': [], 'freqs': [],
                                          'betas': [], 'nts': [], 'sids': [], 'positions': []}
                 chrom_dict[chrom]['sids'].append(sid)
@@ -423,10 +423,10 @@ def parse_sum_stats_giant(filename=None,
         util.check_chromosomes(missing_chromosomes)
 
     print 'SS file loaded, now sorting and storing in HDF5 file.'
-    assert not 'sum_stats' in hdf5_file.keys(), 'Something is wrong with HDF5 file?  Summary stats already found.'
+    assert not 'sum_stats' in hdf5_file, 'Something is wrong with HDF5 file?  Summary stats already found.'
     ssg = hdf5_file.create_group('sum_stats')
     num_snps = 0
-    for chrom in chrom_dict.keys():
+    for chrom in chrom_dict:
         print '%d SNPs on chromosome %d' % (len(chrom_dict[chrom]['positions']), chrom)
         sl = zip(chrom_dict[chrom]['positions'], chrom_dict[chrom]['sids'], chrom_dict[chrom]['nts'],
                  chrom_dict[chrom]['betas'], chrom_dict[chrom]['log_odds'],
@@ -512,7 +512,7 @@ def parse_sum_stats_giant2(filename=None,
                     missing_chromosomes.add(chrom)
                     continue
 
-                if not chrom in chrom_dict.keys():
+                if not chrom in chrom_dict:
                     chrom_dict[chrom] = {'ps': [], 'log_odds': [], 'freqs': [],
                                          'betas': [], 'nts': [], 'sids': [], 'positions': []}
                 chrom_dict[chrom]['sids'].append(sid)
@@ -536,10 +536,10 @@ def parse_sum_stats_giant2(filename=None,
         util.check_chromosomes(missing_chromosomes)
 
     print 'SS file loaded, now sorting and storing in HDF5 file.'
-    assert not 'sum_stats' in hdf5_file.keys(), 'Something is wrong with HDF5 file?  Summary stats already found.'
+    assert not 'sum_stats' in hdf5_file, 'Something is wrong with HDF5 file?  Summary stats already found.'
     ssg = hdf5_file.create_group('sum_stats')
     num_snps = 0
-    for chrom in chrom_dict.keys():
+    for chrom in chrom_dict:
         print '%d SNPs on chromosome %d' % (len(chrom_dict[chrom]['positions']), chrom)
         sl = zip(chrom_dict[chrom]['positions'], chrom_dict[chrom]['sids'], chrom_dict[chrom]['nts'],
                  chrom_dict[chrom]['betas'], chrom_dict[chrom]['log_odds'],
@@ -605,7 +605,7 @@ def parse_sum_stats_decode(filename=None,
             if not chrom in util.valid_chromosomes:
                 missing_chromosomes.add(chrom)
                 continue
-            if not chrom in chrom_dict.keys():
+            if not chrom in chrom_dict:
                 chrom_dict[chrom] = {'ps': [], 'log_odds': [], 'freqs': [],
                                      'betas': [], 'nts': [], 'sids': [], 'positions': []}
             chrom_dict[chrom]['sids'].append(sid)
@@ -625,10 +625,10 @@ def parse_sum_stats_decode(filename=None,
 
 
     print 'SS file loaded, now sorting and storing in HDF5 file.'
-    assert not 'sum_stats' in hdf5_file.keys(), 'Something is wrong with HDF5 file? Summary stats already found.'
+    assert not 'sum_stats' in hdf5_file, 'Something is wrong with HDF5 file? Summary stats already found.'
     ssg = hdf5_file.create_group('sum_stats')
     num_snps = 0
-    for chrom in chrom_dict.keys():
+    for chrom in chrom_dict:
         print '%d SNPs on chromosome %s' % (len(chrom_dict[chrom]['positions']), chrom)
         sl = zip(chrom_dict[chrom]['positions'], chrom_dict[chrom]['sids'], chrom_dict[chrom]['nts'],
                  chrom_dict[chrom]['betas'], chrom_dict[chrom]['log_odds'],
@@ -712,7 +712,7 @@ def parse_sum_stats_pgc(filename=None,
             pos = int(l[2])
             sid = l[1]
             if sid in valid_sids:
-                if not chrom in chrom_dict.keys():
+                if not chrom in chrom_dict:
                     chrom_dict[chrom] = {'ps': [], 'log_odds': [], 'infos': [], 'freqs': [],
                                          'betas': [], 'nts': [], 'sids': [], 'positions': []}
                 chrom_dict[chrom]['sids'].append(sid)
@@ -740,10 +740,10 @@ def parse_sum_stats_pgc(filename=None,
         util.check_chromosomes(missing_chromosomes)
 
     print 'SS file loaded, now sorting and storing in HDF5 file.'
-    assert not 'sum_stats' in hdf5_file.keys(), 'Something is wrong with HDF5 file? Summary stats already found.'
+    assert not 'sum_stats' in hdf5_file, 'Something is wrong with HDF5 file? Summary stats already found.'
     ssg = hdf5_file.create_group('sum_stats')
     num_snps = 0
-    for chrom in chrom_dict.keys():
+    for chrom in chrom_dict:
         print 'Parsed summary stats for %d SNPs on chromosome %s' % (len(chrom_dict[chrom]['positions']), chrom)
         sl = zip(chrom_dict[chrom]['positions'], chrom_dict[chrom]['sids'], chrom_dict[chrom]['nts'],
                  chrom_dict[chrom]['betas'], chrom_dict[chrom]['log_odds'], chrom_dict[chrom]['infos'],
@@ -826,7 +826,7 @@ def parse_sum_stats_pgc_small(filename=None,
             pos = int(l[4])
             sid = l[1]
             if sid in valid_sids:
-                if not chrom in chrom_dict.keys():
+                if not chrom in chrom_dict:
                     chrom_dict[chrom] = {'ps': [], 'log_odds': [], 'infos': [],
                                          'betas': [], 'nts': [], 'sids': [],
                                          'positions': []}
@@ -846,10 +846,10 @@ def parse_sum_stats_pgc_small(filename=None,
         util.check_chromosomes(missing_chromosomes)
 
     print 'SS file loaded, now sorting and storing in HDF5 file.'
-    assert not 'sum_stats' in hdf5_file.keys(), 'Something is wrong with HDF5 file? Summary stats already found.'
+    assert not 'sum_stats' in hdf5_file, 'Something is wrong with HDF5 file? Summary stats already found.'
     ssg = hdf5_file.create_group('sum_stats')
     num_snps = 0
-    for chrom in chrom_dict.keys():
+    for chrom in chrom_dict:
         print 'Parsed summary stats for %d SNPs on chromosome %s' % (len(chrom_dict[chrom]['positions']), chrom)
         sl = zip(chrom_dict[chrom]['positions'], chrom_dict[chrom]['sids'], chrom_dict[chrom]['nts'],
                  chrom_dict[chrom]['betas'], chrom_dict[chrom]['log_odds'], chrom_dict[chrom]['infos'],
@@ -928,7 +928,7 @@ def parse_sum_stats_basic(filename=None,
             pos = int(l[4])
             sid = l[1]
             if sid in valid_sids:
-                if not chrom in chrom_dict.keys():
+                if not chrom in chrom_dict:
                     chrom_dict[chrom] = {'ps': [], 'log_odds': [], 'infos': [],
                                          'betas': [], 'nts': [], 'sids': [],
                                          'positions': []}
@@ -948,10 +948,10 @@ def parse_sum_stats_basic(filename=None,
         util.check_chromosomes(missing_chromosomes)
 
     print 'SS file loaded, now sorting and storing in HDF5 file.'
-    assert not 'sum_stats' in hdf5_file.keys(), 'Something is wrong with HDF5 file? Summary stats already found.'
+    assert not 'sum_stats' in hdf5_file, 'Something is wrong with HDF5 file? Summary stats already found.'
     ssg = hdf5_file.create_group('sum_stats')
     num_snps = 0
-    for chrom in chrom_dict.keys():
+    for chrom in chrom_dict:
         print 'Parsed summary stats for %d SNPs on chromosome %s' % (len(chrom_dict[chrom]['positions']), chrom)
         sl = zip(chrom_dict[chrom]['positions'], chrom_dict[chrom]['sids'], chrom_dict[chrom]['nts'],
                  chrom_dict[chrom]['betas'], chrom_dict[chrom]['log_odds'], chrom_dict[chrom]['ps'])
