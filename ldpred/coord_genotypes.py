@@ -111,6 +111,54 @@ def get_chrom_dict_bim(bim_file, chromosomes):
     return chr_dict
 
 
+def _verify_coord_data_(data_dict):
+    """
+    Verify that merged data is ok
+    """
+    print('Verifying coordinated data')
+    num_snps = len(data_dict['raw_snps_ref'])
+    assert num_snps ==len(data_dict['snp_stds_ref']), 'Inconsistencies in coordinated data sizes'
+    assert num_snps ==len(data_dict['snp_means_ref']), 'Inconsistencies in coordinated data sizes'
+    assert num_snps ==len(data_dict['freqs_ref']), 'Inconsistencies in coordinated data sizes'
+    assert num_snps ==len(data_dict['ps']), 'Inconsistencies in coordinated data sizes'
+    assert num_snps ==len(data_dict['positions']), 'Inconsistencies in coordinated data sizes'
+    assert num_snps ==len(data_dict['nts']), 'Inconsistencies in coordinated data sizes'
+    assert num_snps ==len(data_dict['sids']), 'Inconsistencies in coordinated data sizes'
+    assert num_snps ==len(data_dict['betas']), 'Inconsistencies in coordinated data sizes'
+    assert num_snps ==len(data_dict['log_odds']), 'Inconsistencies in coordinated data sizes'
+    if 'raw_snps_val' in data_dict:
+        assert num_snps ==len(data_dict['raw_snps_val']), 'Inconsistencies in coordinated data sizes'
+        assert num_snps ==len(data_dict['snp_stds_val']), 'Inconsistencies in coordinated data sizes'
+        assert num_snps ==len(data_dict['snp_means_val']), 'Inconsistencies in coordinated data sizes'
+        assert num_snps ==len(data_dict['freqs_val']), 'Inconsistencies in coordinated data sizes'
+    
+
+
+def write_coord_data(cord_data_g, coord_dict):
+    _verify_coord_data_(coord_dict)
+    print('Now storing coordinated data to HDF5 file.')
+    ofg = cord_data_g.create_group(coord_dict['chrom'])
+    ofg.create_dataset('raw_snps_ref', data=coord_dict['raw_snps_ref'], compression='lzf')
+    ofg.create_dataset('snp_stds_ref', data=coord_dict['snp_stds_ref'])
+    ofg.create_dataset('snp_means_ref', data=coord_dict['snp_means_ref'])
+    ofg.create_dataset('freqs_ref', data=coord_dict['freqs_ref'])
+    if 'raw_snps_val' in coord_dict:
+        ofg.create_dataset('raw_snps_val', data=coord_dict['raw_snps_val'], compression='lzf')
+        ofg.create_dataset('snp_stds_val', data=coord_dict['snp_stds_val'])
+        ofg.create_dataset('snp_means_val', data=coord_dict['snp_means_val'])
+        ofg.create_dataset('freqs_val', data=coord_dict['freqs_val'])
+    
+    ofg.create_dataset('ps', data=coord_dict['ps'])
+    ofg.create_dataset('positions', data=coord_dict['positions'])
+    ofg.create_dataset('nts', data=coord_dict['nts'])
+    ofg.create_dataset('sids', data=coord_dict['sids'])
+    ofg.create_dataset('betas', data=coord_dict['betas'])
+    ofg.create_dataset('log_odds', data=coord_dict['log_odds'])
+    ofg.create_dataset('log_odds_prs', data=coord_dict['log_odds_prs'])
+
+    if coord_dict['genetic_map'] is not None:
+        ofg.create_dataset('genetic_map', data=coord_dict['genetic_map'])
+
 
 
 def coordinate_genot_ss(genotype_file=None,
@@ -138,6 +186,7 @@ def coordinate_genot_ss(genotype_file=None,
     hdf5_file.create_dataset('fids', data=plinkf_dict['fids'])
     hdf5_file.create_dataset('iids', data=plinkf_dict['iids'])
     ssf = hdf5_file['sum_stats']
+
     cord_data_g = hdf5_file.create_group('cord_data')
 
     # Figure out chromosomes and positions by looking at SNPs.
@@ -343,22 +392,25 @@ def coordinate_genot_ss(genotype_file=None,
                     l = line.split()
                     if l[0] in sid_set:
                         genetic_map.append(l[0])
+        else:
+            genetic_map = None
 
-        print('Now storing coordinated data to HDF5 file.')
-        ofg = cord_data_g.create_group('chrom_%d' % chrom)
-        ofg.create_dataset('raw_snps_ref', data=raw_snps, compression='lzf')
-        ofg.create_dataset('snp_stds_ref', data=snp_stds)
-        ofg.create_dataset('snp_means_ref', data=snp_means)
-        ofg.create_dataset('freqs_ref', data=freqs)
-        ofg.create_dataset('ps', data=ps)
-        ofg.create_dataset('positions', data=positions)
-        ofg.create_dataset('nts', data=nts)
-        ofg.create_dataset('sids', data=sids)
-        if genetic_map_dir is not None:
-            ofg.create_dataset('genetic_map', data=genetic_map)
-        ofg.create_dataset('betas', data=betas)
-        ofg.create_dataset('log_odds', data=log_odds)
-        ofg.create_dataset('log_odds_prs', data=rb_prs)
+        coord_data_dict = {'chrom': 'chrom_%d' % chrom, 
+                           'raw_snps_ref': raw_snps, 
+                           'snp_stds_ref': snp_stds, 
+                           'snp_means_ref': snp_means, 
+                           'freqs_ref': freqs,
+                           'ps': ps,
+                           'positions': positions,
+                           'nts': nts,
+                           'sids': sids,
+                           'genetic_map': genetic_map,
+                           'betas': betas,
+                           'log_odds': log_odds,
+                           'log_odds_prs': rb_prs}
+        
+        write_coord_data(cord_data_g, coord_data_dict)
+        
         if plinkf_dict['has_phenotype']:
             risk_scores += prs
         rb_risk_scores += rb_prs
@@ -374,6 +426,8 @@ def coordinate_genot_ss(genotype_file=None,
     print('There were %d SNPs in common' % num_common_snps)
     print('In all, %d SNPs were excluded due to nucleotide issues.' % tot_num_non_matching_nts)
     print('Done coordinating genotypes and summary statistics datasets.')
+
+
 
 
 def coordinate_genotypes_ss_w_ld_ref(genotype_file=None,
@@ -663,27 +717,28 @@ def coordinate_genotypes_ss_w_ld_ref(genotype_file=None,
                     l = line.split()
 #                     if l[0] in sid_set:
 #                         genetic_map.append(l[0])
+        else:
+            genetic_map = None
 
-        print('Now storing coordinated data to HDF5 file.')
-        ofg = cord_data_g.create_group('chrom_%d' % chrom)
-        ofg.create_dataset('raw_snps_val', data=raw_snps, compression='lzf')
-        ofg.create_dataset('snp_stds_val', data=snp_stds)
-        ofg.create_dataset('snp_means_val', data=snp_means)
-        ofg.create_dataset('freqs_val', data=freqs)
-        ofg.create_dataset(
-            'raw_snps_ref', data=raw_ref_snps, compression='lzf')
-        ofg.create_dataset('snp_stds_ref', data=snp_stds_ref)
-        ofg.create_dataset('snp_means_ref', data=snp_means_ref)
-        ofg.create_dataset('freqs_ref', data=freqs_ref)
-        ofg.create_dataset('nts', data=nts)
-        ofg.create_dataset('ps', data=ps)
-        ofg.create_dataset('positions', data=positions)
-        ofg.create_dataset('sids', data=sids)
-        if genetic_map_dir is not None:
-            ofg.create_dataset('genetic_map', data=genetic_map)
-        ofg.create_dataset('betas', data=betas)
-        ofg.create_dataset('log_odds', data=log_odds)
-        ofg.create_dataset('log_odds_prs', data=maf_adj_prs)
+        coord_data_dict = {'chrom': 'chrom_%d' % chrom, 
+                           'raw_snps_ref': raw_ref_snps, 
+                           'snp_stds_ref': snp_stds_ref, 
+                           'snp_means_ref': snp_means_ref, 
+                           'freqs_ref': freqs_ref,
+                           'ps': ps,
+                           'positions': positions,
+                           'nts': nts,
+                           'sids': sids,
+                           'genetic_map': genetic_map,
+                           'betas': betas,
+                           'log_odds': log_odds,
+                           'log_odds_prs': maf_adj_prs,
+                           'raw_snps_val':raw_snps,
+                           'snp_stds_val':snp_stds,
+                           'snp_means_val':snp_means,
+                           'freqs_val':freqs}
+          
+        write_coord_data(cord_data_g, coord_data_dict)
 
         # risk_scores += prs
         maf_adj_risk_scores += maf_adj_prs
