@@ -300,6 +300,7 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=1000, l
         start_betas = LDpred_inf.ldpred_inf(beta_hats, genotypes=genotypes, reference_ld_mats=reference_ld_mats,
                                             h2=h2, n=n, ld_window_size=2 * ld_radius, verbose=False)
     curr_betas = sp.copy(start_betas)
+    assert len(curr_betas)==m,'Betas returned by LDpred_inf do not have the same length as expected.'
     curr_post_means = sp.zeros(m)
     avg_betas = sp.zeros(m)
 
@@ -312,16 +313,16 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=1000, l
     hdmpn = hdmp + 1.0 / n
     hdmp_hdmpn = (hdmp / hdmpn)
     c_const = (p / sp.sqrt(hdmpn))
-    d_const = (1 - p) / (sp.sqrt(1.0 / n))
+    d_const = (1.0 - p) / (sp.sqrt(1.0 / n))
 
     for k in range(num_iter):  # Big iteration
 
         # Force an alpha shrink if estimates are way off compared to heritability estimates.  (Improves MCMC convergence.)
         h2_est = max(0.00001, sp.sum(curr_betas ** 2))
-        alpha = min(1 - zero_jump_prob, 1.0 / h2_est, (h2 + 1 / sp.sqrt(n)) / h2_est)
+        alpha = min(1 - zero_jump_prob, 1.0 / h2_est, (h2 + 1.0 / sp.sqrt(n)) / h2_est)
 
         rand_ps = sp.random.random(m)
-        rand_norms = stats.norm.rvs(0, (hdmp_hdmpn) * (1 / n), size=m)
+        rand_norms = stats.norm.rvs(0.0, (hdmp_hdmpn) * (1.0 / n), size=m)
 
         if ld_boundaries is None:
             for i, snp_i in enumerate(iter_order):
@@ -336,7 +337,7 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=1000, l
                 local_betas = curr_betas[start_i: stop_i]
                 
                 # Calculate the local posterior mean, used when sampling.
-                local_betas[focal_i] = 0
+                local_betas[focal_i] = 0.0
                 res_beta_hat_i = beta_hats[snp_i] - sp.dot(D_i , local_betas)
                 b2 = res_beta_hat_i ** 2
     
@@ -344,15 +345,15 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=1000, l
                 if sp.isreal(d_const_b2_exp):
                     numerator = c_const * sp.exp(-b2 / (2.0 * hdmpn))
                     if sp.isreal(numerator):
-                        if numerator == 0:
-                            postp = 0
+                        if numerator == 0.0:
+                            postp = 0.0
                         else:
                             postp = numerator / (numerator + d_const_b2_exp)
                             assert sp.isreal(postp), 'The posterior mean is not a real number?  Possibly due to problems with summary stats, LD estimates, or parameter settings.' 
                     else:
-                        postp = 0
+                        postp = 0.0
                 else:
-                    postp = 1
+                    postp = 1.0
                 curr_post_means[snp_i] = hdmp_hdmpn * postp * res_beta_hat_i
     
                 if rand_ps[i] < postp * alpha:
@@ -361,7 +362,7 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=1000, l
     
                 else:
                     # Sample 0
-                    proposed_beta = 0
+                    proposed_beta = 0.0
     
                 curr_betas[snp_i] = proposed_beta  # UPDATE BETA
         else:
@@ -377,7 +378,7 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=1000, l
                 local_betas = curr_betas[start_i: stop_i]
                 
                 # Calculate the local posterior mean, used when sampling.
-                local_betas[focal_i] = 0
+                local_betas[focal_i] = 0.0
                 res_beta_hat_i = beta_hats[snp_i] - sp.dot(D_i , local_betas)
                 b2 = res_beta_hat_i ** 2
     
@@ -385,15 +386,15 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=1000, l
                 if sp.isreal(d_const_b2_exp):
                     numerator = c_const * sp.exp(-b2 / (2.0 * hdmpn))
                     if sp.isreal(numerator):
-                        if numerator == 0:
-                            postp = 0
+                        if numerator == 0.0:
+                            postp = 0.0
                         else:
                             postp = numerator / (numerator + d_const_b2_exp)
                             assert sp.isreal(postp), 'Posterior mean is not a real number? Possibly due to problems with summary stats, LD estimates, or parameter settings.' 
                     else:
-                        postp = 0
+                        postp = 0.0
                 else:
-                    postp = 1
+                    postp = 1.0
                 curr_post_means[snp_i] = hdmp_hdmpn * postp * res_beta_hat_i
     
                 if rand_ps[i] < postp * alpha:
@@ -402,7 +403,7 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=1000, l
     
                 else:
                     # Sample 0
-                    proposed_beta = 0
+                    proposed_beta = 0.0
     
                 curr_betas[snp_i] = proposed_beta  # UPDATE BETA                
         if verbose:
@@ -430,7 +431,7 @@ If they are a subset of the validation data set, then we suggest recalculate LDp
     ld_dict = ld.get_ld_dict(p_dict['coord'], p_dict['local_ld_file_prefix'], p_dict['ld_radius'], p_dict['gm_ld_radius'])
         
     ldpred_genomewide(data_file=p_dict['coord'], out_file_prefix=p_dict['out'], ps=p_dict['PS'], ld_radius=p_dict['ld_radius'],
-                      ld_dict=ld_dict, n=p_dict['N'], num_iter=p_dict['num_iter'], h2=p_dict['H2'], verbose=False)
+                      ld_dict=ld_dict, n=float(p_dict['N']), num_iter=p_dict['num_iter'], h2=float(p_dict['H2']), verbose=False)
             
         
 

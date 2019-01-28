@@ -117,13 +117,12 @@ def ldpred_inf(beta_hats, h2=0.1, n=1000, inf_shrink_matrices=None,
     if verbose:
         print('Doing LD correction')
     t0 = time.time()
-    num_betas = len(beta_hats)
-    updated_betas = sp.empty(num_betas)
     m = len(beta_hats)
+    updated_betas = sp.empty(m)
 
-    for i, wi in enumerate(range(0, num_betas, ld_window_size)):
+    for i, wi in enumerate(range(0, m, ld_window_size)):
         start_i = wi
-        stop_i = min(num_betas, wi + ld_window_size)
+        stop_i = min(m, wi + ld_window_size)
         curr_window_size = stop_i - start_i
         if inf_shrink_matrices!=None:
             A_inv = inf_shrink_matrices[i]
@@ -137,12 +136,12 @@ def ldpred_inf(beta_hats, h2=0.1, n=1000, inf_shrink_matrices=None,
                     D = sp.dot(X, X.T) / num_indivs
                 else:
                     raise NotImplementedError
-            A = ((m / h2) * sp.eye(curr_window_size) + (n / (1)) * D)
+            A = ((m / h2) * sp.eye(curr_window_size) + (n / (1.0)) * D)
             A_inv = linalg.pinv(A)
         updated_betas[start_i: stop_i] = sp.dot(A_inv * n , beta_hats[start_i: stop_i])  # Adjust the beta_hats
 
         if verbose:
-            sys.stdout.write('\b\b\b\b\b\b\b%0.2f%%' % (100.0 * (min(1, float(wi + 1) / num_betas))))
+            sys.stdout.write('\b\b\b\b\b\b\b%0.2f%%' % (100.0 * (min(1, float(wi + 1.0) / m))))
             sys.stdout.flush()
 
     t1 = time.time()
@@ -265,7 +264,7 @@ If they are a subset of the validation data set, then we suggest recalculate LDp
     ld_dict = ld.get_ld_dict(p_dict['coord'], p_dict['local_ld_file_prefix'], p_dict['ld_radius'], p_dict['gm_ld_radius'])
     
     ldpred_inf_genomewide(data_file=p_dict['coord'], out_file_prefix=p_dict['out'], ld_radius=p_dict['ld_radius'], 
-                          ld_dict = ld_dict, n=p_dict['N'], h2=p_dict['H2'], verbose=False)
+                          ld_dict = ld_dict, n=float(p_dict['N']), h2=float(p_dict['H2']), verbose=False)
             
         
 

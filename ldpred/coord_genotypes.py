@@ -36,11 +36,6 @@ parser.add_argument('--vgf', type=str, default=None,
                          'set of validation SNPs.  To maximize accuracy, we recommend calculating LDpred '
                          'weights for the subset of SNPs that are used to calculate the risk scores in the '
                          'target (validation) sample.')
-parser.add_argument('--gf-format', type=str, default="PLINK",
-                    help='The expected genotype format. The standard format is PLINK. '
-                         'Other formats implemented is DECODE format. '
-                         'If the DECODE format is used, then the program assumes that '
-                         'the data directory is supplied in the --gf flag.')
 parser.add_argument('--indiv-list', type=str,
                     help='List of individuals to include in the analysis. '
                          'Currently required for the DECODE format.', default=None)
@@ -166,7 +161,8 @@ def coordinate_genot_ss(genotype_file=None,
                         genetic_map_dir=None,
                         check_mafs=False,
                         min_maf=0.01,
-                        skip_coordination=False):
+                        skip_coordination=False,
+                        debug=False):
     """
     Assumes plink BED files.  Imputes missing genotypes.
     """
@@ -248,7 +244,8 @@ def coordinate_genot_ss(genotype_file=None,
         num_non_matching_nts = 0
         num_ambig_nts = 0
         ok_nts = []
-        print('Found %d SNPs present in both datasets' % (len(g_indices)))
+        if debug:
+            print('Found %d SNPs present in both datasets' % (len(g_indices)))
 
         if 'freqs' in list(ssg.keys()):
             ss_freqs = ssg['freqs'][...]
@@ -296,8 +293,9 @@ def coordinate_genot_ss(genotype_file=None,
             ok_indices['ss'].append(ss_i)
             ok_nts.append(g_nt)
 
-        print('%d SNPs were excluded due to ambiguous nucleotides.' % num_ambig_nts)
-        print('%d SNPs were excluded due to non-matching nucleotides.' % num_non_matching_nts)
+        if debug:
+            print('%d SNPs were excluded due to ambiguous nucleotides.' % num_ambig_nts)
+            print('%d SNPs were excluded due to non-matching nucleotides.' % num_non_matching_nts)
 
         # Resorting by position
         positions = sp.array(chrom_d['positions'])[ok_indices['g']]
@@ -313,7 +311,8 @@ def coordinate_genot_ss(genotype_file=None,
         snp_indices = snp_indices[ok_indices['g']]
         raw_snps, freqs = plinkfiles.parse_plink_snps(
             genotype_file, snp_indices)
-        print('raw_snps.shape=', raw_snps.shape)
+        if debug:
+            print('Parsed a %dX%d (SNP) genotype matrix'%(raw_snps.shape[0],raw_snps.shape[1]))
 
         snp_stds = sp.sqrt(2 * freqs * (1 - freqs))  
         snp_means = freqs * 2  
@@ -368,7 +367,7 @@ def coordinate_genot_ss(genotype_file=None,
         print('%d SNPs were retained on chromosome %d.' % (maf_filter_sum, chrom))
 
         rb_prs = sp.dot(sp.transpose(raw_snps), log_odds)
-        if plinkf_dict['has_phenotype']:
+        if debug and plinkf_dict['has_phenotype']:
             print('Normalizing SNPs')
             snp_means.shape = (len(raw_snps), 1)
             snp_stds.shape = (len(raw_snps), 1)
@@ -379,10 +378,10 @@ def coordinate_genot_ss(genotype_file=None,
             prs = sp.dot(sp.transpose(snps), betas)
             corr = sp.corrcoef(plinkf_dict['phenotypes'], prs)[0, 1]
             corr_list.append(corr)
-            print('PRS correlation for chromosome %d was %0.4f' % (chrom, corr))
+            print('PRS correlation for chromosome %d was %0.4f when predicting into LD ref data' % (chrom, corr))
             rb_corr = sp.corrcoef(plinkf_dict['phenotypes'], rb_prs)[0, 1]
             rb_corr_list.append(rb_corr)
-            print('Raw effect sizes PRS correlation for chromosome %d was %0.4f' % (chrom, rb_corr))
+            print('Raw effect sizes PRS correlation for chromosome %d was %0.4f when predicting into LD ref data' % (chrom, rb_corr))
 
         sid_set = set(sids)
         if genetic_map_dir is not None:
@@ -416,13 +415,13 @@ def coordinate_genot_ss(genotype_file=None,
         rb_risk_scores += rb_prs
         num_common_snps += len(betas)
 
-    if plinkf_dict['has_phenotype']:
+    if debug and plinkf_dict['has_phenotype']:
         
         # Now calculate the prediction R^2
         corr = sp.corrcoef(plinkf_dict['phenotypes'], risk_scores)[0, 1]
         rb_corr = sp.corrcoef(plinkf_dict['phenotypes'], rb_risk_scores)[0, 1]
-        print('PRS R2 prediction accuracy for the whole genome was %0.4f (corr=%0.4f)' % (corr ** 2, corr))
-        print('Log-odds (effects) PRS R2 prediction accuracy for the whole genome was %0.4f (corr=%0.4f)' % (rb_corr ** 2, rb_corr))
+        print('PRS R2 prediction accuracy for the whole genome was %0.4f (corr=%0.4f) when predicting into LD ref data' % (corr ** 2, corr))
+        print('Log-odds (effects) PRS R2 prediction accuracy for the whole genome was %0.4f (corr=%0.4f) when predicting into LD ref data' % (rb_corr ** 2, rb_corr))
     print('There were %d SNPs in common' % num_common_snps)
     print('In all, %d SNPs were excluded due to nucleotide issues.' % tot_num_non_matching_nts)
     print('Done coordinating genotypes and summary statistics datasets.')
@@ -436,7 +435,8 @@ def coordinate_genotypes_ss_w_ld_ref(genotype_file=None,
                                      genetic_map_dir=None,
                                      check_mafs=False,
                                      min_maf=0.01,
-                                     skip_coordination=False):
+                                     skip_coordination=False, 
+                                     debug=False):
     print('Coordinating things w genotype file: %s \nref. genot. file: %s' % (genotype_file, reference_genotype_file))
     
     from plinkio import plinkfile
@@ -446,7 +446,8 @@ def coordinate_genotypes_ss_w_ld_ref(genotype_file=None,
     plinkf_dict = plinkfiles.get_phenotypes(plinkf)
 
     # Figure out chromosomes and positions.
-    print('Parsing validation genotype bim file')
+    if debug:
+        print('Parsing validation bim file')
     loci = plinkf.get_loci()
     plinkf.close()
     gf_chromosomes = [l.chromosome for l in loci]
@@ -456,7 +457,8 @@ def coordinate_genotypes_ss_w_ld_ref(genotype_file=None,
 
     chr_dict = plinkfiles.get_chrom_dict(loci, chromosomes)
 
-    print('Parsing LD reference genotype bim file')
+    if debug:
+        print('Parsing LD reference bim file')
     plinkf_ref = plinkfile.PlinkFile(reference_genotype_file)
     loci_ref = plinkf_ref.get_loci()
     plinkf_ref.close()
@@ -503,10 +505,12 @@ def coordinate_genotypes_ss_w_ld_ref(genotype_file=None,
         g_sids = chrom_d['sids']
         rg_sids = chrom_d_ref['sids']
         ss_sids = ssg['sids'][...]
-        print('Found %d SNPs in validation data, %d SNPs in LD reference data, and %d SNPs in summary statistics.' % (len(g_sids), len(rg_sids), len(ss_sids)))
+        if debug:
+            print('Found %d SNPs in validation data, %d SNPs in LD reference data, and %d SNPs in summary statistics.' % (len(g_sids), len(rg_sids), len(ss_sids)))
         common_sids = sp.intersect1d(ss_sids, g_sids)
         common_sids = sp.intersect1d(common_sids, rg_sids)
-        print('Found %d SNPs on chrom %d that were common across all datasets' % (len(common_sids), chrom))
+        if debug:
+            print('Found %d SNPs on chrom %d that were common across all datasets' % (len(common_sids), chrom))
 
         ss_snp_map = []
         g_snp_map = []
@@ -556,7 +560,8 @@ def coordinate_genotypes_ss_w_ld_ref(genotype_file=None,
             g_nts[g_snp_map] == ss_nts[ss_snp_map]) / 2.0
         rg_ss_nt_concord_count = sp.sum(rg_nts_ok == ss_nts[ss_snp_map]) / 2.0
         g_rg_nt_concord_count = sp.sum(g_nts[g_snp_map] == rg_nts_ok) / 2.0
-        print('Nucleotide concordance counts out of %d genotypes: vg-g: %d, vg-ss: %d, g-ss: %d' % (len(g_snp_map), g_rg_nt_concord_count, g_ss_nt_concord_count, rg_ss_nt_concord_count))
+        if debug:
+            print('Nucleotide concordance counts out of %d genotypes: vg-g: %d, vg-ss: %d, g-ss: %d' % (len(g_snp_map), g_rg_nt_concord_count, g_ss_nt_concord_count, rg_ss_nt_concord_count))
         tot_g_ss_nt_concord_count += g_ss_nt_concord_count
         tot_rg_ss_nt_concord_count += rg_ss_nt_concord_count
         tot_g_rg_nt_concord_count += g_rg_nt_concord_count
@@ -605,9 +610,10 @@ def coordinate_genotypes_ss_w_ld_ref(genotype_file=None,
                             if 'freqs' in list(ssg.keys()):
                                 ss_freqs[ss_i] = 1 - ss_freqs[ss_i]
                         else:
-                            print("Nucleotides don't match after all?: g_sid=%s, ss_sid=%s, g_i=%d, ss_i=%d, g_nt=%s, ss_nt=%s" % \
-                                (g_sids[g_i], ss_sids[ss_i], g_i,
-                                 ss_i, str(g_nt), str(ss_nt)))
+                            if debug:
+                                print("Nucleotides don't match after all?: g_sid=%s, ss_sid=%s, g_i=%d, ss_i=%d, g_nt=%s, ss_nt=%s" % \
+                                      (g_sids[g_i], ss_sids[ss_i], g_i,
+                                       ss_i, str(g_nt), str(ss_nt)))
                             num_non_matching_nts += 1
                             tot_num_non_matching_nts += 1
                             continue
@@ -625,9 +631,10 @@ def coordinate_genotypes_ss_w_ld_ref(genotype_file=None,
 
             ok_nts.append(g_nt)
 
-        print('%d SNPs had ambiguous nucleotides.' % num_ambig_nts)
-        print('%d SNPs were excluded due to nucleotide issues.' % num_non_matching_nts)
-        print('%d SNPs were retained on chromosome %d.' % (len(ok_indices['g']), chrom))
+        if debug:
+            print('%d SNPs had ambiguous nucleotides.' % num_ambig_nts)
+            print('%d SNPs were excluded due to nucleotide issues.' % num_non_matching_nts)
+            print('%d SNPs were retained on chromosome %d.' % (len(ok_indices['g']), chrom))
 
         # Resorting by position
         positions = sp.array(chrom_d['positions'])[ok_indices['g']]
@@ -705,7 +712,7 @@ def coordinate_genotypes_ss_w_ld_ref(genotype_file=None,
             log_odds = log_odds[maf_filter]
 
         maf_adj_prs = sp.dot(log_odds, raw_snps)
-        if plinkf_dict['has_phenotype']:
+        if debug and plinkf_dict['has_phenotype']:
             maf_adj_corr = sp.corrcoef(
                 plinkf_dict['phenotypes'], maf_adj_prs)[0, 1]
             print('Log odds, per genotype PRS correlation w phenotypes for chromosome %d was %0.4f' % (chrom, maf_adj_corr))
@@ -745,7 +752,7 @@ def coordinate_genotypes_ss_w_ld_ref(genotype_file=None,
         num_common_snps += len(betas)
 
     # Now calculate the prediction r^2
-    if plinkf_dict['has_phenotype']:
+    if debug and plinkf_dict['has_phenotype']:
         maf_adj_corr = sp.corrcoef(
             plinkf_dict['phenotypes'], maf_adj_risk_scores)[0, 1]
         print('Log odds, per PRS correlation for the whole genome was %0.4f (r^2=%0.4f)' % (maf_adj_corr, maf_adj_corr ** 2))
@@ -791,17 +798,14 @@ def main():
     ssp.parse_sum_stats(h5f, p_dict, bimfile)
     
     if not p_dict['vgf'] == None:
-        assert p_dict['gf_format'] == 'PLINK', 'The validation genotype option currently only works with the PLINK format'
         coordinate_genotypes_ss_w_ld_ref(genotype_file=p_dict['vgf'], reference_genotype_file=p_dict['gf'],
                                          genetic_map_dir=p_dict['gmdir'], check_mafs=p_dict['check_maf'],
-                                         hdf5_file=h5f, min_maf=p_dict['maf'], skip_coordination=p_dict['skip_coordination'])
+                                         hdf5_file=h5f, min_maf=p_dict['maf'], skip_coordination=p_dict['skip_coordination'], 
+                                         debug=p_dict['debug'])
     else:
-        if p_dict['gf_format'] == 'PLINK':
-            coordinate_genot_ss(genotype_file=p_dict['gf'], genetic_map_dir=p_dict['gmdir'], check_mafs=p_dict['check_maf'],
-                                hdf5_file=h5f, min_maf=p_dict['maf'], skip_coordination=p_dict['skip_coordination'])
-        else:
-            raise Exception('Unknown genotype file format: %s' %
-                            p_dict['gf_format'])
+        coordinate_genot_ss(genotype_file=p_dict['gf'], genetic_map_dir=p_dict['gmdir'], check_mafs=p_dict['check_maf'],
+                            hdf5_file=h5f, min_maf=p_dict['maf'], skip_coordination=p_dict['skip_coordination'], 
+                            debug=p_dict['debug'])
 
     h5f.close()
 
