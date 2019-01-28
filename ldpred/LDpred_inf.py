@@ -264,7 +264,7 @@ If they are a subset of the validation data set, then we suggest recalculate LDp
     ld_dict = ld.get_ld_dict(p_dict['coord'], p_dict['local_ld_file_prefix'], p_dict['ld_radius'], p_dict['gm_ld_radius'])
     
     ldpred_inf_genomewide(data_file=p_dict['coord'], out_file_prefix=p_dict['out'], ld_radius=p_dict['ld_radius'], 
-                          ld_dict = ld_dict, n=float(p_dict['N']), h2=float(p_dict['H2']), verbose=False)
+                          ld_dict = ld_dict, n=p_dict['N'], h2=p_dict['H2'], verbose=False)
             
         
 
