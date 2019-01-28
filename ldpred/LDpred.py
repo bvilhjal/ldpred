@@ -190,18 +190,18 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
                 # Filter monomorphic SNPs
                 snp_stds = g['snp_stds_ref'][...]
                 snp_stds = snp_stds.flatten()
+                pval_derived_betas = g['betas'][...]
+                positions = g['positions'][...]
+                sids = g['sids'][...]
+                log_odds = g['log_odds'][...]
+                nts = g['nts'][...]
                 ok_snps_filter = snp_stds > 0
                 if not sp.all(ok_snps_filter):
                     snp_stds = snp_stds[ok_snps_filter]
-                    pval_derived_betas = g['betas'][...]
                     pval_derived_betas = pval_derived_betas[ok_snps_filter]
-                    positions = g['positions'][...]
                     positions = positions[ok_snps_filter]
-                    sids = g['sids'][...]
                     sids = sids[ok_snps_filter]
-                    log_odds = g['log_odds'][...]
                     log_odds = log_odds[ok_snps_filter]
-                    nts = g['nts'][...]
                     nts = nts[ok_snps_filter]
                     if has_phenotypes:
                         raw_snps = raw_snps[ok_snps_filter]
