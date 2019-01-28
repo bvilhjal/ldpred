@@ -718,7 +718,6 @@ def parse_sum_stats_pgc(filename=None,
                 n = n_cases+n_controls
                 a_scalar =  n_cases/ n
                 u_scalar = n_controls / n
-                n_eff = float(l[17])
                 freq = freq_a * a_scalar + freq_u * u_scalar
                 chrom_dict[chrom]['freqs'].append(freq)
                 info = l[7]
@@ -731,7 +730,7 @@ def parse_sum_stats_pgc(filename=None,
                 chrom_dict[chrom]['log_odds'].append(raw_beta)
                 beta = sp.sign(raw_beta) * stats.norm.ppf(pval / 2.0)
 
-                chrom_dict[chrom]['betas'].append(beta / sp.sqrt(n_eff))
+                chrom_dict[chrom]['betas'].append(beta / sp.sqrt(n))
         util.check_chromosomes(missing_chromosomes)
 
     print 'SS file loaded, now sorting and storing in HDF5 file.'
