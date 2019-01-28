@@ -213,7 +213,7 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
         
                 
                 h2_chrom = herit_dict[chrom_str]
-                if 'chrom_ld_boundaries' in list(ld_dict.keys()):
+                if 'chrom_ld_boundaries' in ld_dict:
                     ld_boundaries = ld_dict['chrom_ld_boundaries'][chrom_str]
                     res_dict = ldpred_gibbs(pval_derived_betas, h2=h2_chrom, n=n, p=p, ld_radius=ld_radius,
                                             verbose=verbose, num_iter=num_iter, burn_in=burn_in, ld_dict=chrom_ld_dict[chrom_str],
@@ -292,6 +292,7 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=1000, l
     """
     t0 = time.time()
     m = len(beta_hats)
+    n = float(n)
     
     # If no starting values for effects were given, then use the infinitesimal model starting values.
     if start_betas is None:

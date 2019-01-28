@@ -114,6 +114,7 @@ def ldpred_inf(beta_hats, h2=0.1, n=1000, inf_shrink_matrices=None,
     If genotypes are supplied, then it assumes that beta_hats and the genotypes are synchronized.
 
     """
+    n = float(n)
     if verbose:
         print('Doing LD correction')
     t0 = time.time()

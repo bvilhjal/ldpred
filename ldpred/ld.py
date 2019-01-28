@@ -383,7 +383,7 @@ def get_ld_dict(cord_data_file, local_ld_file_prefix, ld_radius, gm_ld_radius):
         for chrom_str in list(cord_data_g.keys()):
             print('Working on %s' % chrom_str)
             g = cord_data_g[chrom_str]
-            if 'raw_snps_ref' in list(g.keys()):
+            if 'raw_snps_ref' in g:
                 raw_snps = g['raw_snps_ref'][...]
                 snp_stds = g['snp_stds_ref'][...]
                 snp_means = g['snp_means_ref'][...]
@@ -405,7 +405,7 @@ def get_ld_dict(cord_data_file, local_ld_file_prefix, ld_radius, gm_ld_radius):
             snps = sp.array((raw_snps - snp_means) / snp_stds, dtype='float32')
             assert snps.shape == raw_snps.shape, 'Problems normalizing SNPs (array shape mismatch).'
             if gm_ld_radius is not None:
-                assert 'genetic_map' in list(g.keys()), 'Genetic map is missing.'
+                assert 'genetic_map' in g, 'Genetic map is missing.'
                 gm = g['genetic_map'][...]
                 ret_dict = get_LDpred_ld_tables(snps, gm=gm, gm_ld_radius=gm_ld_radius)
                 chrom_ld_boundaries[chrom_str] = ret_dict['ld_boundaries']
