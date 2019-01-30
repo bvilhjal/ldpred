@@ -64,7 +64,9 @@ In emergencies, please contact Bjarni Vilhjalmsson (bjarni.vilhjalmsson@gmail.co
 ## Using LDpred ##
 To run LDpred, at least two steps are required:
 
-1. The first step is a data synchronization step, where two or three data sets, genotypes and summary statistics are synchronized.  This generates a HDF5 file which contains the synchronized genotypes.  This step can be done by running ** python LDpred.py coord ** (use --help for detailed options).  This step requires at least one genotype file (the LD reference genotypes), where we recommend at least 1000 unrelated individuals with the same ancestry make-up as the individuals for which summary statistics datasets are obtained from.  Another genotype file can also be given if the user intends to validate the predictions using a separate set of genotypes.
+1. The first step is a data synchronization step, where two or three data sets, genotypes and summary statistics are synchronized.  This generates a HDF5 file which contains the synchronized genotypes.  This step can be done by running 
+'python LDpred.py coord'
+(use --help for detailed options).  This step requires at least one genotype file (the LD reference genotypes), where we recommend at least 1000 unrelated individuals with the same ancestry make-up as the individuals for which summary statistics datasets are obtained from.  Another genotype file can also be given if the user intends to validate the predictions using a separate set of genotypes.
 
 2. After generating the coordinated data file then the one can apply LDpred and run it on the synchronized dataset.  This step can be done by running ** python LDpred.py gibbs ** (use --help for detailed options).  This step generates two files, a LD file with LD information for the given LD radius, and the re-weighted effect estimates.  The LD file enables the user to not have to generate the LD file again when trying, e.g., different values of *p* (the fraction of causal variants). However, it is re-generated if a different LD radius is given.  The other file that LDpred generates contains the LDpred-adjusted effect estimates.
 
