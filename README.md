@@ -9,13 +9,8 @@ described in Vilhjalmsson et al. (AJHG 2015) [http://www.cell.com/ajhg/abstract/
 * The current version is 1.0.0
 
 ## Getting Started ##
-NEW!
-
+### News ###
 Version 1.0, for python 3
-
-Please checkout the repository from github (see details below).
-
-pip install option will be made available soon.
 
 ### Requirements ###
 LDpred currently requires three Python packages to be installed and in path.  These
