@@ -1,121 +1,13 @@
-#!/usr/bin/env python
-"""
-Implements LDpred, an approximate Gibbs sampler that calculate posterior means of effects, conditional on LD information.  
-The method requires the user to have generated a coordinated dataset using coord_genotypes.py
-
-
-Usage: 
-ldpred --coord=COORD_DATA_FILE  --ld_radius=LD_RADIUS   --local_ld_file_prefix=LD_FILE_NAME  --PS=FRACTIONS_CAUSAL    
-                          --N=SAMPLE_SIZE  --out=OUTPUT_FILE_PREFIX  [ --num_iter=NUM_ITER  --H2=HERTIABILITY  --gm_ld_radius=GEN_MAP_RADIUS]
-    
- - COORD_DATA_FILE: The HDF4 file obtained by running the coord_genotypes.py
- 
- - LD_RADIUS: An integer number which denotes the number of SNPs on each side of the focal SNP for which LD should be adjusted.  
-              A value corresponding M/3000, where M is the number of SNPs in the genome is recommended.
- 
- - LD_FILE_NAME: A path and filename prefix for the LD file.  If it doesn't exist, it will be generated.  This can take up to several hours, 
-                 depending on LD radius number of SNPs, etc.  If it does exits, that file will be used.
-    
- - FRACTIONS_CAUSAL: A list of comma separated (without space) values between 1 and 0, excluding 0.  1 corresponds to the infinitesimal model and will yield results 
-                     similar to LDpred-inf.  Default is --PS=1,0.3,0.1,0.03,0.01,0.003,0.001,0.0003,0.0001 
- 
- - N: This is the sample size which LDpred assumes was used to calculate the GWAS summary statistics.
-
- - OUTPUT_FILE_PREFIX:  The prefix of output file.  
-
- - NUM_ITER (optional): The number of iterations used by the Gibbs sampler. The default is 60, and burn-in is fixed to 5.
- 
- - HERTIABILITY (optional): The heritability assumed by LDpred.  By default it estimates the heritability from the GWAS summary statistics.
- 
- - GEN_MAP_RADIUS (optional):  If this option is set, then a genetic map will be used to calculate LD-radius.  A value around 1 is arguably reasonable.
- 
-  
- 2015 (c) Bjarni J Vilhjalmsson: bjarni.vilhjalmsson@gmail.com
- 
- """
-
-import getopt
 import sys
 import time
 
+import scipy as sp
 from scipy import stats
 import h5py
 
-import LDpred_inf
-import itertools as it
-import ld
-import scipy as sp
-
-import util
-
-__version__ = '0.9.1'
-
-def parse_parameters():
-    """
-    Parse the parameters into a dict, etc.
-    """
-
-    long_options_list = ['coord=', 'ld_radius=', 'local_ld_file_prefix=', 'PS=', 'out=', 'N=',
-                         'num_iter=', 'H2=', 'gm_ld_radius=', 'h', 'help']
-
-    p_dict = {'coord':None, 'ld_radius':None, 'local_ld_file_prefix':None, 'PS':[1, 0.3, 0.1, 0.03, 0.01, 0.003, 0.001], 'out':None,
-              'N':None, 'num_iter': 60, 'H2':None, 'gm':None, 'gm_ld_radius':None}
-
-    if len(sys.argv) > 1:
-        try:
-            opts, args = getopt.getopt(sys.argv[1:], "h", long_options_list)
-    
-        except:
-            print("Some problems with parameters.  Please read the usage documentation carefully.")
-            print("Use the -h option for usage information.")
-            sys.exit(2)
-    
-        for opt, arg in opts:
-            if opt == "-h" or opt == "--h" or opt == '--help':
-                print(__doc__)
-                sys.exit(0)
-            elif opt == "--coord": p_dict['coord'] = arg
-            elif opt == "--ld_radius": p_dict['ld_radius'] = int(arg)
-            elif opt == "--local_ld_file_prefix": p_dict['local_ld_file_prefix'] = arg
-            elif opt == "--PS": p_dict['PS'] = list(map(float, arg.split(',')))
-            elif opt == "--out": p_dict['out'] = arg
-            elif opt == "--N": p_dict['N'] = int(arg)
-            elif opt == "--num_iter": p_dict['num_iter'] = int(arg)
-            elif opt == "--H2": p_dict['H2'] = float(arg)
-            elif opt == "--gm_ld_radius": p_dict['gm_ld_radius'] = float(arg)
-            else:
-                print("Unkown option:", opt)
-                print("Use -h option for usage information.")
-                sys.exit(2)
-    else:
-        print(__doc__)
-        sys.exit(0)
-
-    if _validate_parameters_(p_dict):
-        print ('Use -h flag to print documentation.')
-        sys.exit(0)
-   
-    return p_dict
-
-def _validate_parameters_(p_dict):
-    any_missing = False
-    if p_dict['coord'] is None:
-        print('--coord flag missing:  Please provide a coordinated data file (generated using "python coord_genotypes.py").')
-        any_missing = True
-    if p_dict['ld_radius'] is None:
-        print('--ld_radius flag missing: Please provide a LD radius size (in number of SNPs).')
-        any_missing = True
-    if p_dict['local_ld_file_prefix'] is None:
-        print('--local_ld_file_prefix flag missing: Please provide a LD file (prefix).')
-        any_missing = True
-    if p_dict['N'] is None:
-        print('--N flag missing: Please provide estimated sample size used to calculate the GWAS summary statistics.')
-        any_missing = True
-    if p_dict['out'] is None:
-        print('--out flag missing: Please provide an output filename (prefix).')
-        any_missing = True
-    return any_missing
-
+from ldpred import LDpred_inf
+from ldpred import util
+from ldpred import ld
 
 
 def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_prefix=None, ps=None,
@@ -274,14 +166,14 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
         weights_out_file = '%s_LDpred_p%0.4e.txt' % (out_file_prefix, p)
         with open(weights_out_file, 'w') as f:
             f.write('chrom    pos    sid    nt1    nt2    raw_beta     ldpred_beta\n')
-            for chrom, pos, sid, nt, raw_beta, ldpred_beta in it.izip(chromosomes, out_positions, out_sids, out_nts, raw_effect_sizes, ldpred_effect_sizes):
+            for chrom, pos, sid, nt, raw_beta, ldpred_beta in zip(chromosomes, out_positions, out_sids, out_nts, raw_effect_sizes, ldpred_effect_sizes):
                 nt1, nt2 = nt[0], nt[1]
                 f.write('%s    %d    %s    %s    %s    %0.4e    %0.4e\n' % (chrom, pos, sid, nt1, nt2, raw_beta, ldpred_beta))
 
     weights_out_file = '%s_LDpred-inf.txt' % (out_file_prefix)
     with open(weights_out_file, 'w') as f:
         f.write('chrom    pos    sid    nt1    nt2    raw_beta    ldpred_inf_beta \n')
-        for chrom, pos, sid, nt, raw_beta, ldpred_inf_beta in it.izip(chromosomes, out_positions, out_sids, out_nts, raw_effect_sizes, ldpred_inf_effect_sizes):
+        for chrom, pos, sid, nt, raw_beta, ldpred_inf_beta in zip(chromosomes, out_positions, out_sids, out_nts, raw_effect_sizes, ldpred_inf_effect_sizes):
             nt1, nt2 = nt[0], nt[1]
             f.write('%s    %d    %s    %s    %s    %0.4e    %0.4e\n' % (chrom, pos, sid, nt1, nt2, raw_beta, ldpred_inf_beta))
 
@@ -425,21 +317,12 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=1000, l
     return {'betas':avg_betas, 'inf_betas':start_betas}
 
 
-def main():
-    p_dict = parse_parameters()
-    
-    print("""
-Note: For maximal accuracy all SNPs with LDpred weights should be included in the validation data set.
-If they are a subset of the validation data set, then we suggest recalculate LDpred for the overlapping SNPs. 
-""")
-    ld_dict = ld.get_ld_dict(p_dict['coord'], p_dict['local_ld_file_prefix'], p_dict['ld_radius'], p_dict['gm_ld_radius'])
-        
-    ldpred_genomewide(data_file=p_dict['coord'], out_file_prefix=p_dict['out'], ps=p_dict['PS'], ld_radius=p_dict['ld_radius'],
-                      ld_dict=ld_dict, n=p_dict['N'], num_iter=p_dict['num_iter'], h2=p_dict['H2'], verbose=False)
+def main(p_dict):
+    ld_dict = ld.get_ld_dict(p_dict['cf'], p_dict['ldf'], p_dict['ldr'])    
+    ldpred_genomewide(data_file=p_dict['cf'], out_file_prefix=p_dict['out'], ps=p_dict['f'], ld_radius=p_dict['ldr'],
+                      ld_dict=ld_dict, n=p_dict['N'], num_iter=p_dict['n_iter'], burn_in=p_dict['n_burn_in'], 
+                      h2=p_dict['h2'], verbose=p_dict['debug'])
             
         
-
-if __name__ == '__main__':
-    main()
 
         

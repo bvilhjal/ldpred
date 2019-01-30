@@ -112,7 +112,7 @@ setup(
     # pip to create the appropriate form of executable for the target platform.
     entry_points={
         'console_scripts': [
-            'ldpred=ldpred.LDpred:main',
+            'ldpred=ldpred.LDpred_gibbs:main',
             'ldpred-inf=ldpred.LDpred_inf:main',
             'pt=ldpred.LD_pruning_thres:main',
             'coord=ldpred.coord_genotypes:main',

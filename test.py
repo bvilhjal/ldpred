@@ -10,41 +10,41 @@ tmp_file_prefix = next(tempfile._get_candidate_names())
 
 print('Testing LDpred.\n')
 print('Note that this test currently only tests the core functionality of LDpred.')
-print('Please report bugs on gihub (https://github.com/bvilhjal/ldpred) or to Bjarni J Vilhjalmsson (bjarni.vilhjalmsson@gmail.com).\n')
+print('Please report bugs on github (https://github.com/bvilhjal/ldpred) or to Bjarni J Vilhjalmsson (bjarni.vilhjalmsson@gmail.com).\n')
 
 coord_file = tmp_file_prefix + '.coord.hdf5'
 print('Coordinating test data into file %s' % coord_file)
-cmd_str = 'python ./ldpred/coord_genotypes.py --gf=./test_data/LDpred_data_p0.001_train_0 --vgf=./test_data/LDpred_data_p0.001_test_0 --ssf=./test_data/LDpred_data_p0.001_ss_0.txt --ssf-format=STANDARD  --N=10000  --out=%s' % coord_file
+cmd_str = 'python LDpred.py coord --gf=./test_data/LDpred_data_p0.001_train_0 --vgf=./test_data/LDpred_data_p0.001_test_0 --ssf=./test_data/LDpred_data_p0.001_ss_0.txt --ssf-format=STANDARD  --N=10000  --out=%s' % coord_file
 print(cmd_str + '\n')
 assert os.system(cmd_str) == 0, 'Problems when coordinating data!  Testing stopped'
 
 out_file = tmp_file_prefix + '.res'
 print('Running LDpred-inf with coordinated file prefix: %s ' % tmp_file_prefix)
-cmd_str = 'python ./ldpred/LDpred_inf.py --coord=%s  --ld_radius=100   --local_ld_file_prefix=%s  --N=10000  --out=%s' % (coord_file, tmp_file_prefix, tmp_file_prefix)
+cmd_str = 'python LDpred.py inf --cf=%s  --ldr=100   --ldf=%s  --N=10000  --out=%s' % (coord_file, tmp_file_prefix, tmp_file_prefix)
 print(cmd_str + '\n')
 assert os.system(cmd_str) == 0, 'Problems when running LDpred_inf!  Testing stopped'
 
 out_file = tmp_file_prefix + '.res'
 print('Running LDpred with coordinated file prefix: %s ' % tmp_file_prefix)
-cmd_str = 'python ./ldpred/LDpred.py --coord=%s  --ld_radius=100   --local_ld_file_prefix=%s  --PS=0.001 --N=10000  --out=%s' % (coord_file, tmp_file_prefix, tmp_file_prefix)
+cmd_str = 'python LDpred.py gibbs --cf=%s  --ldr=100   --ldf=%s  --f=0.001 --N=10000  --out=%s' % (coord_file, tmp_file_prefix, tmp_file_prefix)
 print(cmd_str + '\n')
 assert os.system(cmd_str) == 0, 'Problems when running LDpred!  Testing stopped'
 
 out_file = tmp_file_prefix + '.res'
 print('Running P+T with coordinated file prefix: %s ' % tmp_file_prefix)
-cmd_str = 'python ./ldpred/LD_pruning_thres.py --coord=%s  --ld_radius=100  --TS=0.001 --out=%s' % (coord_file, tmp_file_prefix)
+cmd_str = 'python LDpred.py p+t --cf=%s  --ldr=100  --p=0.001 --out=%s' % (coord_file, tmp_file_prefix)
 print(cmd_str + '\n')
 assert os.system(cmd_str) == 0, 'Problems when running P+T!  Testing stopped'
 
 out_file = tmp_file_prefix + '.res'
 print('Validating results with output file prefix: %s' % tmp_file_prefix)
-cmd_str = 'python ./ldpred/validate.py --vgf=./test_data/LDpred_data_p0.001_test_0  --rf=%s  --out=%s' % (tmp_file_prefix, tmp_file_prefix)
+cmd_str = 'python LDpred.py score --vgf=./test_data/LDpred_data_p0.001_test_0  --rf=%s  --out=%s' % (tmp_file_prefix, tmp_file_prefix)
 print(cmd_str + '\n')
 assert os.system(cmd_str) == 0, 'Problems with the validation step!  Testing stopped'
 
 out_file = tmp_file_prefix + '.res'
 print('Validating results with output file prefix: %s' % tmp_file_prefix)
-cmd_str = 'python ./ldpred/validate.py --vgf=./test_data/LDpred_data_p0.001_test_0  --rf=%s  --res_format=P+T --out=%s' % (tmp_file_prefix, tmp_file_prefix)
+cmd_str = 'python LDpred.py score --gf=./test_data/LDpred_data_p0.001_test_0  --rf=%s  --rf-format=P+T --out=%s' % (tmp_file_prefix, tmp_file_prefix)
 print(cmd_str + '\n')
 assert os.system(cmd_str) == 0, 'Problems with the P+T validation step!  Testing stopped'
 

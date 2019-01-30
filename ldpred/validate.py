@@ -1,142 +1,9 @@
-#!/usr/bin/env python
-"""
-    Takes LDpred.py (or LD_pruning_thres.py) effect estimates, and (validation) genotypes in PLINK bed format as input.  
-    The script then works out overlap and outputs predictions or risk scores as well as some prediction 
-    accuracy statistics.
-    
-    Note that for maximal accuracy all SNPs with LDpred weights should be included in the validation dataset.
-    If they are a subset of the validation dataset, then we suggest recalculate LDpred for the overlapping SNPs.
-    
-    
-    
-
-Usage: 
-validate --vgf=PLINK_VAL_GENOTYPE_FILE  --rf=RESULT_FILE_PREFIX  --out=OUTPUT_FILE_PREFIX  [--res_format=LDPRED 
-                    --split_by_chrom --pf=PHEN_FILE --pf_format=STANDARD --cov_file=COVARIATE_FILE --pcs_file=PCS_FILE 
-                    --PS=FRACTIONS_CAUSAL  --TS=PVAL_THRESHOLDS --adjust_for_sex  --adjust_for_covariates  --adjust_for_pcs]
-    
- 
- - PLINK_VAL_GENOTYPE_FILE: PLINK formatted genotypes for which we want to calculate risk scores.
- 
- - RESULT_FILE_PREFIX: SNP weights file, e.g. LDpred SNP weights.
-
- - OUTPUT_FILE_PREFIX:  The prefix of output file.  
-
- - RESULT_FILE_FORMAT: The format to expect the results to be in.  The default format is LDPRED, which refers to the format which
-   running LDpred output. LDPRED-INF and P+T (LD-pruning + p-value thresholding) are also implemented.
- 
- - PHEN_FILE: Is a file with individual IDs and phenotypes.  Two formats are supported a (PLINK) FAM format, 
-              and STANDARD format (default), which is a whitespace/tab delimited file with two columns IID and PHEN.  
- 
- - PVAL_THRESHOLDS: This option is only valid if a P+T result file prefix is supplied.  It's a list of p-value thresholds, 
-                    separated by a comma (without space), to be used for LDpred. Default values are 
-                    --TS=1,0.3,0.1,0.03,0.01,0.003,0.001,0.0003,0.0001,3E-5,1E-5,1E-6,1E-7,1E-8
-
- - FRACTIONS_CAUSAL: This option is only valid if a LDPRED result file prefix is supplied.  A list of comma separated 
-                     (without space) values between 1 and 0, excluding 0.  1 corresponds to the infinitesimal model 
-                     and will yield results similar to LDpred-inf.  Default values are 
-                     --PS=1,0.3,0.1,0.03,0.01,0.003,0.001,0.0003,0.0001 
- - PCS_FILE: The file containing principle component information, with first column assume to contain the IID. 
- 
- 2015 (c) Bjarni J Vilhjalmsson: bjarni.vilhjalmsson@gmail.com
- 
- """
-
-import getopt
-import sys 
 import os
 import scipy as sp
 from scipy import linalg
-import itertools as it
 import h5py
-import plinkfiles
-
-ok_nts = ['A', 'T', 'C', 'G']
-opp_strand_dict = {'A': 'T', 'G': 'C', 'T': 'A', 'C': 'G'}
-
-
-def parse_parameters():
-    """
-    Parse the parameters into a dict, etc.
-    """
-    long_options_list = ['vgf=', 'rf=', 'res_format=', 'out=', 'indiv_filter=', 'split_by_chrom', 'pf=', 'pf_format=', 'cov_file=',
-                         'pcs_file=', 'PS=', 'TS=', 'adjust_for_sex', 'adjust_for_covariates', 'adjust_for_pcs', 'h', 'help']
-
-    p_dict = {'vgf': None, 'rf': None, 'out': None, 'res_format': 'LDPRED', 'indiv_filter': None, 'split_by_chrom': False,
-              'pf': None, 'pf_format': 'STANDARD', 'cov_file': None, 'pcs_file': None, 'PS': [1, 0.3, 0.1, 0.03, 0.01, 0.003, 0.001],
-              'TS': [1, 0.3, 0.1, 0.03, 0.01, 0.003, 0.001, 3 * 1E-4, 1E-4, 3 * 1E-5, 1E-5, 1E-6, 1E-7, 1E-8],
-              'adjust_for_sex': False, 'adjust_for_covariates': False, 'adjust_for_pcs': False}
-
-    if len(sys.argv) > 1:
-        try:
-            opts, args = getopt.getopt(sys.argv[1:], "h", long_options_list)
-
-        except:
-            print("Some problems with parameters.  Please read the usage documentation carefully.")
-            print("Use the -h option for usage information.")
-            sys.exit(2)
-
-        for opt, arg in opts:
-            if opt == "-h" or opt == "--h" or opt == '--help':
-                print(__doc__)
-                sys.exit(0)
-            elif opt in ("--vgf"):
-                p_dict['vgf'] = arg
-            elif opt in ("--rf"):
-                p_dict['rf'] = arg
-            elif opt in ("--res_format"):
-                p_dict['res_format'] = arg
-            elif opt in ("--indiv_filter"):
-                p_dict['indiv_filter'] = arg
-            elif opt in ("--out"):
-                p_dict['out'] = arg
-            elif opt in ("--split_by_chrom"):
-                p_dict['split_by_chrom'] = True
-            elif opt in ("--PS"):
-                p_dict['PS'] = list(map(float, arg.split(',')))
-            elif opt in ("--TS"):
-                p_dict['TS'] = list(map(float, arg.split(',')))
-            elif opt in ("--pf"):
-                p_dict['pf'] = arg
-            elif opt in ("--pf_format"):
-                p_dict['pf_format'] = arg
-            elif opt in ("--cov_file"):
-                p_dict['cov_file'] = arg
-            elif opt in ("--pcs_file"):
-                p_dict['pcs_file'] = arg
-            elif opt in ("--adjust_for_sex"):
-                p_dict['adjust_for_sex'] = True
-            elif opt in ("--adjust_for_covariates"):
-                p_dict['adjust_for_covariates'] = True
-            elif opt in ("--adjust_for_pcs"):
-                p_dict['adjust_for_pcs'] = True
-            else:
-                print('Unkown option: %s'% opt)
-                print("Use -h option for usage information.")
-                sys.exit(2)
-    else:
-        print(__doc__)
-        sys.exit(0)
-
-    if _validate_parameters_(p_dict):
-        print ('Use -h flag to print documentation.')
-        sys.exit(0)
-   
-    return p_dict
-
-def _validate_parameters_(p_dict):
-    any_missing = False
-    if p_dict['vgf'] is None:
-        print('--vgf flag missing:  Please provide validation genotype file (prefix).')
-        any_missing = True
-    if p_dict['rf'] is None:
-        print('--rf flag missing: Please provide LDpred/LDpred-inf weights file (prefix).  These files are obtained by running LDpred or LDpred-inf.')
-        any_missing = True
-    if p_dict['out'] is None:
-        print('--out flag missing: Please provide an output filename (prefix).')
-        any_missing = True
-    return any_missing
-
+from ldpred import plinkfiles
+from ldpred import util
 
 
 def get_prs(genotype_file, rs_id_map, phen_map=None):
@@ -198,7 +65,7 @@ def get_prs(genotype_file, rs_id_map, phen_map=None):
     locus_list = plinkf.get_loci()
     snp_i = 0
 
-    for locus, row in it.izip(locus_list, plinkf):
+    for locus, row in zip(locus_list, plinkf):
         upd_pval_beta = 0
         try:
             # Check rs-ID
@@ -215,7 +82,7 @@ def get_prs(genotype_file, rs_id_map, phen_map=None):
         g_nt = [locus.allele1, locus.allele2]
         flip_nts = False
         os_g_nt = sp.array(
-            [opp_strand_dict[g_nt[0]], opp_strand_dict[g_nt[1]]])
+            [util.opp_strand_dict[g_nt[0]], util.opp_strand_dict[g_nt[1]]])
         if not (sp.all(g_nt == ss_nt) or sp.all(os_g_nt == ss_nt)):
             # Opposite strand nucleotides
             flip_nts = (g_nt[1] == ss_nt[0] and g_nt[0] == ss_nt[1]) or (
@@ -645,21 +512,22 @@ def calc_risk_scores(bed_file, rs_id_map, phen_map, out_file=None, split_by_chro
     return res_dict
 
 
-def main():
-    p_dict = parse_parameters()
+def main(p_dict):
     non_zero_chromosomes = set()
 
     if p_dict['pf'] is None:
-        if p_dict['vgf'] is not None:
+        if p_dict['gf'] is not None:
             print('Parsing phenotypes')
-            phen_map = parse_phen_file(p_dict['vgf'] + '.fam', 'FAM')
+            phen_map = parse_phen_file(p_dict['gf'] + '.fam', 'FAM')
         else:
             raise Exception('Validation phenotypes were not found.')
     else:
         print('Parsing phenotypes')
         phen_map = parse_phen_file(p_dict['pf'], p_dict['pf_format'])
 
+    adjust_for_covs=False
     if p_dict['cov_file'] != None:
+        adjust_for_covs=True
         print('Parsing additional covariates')
 
         with open(p_dict['cov_file'], 'r') as f:
@@ -675,7 +543,9 @@ def main():
             if num_missing > 0:
                 print('Unable to find %d iids in phen file!' % num_missing)
 
+    adjust_for_pcs=False
     if p_dict['pcs_file']:
+        adjust_for_pcs=True
         print('Parsing PCs')
 
         with open(p_dict['pcs_file'], 'r') as f:
@@ -704,9 +574,10 @@ def main():
             print('Calculating LDpred-inf risk scores')
             rs_id_map = parse_ldpred_res(weights_file)
             out_file = '%s_LDpred-inf.txt' % (p_dict['out'])
-            calc_risk_scores(p_dict['vgf'], rs_id_map, phen_map, out_file=out_file, split_by_chrom=p_dict['split_by_chrom'],
-                             adjust_for_sex=p_dict['adjust_for_sex'], adjust_for_covariates=p_dict['adjust_for_covariates'],
-                             adjust_for_pcs=p_dict['adjust_for_pcs'])
+            calc_risk_scores(p_dict['gf'], rs_id_map, phen_map, out_file=out_file, 
+                             split_by_chrom=p_dict['split_by_chrom'],
+                             adjust_for_pcs=adjust_for_pcs,
+                             adjust_for_covariates=adjust_for_covs)
             prs_file_is_missing = False
 
         for p in p_dict['PS']:
@@ -717,10 +588,10 @@ def main():
                 rs_id_map = parse_ldpred_res(weights_file)
                 out_file = '%s_LDpred_p%0.4e.txt' % (p_dict['out'], p)
                 method_str = 'LDpred_p%0.4e' % (p)
-                res_dict[method_str] = calc_risk_scores(p_dict['vgf'], rs_id_map, phen_map, out_file=out_file,
-                                                        split_by_chrom=p_dict['split_by_chrom'], adjust_for_sex=p_dict['adjust_for_sex'],
-                                                        adjust_for_covariates=p_dict['adjust_for_covariates'],
-                                                        adjust_for_pcs=p_dict['adjust_for_pcs'])
+                res_dict[method_str] = calc_risk_scores(p_dict['gf'], rs_id_map, phen_map, out_file=out_file,
+                                                        split_by_chrom=p_dict['split_by_chrom'],
+                                                        adjust_for_pcs=adjust_for_pcs,
+                                                        adjust_for_covariates=adjust_for_covs)
                 prs_file_is_missing=False
 
         # Plot results?
@@ -732,10 +603,10 @@ def main():
             print('Calculating risk scores using all SNPs')
             rs_id_map = parse_ldpred_res(weights_file)
             out_file = '%s_all_snps.txt' % (p_dict['out'])
-            res_dict['all_snps'] = calc_risk_scores(p_dict['vgf'], rs_id_map, phen_map, out_file=out_file,
-                                                    split_by_chrom=p_dict['split_by_chrom'], adjust_for_sex=p_dict['adjust_for_sex'],
-                                                    adjust_for_covariates=p_dict['adjust_for_covariates'],
-                                                    adjust_for_pcs=p_dict['adjust_for_pcs'])
+            res_dict['all_snps'] = calc_risk_scores(p_dict['gf'], rs_id_map, phen_map, out_file=out_file,
+                                                    split_by_chrom=p_dict['split_by_chrom'],
+                                                    adjust_for_pcs=adjust_for_pcs,
+                                                    adjust_for_covariates=adjust_for_covs)
             prs_file_is_missing=False
 
 
@@ -748,11 +619,11 @@ def main():
                 rs_id_map, non_zero_chromosomes = parse_pt_res(weights_file)
                 out_file = '%s_P+T_p%0.4e.txt' % (p_dict['out'], p_thres)
                 method_str = 'P+T_p%0.4e' % (p_thres)
-                res_dict[method_str] = calc_risk_scores(p_dict['vgf'], rs_id_map, phen_map, out_file=out_file,
-                                                        split_by_chrom=p_dict['split_by_chrom'], adjust_for_sex=p_dict['adjust_for_sex'],
-                                                        adjust_for_covariates=p_dict['adjust_for_covariates'],
-                                                        adjust_for_pcs=p_dict['adjust_for_pcs'],
-                                                        non_zero_chromosomes=non_zero_chromosomes)
+                res_dict[method_str] = calc_risk_scores(p_dict['gf'], rs_id_map, phen_map, out_file=out_file,
+                                                        split_by_chrom=p_dict['split_by_chrom'],
+                                                        non_zero_chromosomes=non_zero_chromosomes, 
+                                                        adjust_for_pcs=adjust_for_pcs,
+                                                        adjust_for_covariates=adjust_for_covs)
                 prs_file_is_missing=False
 
         # Plot results?
@@ -763,7 +634,3 @@ def main():
     if prs_file_is_missing:
         print('PRS weights files were not found.  This could be due to a misspecified --rf flag, or other issues.')
 
-
-
-if __name__ == '__main__':
-    main()

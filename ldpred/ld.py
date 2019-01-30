@@ -7,8 +7,8 @@ import scipy as sp
 import sys, os, gzip, pickle
 import time
 import h5py
-import util
 from numpy import linalg 
+from ldpred import util
 
 
 
@@ -361,7 +361,7 @@ def ld_pruning(ld_table, max_ld=0.5, verbose=False):
     return filter_vector
 
 
-def get_ld_dict(cord_data_file, local_ld_file_prefix, ld_radius, gm_ld_radius):
+def get_ld_dict(cord_data_file, local_ld_file_prefix, ld_radius, gm_ld_radius=None):
     """
     Returns the LD dictionary.  Creates a new LD file, if the file doesn't already exist.
     """

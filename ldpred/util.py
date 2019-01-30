@@ -25,6 +25,16 @@ valid_chromosomes.append('X')
 
 chromosomes_list = ['chrom_%s' % (chrom) for chrom in valid_chromosomes]
 
+
+#Conversion sizes for strings (necessary for using h5py and python 3)
+fids_dtype = '|S64'
+iids_dtype = '|S64'
+sids_dtype = "|S30" 
+nts_dtype = "|S1"
+
+sids_u_dtype = '<U30'
+nts_u_dtype = '<U1'
+
 def check_chromosomes(missing_chromosomes):
         if len(missing_chromosomes) > 0:
             print('Ignored chromosomes:', ','.join(list(missing_chromosomes)))

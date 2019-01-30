@@ -1,86 +1,12 @@
 #!/usr/bin/env python
 
-import argparse
 import os
 import scipy as sp
-import itertools as it
 import gzip
-import plinkfiles
 import h5py
-import util
-import sum_stats_parsers as ssp
-
-
-parser = argparse.ArgumentParser()
-parser.add_argument('--gf', type=str, required=True,
-                    help='LD Reference Genotype File. '
-                         'Should be a (full path) filename prefix to a standard PLINK bed file (without .bed). '
-                         'Make sure that the fam and bim files with same names are in the same directory. ')
-parser.add_argument('--ssf', type=str, required=True,
-                    help='Summary Statistic File. '
-                         'Filename prefix for a text file with the GWAS summary statistics')
-parser.add_argument('--N', type=int, default=None,
-                    help='Number of Individuals in Summary Statistic File.  Required for most summary '
-                         'statistics formats.')
-parser.add_argument('--out', type=str, required=True,
-                    help='Output Prefix')
-parser.add_argument('--vbim', type=str, default=None,
-                    help='Validation SNP file. '
-                         'This is a PLINK BIM file which can be used to filter the set of SNPs down '
-                         'to the set of validation SNPs. To maximize accuracy, we recommend calculating LDpred '
-                         'weights for the subset of SNPs that are used to calculate the risk scores in the '
-                         'target (validation) sample.')
-parser.add_argument('--vgf', type=str, default=None,
-                    help='Validation genotype file. '
-                         'This is a PLINK BIM file which can be used to filter the set of SNPs down to the '
-                         'set of validation SNPs.  To maximize accuracy, we recommend calculating LDpred '
-                         'weights for the subset of SNPs that are used to calculate the risk scores in the '
-                         'target (validation) sample.')
-parser.add_argument('--indiv-list', type=str,
-                    help='List of individuals to include in the analysis. '
-                         'Currently required for the DECODE format.', default=None)
-parser.add_argument('--gmdir', type=str,
-                    help='The directory of genetic map.', default=None)
-parser.add_argument('--skip-coordination', default=False, action='store_true',
-                    help="Assumes that the alleles have already been coordinated between LD reference, "
-                         "validation samples, and the summary statistics files")
-parser.add_argument('--beta', default=False, action='store_true',
-                    help="Assumes the summary statistics are BETA instead of OR")
-parser.add_argument('--debug', default=False, action='store_true',
-                    help="Activate debugging")
-parser.add_argument('--check-maf', default=False, action='store_true',
-                    help="Perform MAF checking")
-parser.add_argument('--maf', type=float, default=0.01,
-                    help='MAF filtering threshold')
-parser.add_argument('--ssf-format', type=str, default="CUSTOM", 
-                    help='This is the format type of the summary statistics file. '
-                    'Currently there are two implementations, "STANDARD", "BASIC", "GIANT", '
-                    'and "PGC".  The standard format is described above.')
-parser.add_argument('--rs', type=str, default="SNP",
-                    help="Column header of SNP ID")
-parser.add_argument('--A1', type=str, default="A1",
-                    help="Column header containing the effective allele. "
-                         "There isn't any standardized label for the effective allele, "
-                         "therefore extra care must be taken to ensure the correct label is provided, "
-                         "otherwise, the effect will be flipped.")
-parser.add_argument('--A2', type=str, default="A2",
-                    help="Column header containing non-effective allele.")
-parser.add_argument('--pos', type=str, default="BP",
-                    help="Column header containing the coordinate of SNPs.")
-parser.add_argument('--info', type=str, default="INFO",
-                    help="Column header containing the INFO score.")
-parser.add_argument('--chr', type=str, default="CHR",
-                    help="Column header containing the chromosome information.")
-parser.add_argument('--reffreq', type=str, default="MAF",
-                    help="Column header containing the reference MAF")
-parser.add_argument('--pval', type=str, default="P",
-                    help="Column header containing the P-value information")
-parser.add_argument('--eff', type=str, default="OR",
-                    help="Column header containing effect size information")
-parser.add_argument('--ncol', type=str, default="N",
-                    help="Column header containing sample size information")
-
-
+from ldpred import sum_stats_parsers
+from ldpred import util
+from ldpred import plinkfiles
 
 def get_chrom_dict_bim(bim_file, chromosomes):
     chr_dict = {}
@@ -102,7 +28,7 @@ def get_chrom_dict_bim(bim_file, chromosomes):
             chr_dict[chr_str]['positions'].append(int(l[3]))
             chr_dict[chr_str]['nts'].append([l[4], l[5]])
 
-    print 'Genotype dictionary filled'
+    print('Genotype dictionary filled')
     return chr_dict
 
 
@@ -145,8 +71,8 @@ def write_coord_data(cord_data_g, coord_dict):
     
     ofg.create_dataset('ps', data=coord_dict['ps'])
     ofg.create_dataset('positions', data=coord_dict['positions'])
-    ofg.create_dataset('nts', data=coord_dict['nts'])
-    ofg.create_dataset('sids', data=coord_dict['sids'])
+    ofg.create_dataset('nts', data=sp.array(coord_dict['nts'],dtype=util.nts_dtype))
+    ofg.create_dataset('sids', data=sp.array(coord_dict['sids'],dtype=util.sids_dtype))
     ofg.create_dataset('betas', data=coord_dict['betas'])
     ofg.create_dataset('log_odds', data=coord_dict['log_odds'])
     ofg.create_dataset('log_odds_prs', data=coord_dict['log_odds_prs'])
@@ -179,8 +105,8 @@ def coordinate_genot_ss(genotype_file=None,
     if plinkf_dict['has_phenotype']:
         hdf5_file.create_dataset('y', data=plinkf_dict['phenotypes'])
 
-    hdf5_file.create_dataset('fids', data=plinkf_dict['fids'])
-    hdf5_file.create_dataset('iids', data=plinkf_dict['iids'])
+    hdf5_file.create_dataset('fids', data=sp.array(plinkf_dict['fids'], dtype=util.fids_dtype))
+    hdf5_file.create_dataset('iids', data=sp.array(plinkf_dict['iids'], dtype=util.iids_dtype))
     ssf = hdf5_file['sum_stats']
 
     cord_data_g = hdf5_file.create_group('cord_data')
@@ -211,7 +137,7 @@ def coordinate_genot_ss(genotype_file=None,
         g_sids = chrom_d['sids']
         g_sid_set = set(g_sids)
         assert len(g_sid_set) == len(g_sids), 'Some SNPs appear to be duplicated?'
-        ss_sids = ssg['sids'][...]
+        ss_sids = (ssg['sids'][...]).astype(util.sids_u_dtype)
         ss_sid_set = set(ss_sids)
         assert len(ss_sid_set) == len(ss_sids), 'Some SNPs appear to be duplicated?'
 
@@ -235,7 +161,7 @@ def coordinate_genot_ss(genotype_file=None,
 
         g_nts = chrom_d['nts']
         snp_indices = chrom_d['snp_indices']
-        ss_nts = ssg['nts'][...]
+        ss_nts = (ssg['nts'][...]).astype(util.nts_u_dtype)
         betas = ssg['betas'][...]
         log_odds = ssg['log_odds'][...]
         assert not sp.any(sp.isnan(betas)), 'Some SNP effect estimates are NANs (not a number)'
@@ -251,7 +177,7 @@ def coordinate_genot_ss(genotype_file=None,
             ss_freqs = ssg['freqs'][...]
 
         ok_indices = {'g': [], 'ss': []}
-        for g_i, ss_i in it.izip(g_indices, ss_indices):
+        for g_i, ss_i in zip(g_indices, ss_indices):
 
             # Is the nucleotide ambiguous?
             g_nt = [g_nts[g_i][0], g_nts[g_i][1]]
@@ -321,7 +247,8 @@ def coordinate_genot_ss(genotype_file=None,
         log_odds = log_odds[ok_indices['ss']]
         ps = ssg['ps'][...][ok_indices['ss']]
         nts = sp.array(ok_nts)[order]
-        sids = ssg['sids'][...][ok_indices['ss']]
+        sids = (ssg['sids'][...]).astype(util.sids_u_dtype)
+        sids = sids[ok_indices['ss']]
 
         # Check SNP frequencies..
         if check_mafs and 'freqs' in ssg:
@@ -470,8 +397,8 @@ def coordinate_genotypes_ss_w_ld_ref(genotype_file=None,
     if plinkf_dict['has_phenotype']:
         hdf5_file.create_dataset('y', data=plinkf_dict['phenotypes'])
 
-    hdf5_file.create_dataset('fids', data=plinkf_dict['fids'])
-    hdf5_file.create_dataset('iids', data=plinkf_dict['iids'])
+    hdf5_file.create_dataset('fids', data=sp.array(plinkf_dict['fids'], dtype=util.fids_dtype))
+    hdf5_file.create_dataset('iids', data=sp.array(plinkf_dict['iids'], dtype=util.iids_dtype))
     ssf = hdf5_file['sum_stats']
     cord_data_g = hdf5_file.create_group('cord_data')
 
@@ -504,7 +431,7 @@ def coordinate_genotypes_ss_w_ld_ref(genotype_file=None,
         ssg = ssf['chrom_%d' % chrom]
         g_sids = chrom_d['sids']
         rg_sids = chrom_d_ref['sids']
-        ss_sids = ssg['sids'][...]
+        ss_sids = (ssg['sids'][...]).astype(util.sids_u_dtype)
         if debug:
             print('Found %d SNPs in validation data, %d SNPs in LD reference data, and %d SNPs in summary statistics.' % (len(g_sids), len(rg_sids), len(ss_sids)))
         common_sids = sp.intersect1d(ss_sids, g_sids)
@@ -549,7 +476,7 @@ def coordinate_genotypes_ss_w_ld_ref(genotype_file=None,
         g_nts = sp.array(chrom_d['nts'])
         rg_nts = sp.array(chrom_d_ref['nts'])
         rg_nts_ok = sp.array(rg_nts)[rg_snp_map]
-        ss_nts = ssg['nts'][...]
+        ss_nts = (ssg['nts'][...]).astype(util.nts_u_dtype)
         betas = ssg['betas'][...]
         log_odds = ssg['log_odds'][...]
 
@@ -571,7 +498,7 @@ def coordinate_genotypes_ss_w_ld_ref(genotype_file=None,
 
         # Identifying which SNPs have nucleotides that are ok..
         ok_nts = []
-        for g_i, rg_i, ss_i in it.izip(g_snp_map, rg_snp_map, ss_snp_map):
+        for g_i, rg_i, ss_i in zip(g_snp_map, rg_snp_map, ss_snp_map):
 
             # To make sure, is the SNP id the same?
             assert g_sids[g_i] == rg_sids[rg_i] == ss_sids[ss_i], 'Some issues with coordinating the genotypes.'
@@ -663,7 +590,8 @@ def coordinate_genotypes_ss_w_ld_ref(genotype_file=None,
 
         ps = ssg['ps'][...][ok_indices['ss']]
         nts = sp.array(ok_nts)  # [order]
-        sids = ssg['sids'][...][ok_indices['ss']]
+        sids = (ssg['sids'][...]).astype(util.sids_u_dtype)
+        sids = sids[ok_indices['ss']]
 
 
         # Check SNP frequencies..
@@ -764,21 +692,12 @@ def coordinate_genotypes_ss_w_ld_ref(genotype_file=None,
 
 
 
-def main():
-    parameters = parser.parse_args()
-    p_dict= vars(parameters)
- 
-    print """
-    Note: For maximal accuracy all SNPs with LDpred weights should be included in the validation data set.
-    If they are a subset of the validation data set, then we suggest recalculate LDpred for the overlapping SNPs.
-    You can coordinate across the three data sets by either using the same LD reference and the validation data, or using
-    the --vbim argument, and supply the validation data set PLINK formatted bim file.
-    """
-    
+def main(p_dict):
+
     bimfile = None
     if p_dict['N'] is None:
-        print 'Please specify an integer value for the sample size used to calculate the GWAS summary statistics.'
-    print 'Preparing to parse summary statistics'
+        print('Please specify an integer value for the sample size used to calculate the GWAS summary statistics.')
+    print('Preparing to parse summary statistics')
     if p_dict['vbim'] is not None:
         bimfile = p_dict['vbim']
     elif p_dict['vgf'] is not None:
@@ -786,29 +705,26 @@ def main():
     elif p_dict['gf'] is not None:
         bimfile = p_dict['gf'] + '.bim'
     else:
-        print 'Set of validation SNPs is missing!  Please specify either a validation PLINK genotype file, ' \
-              'or a PLINK BIM file with the SNPs of interest.'
+        print('Set of validation SNPs is missing!  Please specify either a validation PLINK genotype file, ' \
+              'or a PLINK BIM file with the SNPs of interest.')
     if os.path.isfile(p_dict['out']):
-        print 'Output file (%s) already exists!  Delete, rename it, or use a different output file.'\
-              % (p_dict['out'])
+        print('Output file (%s) already exists!  Delete, rename it, or use a different output file.'\
+              % (p_dict['out']))
         raise Exception('Output file already exists!')
 
     h5f = h5py.File(p_dict['out'], 'w')
     
-    ssp.parse_sum_stats(h5f, p_dict, bimfile)
+    sum_stats_parsers.parse_sum_stats(h5f, p_dict, bimfile)
+    check_mafs = p_dict['maf']>0
     
     if not p_dict['vgf'] == None:
         coordinate_genotypes_ss_w_ld_ref(genotype_file=p_dict['vgf'], reference_genotype_file=p_dict['gf'],
-                                         genetic_map_dir=p_dict['gmdir'], check_mafs=p_dict['check_maf'],
+                                         check_mafs=check_mafs,
                                          hdf5_file=h5f, min_maf=p_dict['maf'], skip_coordination=p_dict['skip_coordination'], 
                                          debug=p_dict['debug'])
     else:
-        coordinate_genot_ss(genotype_file=p_dict['gf'], genetic_map_dir=p_dict['gmdir'], check_mafs=p_dict['check_maf'],
+        coordinate_genot_ss(genotype_file=p_dict['gf'], check_mafs=check_mafs,
                             hdf5_file=h5f, min_maf=p_dict['maf'], skip_coordination=p_dict['skip_coordination'], 
                             debug=p_dict['debug'])
 
     h5f.close()
-
-
-if __name__ == '__main__':
-    main()
