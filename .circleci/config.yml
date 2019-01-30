@@ -7,7 +7,7 @@ jobs:
   build:
     docker:
       # specify the version you desire here
-      - image: circleci/python:2.7.15
+      - image: circleci/python:3.6.4
       
       # Specify service dependencies here if necessary
       # CircleCI maintains a library of pre-built images
