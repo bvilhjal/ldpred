@@ -15,15 +15,9 @@ NEW!
 
 Version 1.0, for python3
 
-You can install it via pip, i.e. just write:
+Please checkout the repository from github (see details below).
 
-`pip install ldpred`
-
-or if you need to install it locally you can try
-
-`pip install --user ldpred`
-
-This will automatically install the requirements listed below.  After installing them, make sure that the scripts are in path.
+pip install option will be made available soon.
 
 ### Requirements ###
 LDpred currently requires three Python packages to be installed and in path.  These
