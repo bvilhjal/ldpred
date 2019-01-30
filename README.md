@@ -71,7 +71,7 @@ After generating the coordinated data file then the one can apply LDpred and run
 
 use --help for detailed options.  This step generates two files, a LD file with LD information for the given LD radius, and the re-weighted effect estimates.  The LD file enables the user to not have to generate the LD file again when trying, e.g., different values of **p** (the fraction of causal variants). However, it is re-generated if a different LD radius is given.  The other file that LDpred generates contains the LDpred-adjusted effect estimates.
 
-## Step 3: Generating individual risk scores ##
+### Step 3: Generating individual risk scores ###
 Individual risk scores can be generated using the following command
 
 `python LDpred.py score`
@@ -80,7 +80,10 @@ use --help for detailed options.  It calculates polygenic risk scores for the in
 
 
 
-## LD-pruning + Thresholding ##
+### Additional methods: LD-pruning + Thresholding ###
 In addition to the LDpred gibbs sampler and infinitesimal model methods, the package also implements LD-pruning + Thresholding as an alternative method. You can run this using the following command
-`python LDpred.py p+t`. This method often yields better predictions than LDpred when the LD reference panel is small, or when the training data is very large (due to problems with gibbs sampler convergence).
+
+`python LDpred.py p+t`
+
+This method often yields better predictions than LDpred when the LD reference panel is small, or when the training data is very large (due to problems with gibbs sampler convergence).
 
