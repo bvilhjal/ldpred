@@ -1,4 +1,3 @@
-Copyright (C) 2019, Bjarni J. Vilhjalmsson (bjarni.vilhjalmsson@gmail.com)
 
 # LDpred #
 
@@ -8,7 +7,6 @@ for the effects of linkage disequilibrium (LD).  The details of the method is
 described in Vilhjalmsson et al. (AJHG 2015) [http://www.cell.com/ajhg/abstract/S0002-9297(15)00365-1]
 
 * The current version is 1.0.0
-
 
 ## Getting Started ##
 NEW!
@@ -78,7 +76,7 @@ After generating the coordinated data file then the one can apply LDpred and run
 
 use --help for detailed options.  This step generates two files, a LD file with LD information for the given LD radius, and the re-weighted effect estimates.  The LD file enables the user to not have to generate the LD file again when trying, e.g., different values of **p** (the fraction of causal variants). However, it is re-generated if a different LD radius is given.  The other file that LDpred generates contains the LDpred-adjusted effect estimates.
 
-## Step 4: Generating individual risk scores ##
+## Step 3: Generating individual risk scores ##
 Individual risk scores can be generated using the following command
 
 `python LDpred.py score`
