@@ -1,4 +1,4 @@
-Copyright (C) 2018, Bjarni J. Vilhjalmsson (bjarni.vilhjalmsson@gmail.com)
+Copyright (C) 2019, Bjarni J. Vilhjalmsson (bjarni.vilhjalmsson@gmail.com)
 
 # LDpred #
 
