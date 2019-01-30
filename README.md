@@ -13,7 +13,7 @@ described in Vilhjalmsson et al. (AJHG 2015) [http://www.cell.com/ajhg/abstract/
 ## Getting Started ##
 NEW!
 
-Version 1.0, for python3
+Version 1.0, for python 3
 
 Please checkout the repository from github (see details below).
 
