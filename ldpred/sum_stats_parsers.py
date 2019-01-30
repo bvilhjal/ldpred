@@ -93,7 +93,7 @@ def parse_sum_stats_custom(filename=None,
     print('Parsing summary statistics file: %s' % filename)
     with open(filename) as f:
 
-        header = f.next()
+        header = next(f)
         if debug:
             print(header)
         header_dict={}
@@ -281,7 +281,7 @@ def parse_sum_stats_standard(filename=None,
     print('Parsing summary statistics file: %s' % filename)
     with open(filename) as f:
         if debug:
-            print(f.next())
+            print(next(f))
         missing_chromosomes = set()
         for line in f:
             l = (line.strip()).split()
@@ -395,7 +395,7 @@ def parse_sum_stats_giant(filename=None,
     print('Parsing the file: %s' % filename)
     with open(filename) as f:
         if debug:
-            print(f.next())
+            print(next(f))
         missing_chromosomes = set()
         for line in f:
             l = (line.strip()).split()
@@ -505,7 +505,7 @@ def parse_sum_stats_giant2(filename=None,
     print('Parsing the file: %s' % filename)
     with open(filename) as f:
         if debug:
-            print(f.next())
+            print(next(f))
         missing_chromosomes = set()
         for line in f:
             l = (line.strip()).split()
@@ -613,7 +613,7 @@ def parse_sum_stats_pgc(filename=None,
 
     print('Parsing the file: %s' % filename)
     with open(filename) as f:
-        print(f.next())
+        print(next(f))
         missing_chromosomes = set()
         line_i = 0
         for line in f:
@@ -732,7 +732,7 @@ def parse_sum_stats_pgc_small(filename=None,
     print('Parsing the file: %s' % filename)
     with open(filename) as f:
         if debug:
-            print (f.next())
+            print (next(f))
         missing_chromosomes = set()
         for line in f:
             l = (line.strip()).split()
@@ -837,7 +837,7 @@ def parse_sum_stats_basic(filename=None,
     with open(filename) as f:
         missing_chromosomes = set()
         if debug:
-            print(f.next())
+            print(next(f))
         for line in f:
             l = (line.strip()).split()
             chrom_str = l[0]

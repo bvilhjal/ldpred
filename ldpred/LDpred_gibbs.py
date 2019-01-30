@@ -84,9 +84,9 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
                 snp_stds = snp_stds.flatten()
                 pval_derived_betas = g['betas'][...]
                 positions = g['positions'][...]
-                sids = g['sids'][...]
+                sids = (g['sids'][...]).astype(util.sids_u_dtype)
                 log_odds = g['log_odds'][...]
-                nts = g['nts'][...]
+                nts = (g['nts'][...]).astype(util.nts_u_dtype)
                 ok_snps_filter = snp_stds > 0
                 if not sp.all(ok_snps_filter):
                     snp_stds = snp_stds[ok_snps_filter]

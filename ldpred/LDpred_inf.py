@@ -102,9 +102,11 @@ def ldpred_inf_genomewide(data_file=None, ld_radius = None, ld_dict=None, out_fi
             if out_file_prefix:
                 chromosomes.extend([chrom_str]*len(pval_derived_betas))
                 positions.extend(g['positions'][...])
-                sids.extend(g['sids'][...])
+                sids_arr = (g['sids'][...]).astype(util.sids_u_dtype)
+                sids.extend(sids_arr)
                 raw_effect_sizes.extend(g['log_odds'][...])
-                nts.extend(g['nts'][...])
+                nts_arr = (g['nts'][...]).astype(util.nts_u_dtype)
+                nts.extend(nts_arr)
         
             h2_chrom = herit_dict[chrom_str] 
             #print 'Prior parameters: p=%0.3f, n=%d, m=%d, h2_chrom=%0.4f' % (p, n, n_snps, h2_chrom)

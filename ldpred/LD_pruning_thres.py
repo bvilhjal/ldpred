@@ -2,7 +2,7 @@ import h5py
 import scipy as sp
 import time
 from ldpred import ld
-
+from ldpred import util
 
 def smart_ld_pruning(beta_hats, ld_table, pvalues=None, max_ld=0.2, verbose=False):
     """
@@ -109,10 +109,12 @@ def ld_pruning(data_file=None, ld_radius = None, out_file_prefix=None, p_thres=N
             if out_file_prefix:
                 chromosomes.extend([chrom_str]*len(pval_derived_betas))
                 positions.extend(g['positions'][...][snp_filter])
-                sids.extend(g['sids'][...][snp_filter])
+                sids_arr = (g['sids'][...]).astype(util.sids_u_dtype)
+                sids.extend(sids_arr[snp_filter])
                 raw_effect_sizes.extend(raw_betas)
                 raw_pval_effect_sizes.extend(pval_derived_betas)
-                nts.extend(g['nts'][...][snp_filter])
+                nts_arr = (g['nts'][...]).astype(util.nts_u_dtype)
+                nts.extend(nts_arr[snp_filter])
     
             if max_r2<1:
                 #print 'Generating LD table from genotypes.'
@@ -169,7 +171,8 @@ def ld_pruning(data_file=None, ld_radius = None, out_file_prefix=None, p_thres=N
             print('The slope for predictions with P-value derived  effects is: %0.4f' %regression_slope)
             results_dict[p_str]['slope_pd']=regression_slope
         
-            weights_out_file = '%s_P+T_r%0.4e_p%0.4e.txt'%(out_file_prefix, max_r2, p_thres)
+            weights_out_file = '%s_P+T_r%0.2f_p%0.4e.txt'%(out_file_prefix, max_r2, p_thres)
+        
         with open(weights_out_file,'w') as f:
             f.write('chrom    pos    sid    nt1    nt2    raw_beta    raw_pval_beta    updated_beta    updated_pval_beta \n')
             for chrom, pos, sid, nt, raw_beta, raw_pval_beta, upd_beta, upd_pval_beta in zip(chromosomes, positions, sids, nts, raw_effect_sizes, raw_pval_effect_sizes, updated_effect_sizes, updated_pval_effect_sizes):

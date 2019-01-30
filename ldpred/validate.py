@@ -566,7 +566,7 @@ def main(p_dict):
 
     prs_file_is_missing = True
     res_dict = {}
-    if p_dict['res_format'] == 'LDPRED':
+    if p_dict['rf_format'] == 'LDPRED':
         weights_file = '%s_LDpred-inf.txt' % (p_dict['rf'])
         
         if os.path.isfile(weights_file):
@@ -580,7 +580,7 @@ def main(p_dict):
                              adjust_for_covariates=adjust_for_covs)
             prs_file_is_missing = False
 
-        for p in p_dict['PS']:
+        for p in p_dict['f']:
             weights_file = '%s_LDpred_p%0.4e.txt' % (p_dict['rf'], p)
             if os.path.isfile(weights_file):
                 print('')
@@ -596,40 +596,29 @@ def main(p_dict):
 
         # Plot results?
 
-    elif p_dict['res_format'] == 'P+T':
-        weights_file = '%s_all_snps.txt' % (p_dict['rf'])
-        if os.path.isfile(weights_file):
-            print('')
-            print('Calculating risk scores using all SNPs')
-            rs_id_map = parse_ldpred_res(weights_file)
-            out_file = '%s_all_snps.txt' % (p_dict['out'])
-            res_dict['all_snps'] = calc_risk_scores(p_dict['gf'], rs_id_map, phen_map, out_file=out_file,
-                                                    split_by_chrom=p_dict['split_by_chrom'],
-                                                    adjust_for_pcs=adjust_for_pcs,
-                                                    adjust_for_covariates=adjust_for_covs)
-            prs_file_is_missing=False
+    elif p_dict['rf_format'] == 'P+T':
 
-
-        for p_thres in p_dict['TS']:
-            weights_file = '%s_P+T_p%0.4e.txt' % (p_dict['rf'], p_thres)
-            print(weights_file)
-            if os.path.isfile(weights_file):
-                print('')
-                print('Calculating P+T risk scores using p-value threshold of %0.3e' % p_thres)
-                rs_id_map, non_zero_chromosomes = parse_pt_res(weights_file)
-                out_file = '%s_P+T_p%0.4e.txt' % (p_dict['out'], p_thres)
-                method_str = 'P+T_p%0.4e' % (p_thres)
-                res_dict[method_str] = calc_risk_scores(p_dict['gf'], rs_id_map, phen_map, out_file=out_file,
-                                                        split_by_chrom=p_dict['split_by_chrom'],
-                                                        non_zero_chromosomes=non_zero_chromosomes, 
-                                                        adjust_for_pcs=adjust_for_pcs,
-                                                        adjust_for_covariates=adjust_for_covs)
-                prs_file_is_missing=False
+        for max_r2 in p_dict['r2']:
+            for p_thres in p_dict['p']:
+                weights_file = '%s_P+T_r%0.2f_p%0.4e.txt' % (p_dict['rf'], max_r2, p_thres)
+                print(weights_file)
+                if os.path.isfile(weights_file):
+                    print('')
+                    print('Calculating P+T risk scores using p-value threshold of %0.3e, and r2 threshold of %0.2f' % (p_thres, max_r2))
+                    rs_id_map, non_zero_chromosomes = parse_pt_res(weights_file)
+                    out_file = '%s_P+T_p%0.4e.txt' % (p_dict['out'], p_thres)
+                    method_str = 'P+T_p%0.4e' % (p_thres)
+                    res_dict[method_str] = calc_risk_scores(p_dict['gf'], rs_id_map, phen_map, out_file=out_file,
+                                                            split_by_chrom=p_dict['split_by_chrom'],
+                                                            non_zero_chromosomes=non_zero_chromosomes, 
+                                                            adjust_for_pcs=adjust_for_pcs,
+                                                            adjust_for_covariates=adjust_for_covs)
+                    prs_file_is_missing=False
 
         # Plot results?
     else:
         raise NotImplementedError(
-            'Results file format missing or unknown: %s' % p_dict['res_format'])
+            'Results file format missing or unknown: %s' % p_dict['rf_format'])
     
     if prs_file_is_missing:
         print('PRS weights files were not found.  This could be due to a misspecified --rf flag, or other issues.')

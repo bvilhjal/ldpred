@@ -188,10 +188,6 @@ parser_score.add_argument('--gf', type=str, default=None,
                          'PLINK formatted genotypes for which we want to calculate risk scores.')
 parser_score.add_argument('--rf', type=str, required=True,
                     help='SNP weights file, e.g. LDpred SNP weights.')
-parser_score.add_argument('--ldr', type=int, required=True,
-                    help='LD radius.  An integer number which denotes the number of SNPs on each side '  
-                        'of the focal SNP for which LD should be adjusted. A value corresponding M/3000, '
-                        'where M is the number of SNPs in the genome is recommended')
 parser_score.add_argument('--out', type=str, required=True,
                     help='The prefix of risk score output file.')
 parser_score.add_argument('--pf', type=str, default=None,
@@ -212,6 +208,8 @@ parser_score.add_argument('--pcs-file', type=str, default=None,
                     help='PCs file, format is whitespace-delimted file with columns FID, IID, PC1, PC2, etc.')
 parser_score.add_argument('--split-by-chrom', type=bool, default=False,
                     help='')
+parser_score.add_argument('--r2', default=[1,0.2], nargs='+', type=float,
+                    help="Fraction of causal variants used in the Gibbs sampler")
 parser_score.add_argument('--f', default=[1,0.3,0.1,0.03,0.01,0.003,0.001], nargs='+', type=float,
                     help="Fraction of causal variants used in the Gibbs sampler")
 parser_score.add_argument('--p', default=[1,0.3,0.1,0.03,0.01,0.003,0.001,3*1E-4,
