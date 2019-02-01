@@ -106,7 +106,7 @@ def obs_h2_to_liab(R2_osb,K=0.01,P=0.5):
     
     Lee et al. AJHG 2011 conversion? 
     
-    For heritability only?
+    For heritability only
     """
     t = stats.norm.ppf(1-K)
     z = stats.norm.pdf(t)
@@ -119,7 +119,7 @@ def obs_r2_to_liab(R2_osb,K=0.01,P=0.5):
     """
     Lee et al., Gen Epi 2012 conversion
     
-    For R2 only?
+    For R2 only
 
     """
     t = stats.norm.ppf(K)
