@@ -49,7 +49,7 @@ parser_coord.add_argument('--gf', type=str, required=True,
                          'Make sure that the fam and bim files with same names are in the same directory. ')
 parser_coord.add_argument('--ssf', type=str, required=True,
                     help='Summary Statistic File. '
-                         'Filename prefix for a text file with the GWAS summary statistics')
+                         'Filename for a text file with the GWAS summary statistics')
 parser_coord.add_argument('--N', type=int, default=None,
                     help='Number of Individuals in Summary Statistic File.  Required for most summary '
                          'statistics formats.')
