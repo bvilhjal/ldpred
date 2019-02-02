@@ -895,6 +895,8 @@ def parse_sum_stats_basic(filename=None,
             sids.append(sid)
             positions.append(pos)
             log_odds.append(lo)
+        nts = sp.array(nts,dtype=nts_dtype)
+        sids = sp.array(sids,dtype=sids_dtype)
         g = ssg.create_group('chrom_%s' % chrom)
         g.create_dataset('ps', data=sp.array(ps))
         g.create_dataset('betas', data=betas)
