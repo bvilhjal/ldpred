@@ -97,7 +97,7 @@ def parse_sum_stats_custom(filename=None,
     chrom_dict = {}
     opener = open
     if is_gz(filename):
-        opener = gzip.open()
+        opener = gzip.open
     print('Parsing summary statistics file: %s' % filename)
     with opener(filename) as f:
         header = f.readline()
