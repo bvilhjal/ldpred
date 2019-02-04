@@ -70,7 +70,6 @@ def parse_sum_stats_custom(filename=None,
     assert not rs is None, 'Require header for RS ID'
     assert not eff is None, 'Require header for Statistics'
     assert not pval is None, 'Require header for pval'
-
     assert not ncol is None or not n is None, 'Require either N or NCOL information'
 
 
@@ -98,11 +97,12 @@ def parse_sum_stats_custom(filename=None,
     chrom_dict = {}
     opener = open
     if is_gz(filename):
-        opener = gzip.open
+        opener = gzip.open()
     print('Parsing summary statistics file: %s' % filename)
     with opener(filename) as f:
-
-        header = next(f)
+        header = f.readline()
+        if is_gz(filename):
+            header.decode('utf-8')
         if debug:
             print(header)
         header_dict={}
@@ -111,6 +111,7 @@ def parse_sum_stats_custom(filename=None,
         for col in columns:
             header_dict[col] = index
             index+=1
+        print(header_dict)
         assert chr is None or chr in header_dict, 'Chromosome header cannot be found in summary statistic file'
         assert A2 in header_dict, 'Non-effective allele column cannot be found in summary statistic file'
         assert A1 in header_dict, 'Effective allele column cannot be found in summary statistic file'
@@ -123,6 +124,8 @@ def parse_sum_stats_custom(filename=None,
         # header_dict now contains the header column name for each corresponding input
         bad_chromosomes = set()
         for line in f:
+            if is_gz(filename):
+                line = line.decode('utf-8')
             l = (line.strip()).split()
             # get the SNP ID first
             sid = l[header_dict[rs]]
