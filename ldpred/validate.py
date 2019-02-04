@@ -1,123 +1,9 @@
-#!/usr/bin/env python
-"""
-    Takes LDpred.py (or LD_pruning_thres.py) effect estimates, and (validation) genotypes in PLINK bed format as input.  
-    The script then works out overlap and outputs predictions or risk scores as well as some prediction 
-    accuracy statistics.
-    
-    Note that for maximal accuracy all SNPs with LDpred weights should be included in the validation dataset.
-    If they are a subset of the validation dataset, then we suggest recalculate LDpred for the overlapping SNPs.
-    
-    
-    
-
-Usage: 
-validate --vgf=PLINK_VAL_GENOTYPE_FILE  --rf=RESULT_FILE_PREFIX  --out=OUTPUT_FILE_PREFIX  [--res_format=LDPRED 
-                    --split_by_chrom --pf=PHEN_FILE --pf_format=STANDARD --cov_file=COVARIATE_FILE --pcs_file=PCS_FILE 
-                    --PS=FRACTIONS_CAUSAL  --TS=PVAL_THRESHOLDS --adjust_for_sex  --adjust_for_covariates  --adjust_for_pcs]
-    
- 
- - PLINK_VAL_GENOTYPE_FILE: PLINK formatted genotypes for which we want to calculate risk scores.
- 
- - RESULT_FILE_PREFIX: SNP weights file, e.g. LDpred SNP weights.
-
- - OUTPUT_FILE_PREFIX:  The prefix of output file.  
-
- - RESULT_FILE_FORMAT: The format to expect the results to be in.  The default format is LDPRED, which refers to the format which
-   running LDpred output. LDPRED-INF and P+T (LD-pruning + p-value thresholding) are also implemented.
- 
- - PHEN_FILE: Is a file with individual IDs and phenotypes.  Two formats are supported a (PLINK) FAM format, 
-              and STANDARD format (default), which is a whitespace/tab delimited file with two columns IID and PHEN.  
- 
- - PVAL_THRESHOLDS: This option is only valid if a P+T result file prefix is supplied.  It's a list of p-value thresholds, 
-                    separated by a comma (without space), to be used for LDpred. Default values are 
-                    --TS=1,0.3,0.1,0.03,0.01,0.003,0.001,0.0003,0.0001,3E-5,1E-5,1E-6,1E-7,1E-8
-
- - FRACTIONS_CAUSAL: This option is only valid if a LDPRED result file prefix is supplied.  A list of comma separated 
-                     (without space) values between 1 and 0, excluding 0.  1 corresponds to the infinitesimal model 
-                     and will yield results similar to LDpred-inf.  Default values are 
-                     --PS=1,0.3,0.1,0.03,0.01,0.003,0.001,0.0003,0.0001 
- - PCS_FILE: The file containing principle component information, with first column assume to contain the IID. 
- 
- 2015 (c) Bjarni J Vilhjalmsson: bjarni.vilhjalmsson@gmail.com
- 
- """
-
-import getopt
-import sys
 import os
 import scipy as sp
 from scipy import linalg
-import itertools as it
 import h5py
-import plinkfiles
-
-ok_nts = ['A', 'T', 'C', 'G']
-opp_strand_dict = {'A': 'T', 'G': 'C', 'T': 'A', 'C': 'G'}
-
-
-def parse_parameters():
-    """
-    Parse the parameters into a dict, etc.
-    """
-    long_options_list = ['vgf=', 'rf=', 'res_format=', 'out=', 'indiv_filter=', 'split_by_chrom', 'pf=', 'pf_format=', 'cov_file=',
-                         'pcs_file=', 'PS=', 'TS=', 'adjust_for_sex', 'adjust_for_covariates', 'adjust_for_pcs', 'h', 'help']
-
-    p_dict = {'vgf': None, 'rf': None, 'out': None, 'res_format': 'LDPRED', 'indiv_filter': None, 'split_by_chrom': False,
-              'pf': None, 'pf_format': 'STANDARD', 'cov_file': None, 'pcs_file': None, 'PS': [1, 0.3, 0.1, 0.03, 0.01, 0.003, 0.001],
-              'TS': [1, 0.3, 0.1, 0.03, 0.01, 0.003, 0.001, 3 * 1E-4, 1E-4, 3 * 1E-5, 1E-5, 1E-6, 1E-7, 1E-8],
-              'adjust_for_sex': False, 'adjust_for_covariates': False, 'adjust_for_pcs': False}
-
-    if len(sys.argv) > 1:
-        try:
-            opts, args = getopt.getopt(sys.argv[1:], "h", long_options_list)
-
-        except:
-            print "Some problems with parameters.  Please read the usage documentation carefully."
-            print "Use the -h option for usage information."
-            sys.exit(2)
-
-        for opt, arg in opts:
-            if opt == "-h" or opt == "--h" or opt == '--help':
-                print __doc__
-                sys.exit(0)
-            elif opt in ("--vgf"):
-                p_dict['vgf'] = arg
-            elif opt in ("--rf"):
-                p_dict['rf'] = arg
-            elif opt in ("--res_format"):
-                p_dict['res_format'] = arg
-            elif opt in ("--indiv_filter"):
-                p_dict['indiv_filter'] = arg
-            elif opt in ("--out"):
-                p_dict['out'] = arg
-            elif opt in ("--split_by_chrom"):
-                p_dict['split_by_chrom'] = True
-            elif opt in ("--PS"):
-                p_dict['PS'] = map(float, arg.split(','))
-            elif opt in ("--TS"):
-                p_dict['TS'] = map(float, arg.split(','))
-            elif opt in ("--pf"):
-                p_dict['pf'] = arg
-            elif opt in ("--pf_format"):
-                p_dict['pf_format'] = arg
-            elif opt in ("--cov_file"):
-                p_dict['cov_file'] = arg
-            elif opt in ("--pcs_file"):
-                p_dict['pcs_file'] = arg
-            elif opt in ("--adjust_for_sex"):
-                p_dict['adjust_for_sex'] = True
-            elif opt in ("--adjust_for_covariates"):
-                p_dict['adjust_for_covariates'] = True
-            elif opt in ("--adjust_for_pcs"):
-                p_dict['adjust_for_pcs'] = True
-            else:
-                print "Unkown option:", opt
-                print "Use -h option for usage information."
-                sys.exit(2)
-    else:
-        print __doc__
-        sys.exit(0)
-    return p_dict
+from ldpred import plinkfiles
+from ldpred import util
 
 
 def get_prs(genotype_file, rs_id_map, phen_map=None):
@@ -138,11 +24,11 @@ def get_prs(genotype_file, rs_id_map, phen_map=None):
                 indiv_filter[samp_i] = True
                 true_phens.append(phen_map[sample.iid]['phen'])
                 iids.append(sample.iid)
-                if 'pcs' in phen_map[sample.iid].keys():
+                if 'pcs' in list(phen_map[sample.iid].keys()):
                     pcs.append(phen_map[sample.iid]['pcs'])
-                if 'sex' in phen_map[sample.iid].keys():
+                if 'sex' in list(phen_map[sample.iid].keys()):
                     sex.append(phen_map[sample.iid]['sex'])
-                if 'covariates' in phen_map[sample.iid].keys():
+                if 'covariates' in list(phen_map[sample.iid].keys()):
                     covariates.append(phen_map[sample.iid]['covariates'])
         if len(pcs) > 0:
             assert len(pcs) == len(
@@ -166,7 +52,7 @@ def get_prs(genotype_file, rs_id_map, phen_map=None):
     assert not sp.any(sp.isnan(
         true_phens)), 'Phenotypes appear to have some NaNs, or parsing failed.'
 
-    print '%d individuals have phenotype and genotype information.' % num_individs
+    print('%d individuals have phenotype and genotype information.' % num_individs)
 
     num_non_matching_nts = 0
     num_flipped_nts = 0
@@ -175,11 +61,11 @@ def get_prs(genotype_file, rs_id_map, phen_map=None):
     pval_derived_effects_prs = sp.zeros(num_individs)
     # If these indices are not in order then we place them in the right place
     # while parsing SNPs.
-    print 'Iterating over BED file to calculate risk scores.'
+    print('Iterating over BED file to calculate risk scores.')
     locus_list = plinkf.get_loci()
     snp_i = 0
 
-    for locus, row in it.izip(locus_list, plinkf):
+    for locus, row in zip(locus_list, plinkf):
         upd_pval_beta = 0
         try:
             # Check rs-ID
@@ -196,7 +82,7 @@ def get_prs(genotype_file, rs_id_map, phen_map=None):
         g_nt = [locus.allele1, locus.allele2]
         flip_nts = False
         os_g_nt = sp.array(
-            [opp_strand_dict[g_nt[0]], opp_strand_dict[g_nt[1]]])
+            [util.opp_strand_dict[g_nt[0]], util.opp_strand_dict[g_nt[1]]])
         if not (sp.all(g_nt == ss_nt) or sp.all(os_g_nt == ss_nt)):
             # Opposite strand nucleotides
             flip_nts = (g_nt[1] == ss_nt[0] and g_nt[0] == ss_nt[1]) or (
@@ -229,30 +115,30 @@ def get_prs(genotype_file, rs_id_map, phen_map=None):
                           ), 'Some individual weighted effects risk scores are NANs (not a number).  They are corrupted.'
 
         if snp_i > 0 and snp_i % 100000 == 0:
-            print snp_i
-            print 'Number of non-matching NTs: %d' % num_non_matching_nts
+            print(snp_i)
+            print('Number of non-matching NTs: %d' % num_non_matching_nts)
             raw_eff_r2 = (sp.corrcoef(raw_effects_prs, true_phens)[0, 1]) ** 2
             pval_eff_r2 = (sp.corrcoef(
                 pval_derived_effects_prs, true_phens)[0, 1]) ** 2
-            print 'Raw effects PRS r2: %0.4f' % raw_eff_r2
-            print 'Weigted effects PRS r2: %0.4f' % pval_eff_r2
+            print('Raw effects PRS r2: %0.4f' % raw_eff_r2)
+            print('Weigted effects PRS r2: %0.4f' % pval_eff_r2)
 
         snp_i += 1
 
     plinkf.close()
 
-    print "DONE!"
-    print 'Number of non-matching NTs: %d' % num_non_matching_nts
-    print 'Number of flipped NTs: %d' % num_flipped_nts
+    print("DONE!")
+    print('Number of non-matching NTs: %d' % num_non_matching_nts)
+    print('Number of flipped NTs: %d' % num_flipped_nts)
     raw_eff_corr = sp.corrcoef(raw_effects_prs, true_phens)[0, 1]
     raw_eff_r2 = raw_eff_corr ** 2
     pval_eff_corr = sp.corrcoef(pval_derived_effects_prs, true_phens)[0, 1]
     pval_eff_r2 = pval_eff_corr ** 2
 
-    print 'Raw effects PRS correlation: %0.4f' % raw_eff_corr
-    print 'Raw effects PRS r2: %0.4f' % raw_eff_r2
-    print 'Weigted effects PRS correlation: %0.4f' % pval_eff_corr
-    print 'Weigted effects PRS r2: %0.4f' % pval_eff_r2
+    print('Raw effects PRS correlation: %0.4f' % raw_eff_corr)
+    print('Raw effects PRS r2: %0.4f' % raw_eff_r2)
+    print('Weigted effects PRS correlation: %0.4f' % pval_eff_corr)
+    print('Weigted effects PRS r2: %0.4f' % pval_eff_r2)
 
     ret_dict = {'raw_effects_prs': raw_effects_prs.copy(), 'pval_derived_effects_prs': pval_derived_effects_prs.copy(),
                 'true_phens': true_phens[:], 'iids': iids}
@@ -268,7 +154,7 @@ def get_prs(genotype_file, rs_id_map, phen_map=None):
 
 
 def parse_phen_file(pf, pf_format):
-    print pf
+    print(pf)
     phen_map = {}
     num_phens_found = 0
     if pf != None:
@@ -281,7 +167,7 @@ def parse_phen_file(pf, pf_format):
             Sex code ('1' = male, '2' = female, '0' = unknown)
             Phenotype value ('1' = control, '2' = case, '-9'/'0'/non-numeric = missing data if case/control)
             """
-            print 'Parsing phenotypes'
+            print('Parsing phenotypes')
             with open(pf, 'r') as f:
                 for line in f:
                     l = line.split()
@@ -296,7 +182,7 @@ def parse_phen_file(pf, pf_format):
             """
             IID   PHE
             """
-            print 'Parsing phenotypes'
+            print('Parsing phenotypes')
             with open(pf, 'r') as f:
                 for line in f:
                     l = line.split()
@@ -310,7 +196,7 @@ def parse_phen_file(pf, pf_format):
             IID Age Sex Height_Inches
             """
             with open(pf, 'r') as f:
-                print f.next()
+                print(next(f))
                 for line in f:
                     l = line.split()
                     iid = l[0]
@@ -325,7 +211,7 @@ def parse_phen_file(pf, pf_format):
                     phen_map[iid] = {'phen': phen, 'age': age, 'sex': sex}
                     num_phens_found +=1
 
-    print "Parsed %d phenotypes successfully"%num_phens_found
+    print("Parsed %d phenotypes successfully"%num_phens_found)
     return phen_map
 
 
@@ -336,7 +222,7 @@ def parse_ldpred_res(file_name):
     1, 798959, rs11240777, C, T, -1.1901e-02, 3.2443e-03, 2.6821e-04
     """
     with open(file_name, 'r') as f:
-        f.next()
+        next(f)
         for line in f:
             l = line.split()
             chrom_str = l[0]
@@ -361,7 +247,7 @@ def parse_pt_res(file_name):
     1    798959    rs11240777    C    T    -1.1901e-02    -1.1901e-02    2.6821e-04    2.6821e-04
     """
     with open(file_name, 'r') as f:
-        f.next()
+        next(f)
         for line in f:
             l = line.split()
             chrom_str = l[0]
@@ -383,7 +269,7 @@ def parse_pt_res(file_name):
 
 def calc_risk_scores(bed_file, rs_id_map, phen_map, out_file=None, split_by_chrom=False, adjust_for_sex=False,
                      adjust_for_covariates=False, adjust_for_pcs=False, non_zero_chromosomes=None):
-    print 'Parsing PLINK bed file: %s' % bed_file
+    print('Parsing PLINK bed file: %s' % bed_file)
     num_individs = len(phen_map)
     assert num_individs > 0, 'No individuals found.  Problems parsing the phenotype file?'
 
@@ -395,13 +281,13 @@ def calc_risk_scores(bed_file, rs_id_map, phen_map, out_file=None, split_by_chro
             if non_zero_chromosomes is None or i in non_zero_chromosomes:
                 genotype_file = bed_file + '_%i_keep' % i
                 if os.path.isfile(genotype_file + '.bed'):
-                    print 'Working on chromosome %d' % i
+                    print('Working on chromosome %d' % i)
                     prs_dict = get_prs(genotype_file, rs_id_map, phen_map)
 
                     raw_effects_prs += prs_dict['raw_effects_prs']
                     pval_derived_effects_prs += prs_dict['pval_derived_effects_prs']
             else:
-                print 'Skipping chromosome'
+                print('Skipping chromosome')
 
     else:
         prs_dict = get_prs(bed_file, rs_id_map, phen_map)
@@ -416,10 +302,10 @@ def calc_risk_scores(bed_file, rs_id_map, phen_map, out_file=None, split_by_chro
         pval_derived_effects_prs, prs_dict['true_phens'])[0, 1]
     pval_eff_r2 = pval_eff_corr ** 2
 
-    print 'Final raw effects PRS correlation: %0.4f' % raw_eff_corr
-    print 'Final raw effects PRS r2: %0.4f' % raw_eff_r2
-    print 'Final weighted effects PRS correlation: %0.4f' % pval_eff_corr
-    print 'Final weighted effects PRS r2: %0.4f' % pval_eff_r2
+    print('Final raw effects PRS correlation: %0.4f' % raw_eff_corr)
+    print('Final raw effects PRS r2: %0.4f' % raw_eff_r2)
+    print('Final weighted effects PRS correlation: %0.4f' % pval_eff_corr)
+    print('Final weighted effects PRS r2: %0.4f' % pval_eff_r2)
 
     res_dict = {'pred_r2': pval_eff_r2}
 
@@ -456,17 +342,17 @@ def calc_risk_scores(bed_file, rs_id_map, phen_map, out_file=None, split_by_chro
         (betas, rss_pd, r, s) = linalg.lstsq(Xs, true_phens)
         weights_dict['sex_adj'] = {
             'Intercept': betas[2][0], 'ldpred_prs_effect': betas[0][0], 'sex': betas[1][0]}
-        print 'Fitted effects (betas) for PRS, sex, and intercept on true phenotype:', betas
+        print('Fitted effects (betas) for PRS, sex, and intercept on true phenotype:', betas)
         adj_pred_dict['sex_adj'] = sp.dot(Xs, betas)
         pred_r2 = 1 - rss / rss0
-        print 'Sex adjusted prediction accuracy (R^2) for the whole genome PRS with raw effects was: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs))
+        print('Sex adjusted prediction accuracy (R^2) for the whole genome PRS with raw effects was: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
         pred_r2 = 1 - rss / rss00
-        print 'Sex adjusted prediction + Sex (R^2) for the whole genome PRS with raw effects was: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs))
+        print('Sex adjusted prediction + Sex (R^2) for the whole genome PRS with raw effects was: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
         pred_r2 = 1 - rss_pd / rss0
-        print 'Sex adjusted prediction accuracy (R^2) for the whole genome PRS with weighted effects was: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs))
+        print('Sex adjusted prediction accuracy (R^2) for the whole genome PRS with weighted effects was: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
         res_dict['PC_adj_pred_r2'] = pred_r2
         pred_r2 = 1 - rss_pd / rss00
-        print 'Sex adjusted prediction + Sex (R^2) for the whole genome PRS with weighted effects was: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs))
+        print('Sex adjusted prediction + Sex (R^2) for the whole genome PRS with weighted effects was: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
         res_dict['PC_adj_pred_r2+PC'] = pred_r2
 
     # Adjust for PCs
@@ -483,14 +369,14 @@ def calc_risk_scores(bed_file, rs_id_map, phen_map, out_file=None, split_by_chro
             'Intercept': betas[1][0], 'ldpred_prs_effect': betas[0][0], 'pcs': betas[2][0]}
         adj_pred_dict['pc_adj'] = sp.dot(Xs, betas)
         pred_r2 = 1 - rss / rss0
-        print 'PC adjusted prediction accuracy (R^2) for the whole genome PRS with raw effects was: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs))
+        print('PC adjusted prediction accuracy (R^2) for the whole genome PRS with raw effects was: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
         pred_r2 = 1 - rss / rss00
-        print 'PC adjusted prediction + PCs (R^2) for the whole genome PRS with raw effects was: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs))
+        print('PC adjusted prediction + PCs (R^2) for the whole genome PRS with raw effects was: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
         pred_r2 = 1 - rss_pd / rss0
-        print 'PC adjusted prediction accuracy (R^2) for the whole genome PRS with weighted effects was: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs))
+        print('PC adjusted prediction accuracy (R^2) for the whole genome PRS with weighted effects was: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
         res_dict['PC_adj_pred_r2'] = pred_r2
         pred_r2 = 1 - rss_pd / rss00
-        print 'PC adjusted prediction + PCs (R^2) for the whole genome PRS with weighted effects was: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs))
+        print('PC adjusted prediction + PCs (R^2) for the whole genome PRS with weighted effects was: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
         res_dict['PC_adj_pred_r2+PC'] = pred_r2
 
         # Adjust for both PCs and Sex
@@ -508,14 +394,14 @@ def calc_risk_scores(bed_file, rs_id_map, phen_map, out_file=None, split_by_chro
                 'Intercept': betas[2][0], 'ldpred_prs_effect': betas[0][0], 'sex': betas[1][0], 'pcs': betas[3][0]}
             adj_pred_dict['sex_pc_adj'] = sp.dot(Xs, betas)
             pred_r2 = 1 - rss / rss0
-            print 'PCs+Sex adjusted prediction accuracy (R^2) for the whole genome PRS with raw effects was: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs))
+            print('PCs+Sex adjusted prediction accuracy (R^2) for the whole genome PRS with raw effects was: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
             pred_r2 = 1 - rss / rss00
-            print 'PCs+Sex adjusted prediction and PCs+Sex (R^2) for the whole genome PRS with raw effects was: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs))
+            print('PCs+Sex adjusted prediction and PCs+Sex (R^2) for the whole genome PRS with raw effects was: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
             pred_r2 = 1 - rss_pd / rss0
-            print 'PCs+Sex adjusted prediction accuracy (R^2) for the whole genome PRS with weighted effects was: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs))
+            print('PCs+Sex adjusted prediction accuracy (R^2) for the whole genome PRS with weighted effects was: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
             res_dict['PC_Sex_adj_pred_r2'] = pred_r2
             pred_r2 = 1 - rss_pd / rss00
-            print 'PCs+Sex adjusted prediction and PCs+Sex (R^2) for the whole genome PRS with weighted effects was: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs))
+            print('PCs+Sex adjusted prediction and PCs+Sex (R^2) for the whole genome PRS with weighted effects was: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
             res_dict['PC_Sex_adj_pred_r2+PC_Sex'] = pred_r2
 
     # Adjust for covariates
@@ -530,14 +416,14 @@ def calc_risk_scores(bed_file, rs_id_map, phen_map, out_file=None, split_by_chro
         (betas, rss_pd, r, s) = linalg.lstsq(Xs, true_phens)
         adj_pred_dict['cov_adj'] = sp.dot(Xs, betas)
         pred_r2 = 1 - rss / rss0
-        print 'Cov adjusted prediction accuracy (R^2) for the whole genome PRS with raw effects was: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs))
+        print('Cov adjusted prediction accuracy (R^2) for the whole genome PRS with raw effects was: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
         pred_r2 = 1 - rss / rss00
-        print 'Cov adjusted prediction + Cov (R^2) for the whole genome PRS with raw effects was: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs))
+        print('Cov adjusted prediction + Cov (R^2) for the whole genome PRS with raw effects was: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
         pred_r2 = 1 - rss_pd / rss0
-        print 'Cov adjusted prediction accuracy (R^2) for the whole genome PRS with weighted effects was: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs))
+        print('Cov adjusted prediction accuracy (R^2) for the whole genome PRS with weighted effects was: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
         res_dict['Cov_adj_pred_r2'] = pred_r2
         pred_r2 = 1 - rss_pd / rss00
-        print 'Cov adjusted prediction + Cov (R^2) for the whole genome PRS with weighted effects was: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs))
+        print('Cov adjusted prediction + Cov (R^2) for the whole genome PRS with weighted effects was: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
         res_dict['Cov_adj_pred_r2+Cov'] = pred_r2
 
         if adjust_for_pcs and 'pcs' in prs_dict and len(prs_dict['pcs']) and 'sex' in prs_dict and len(prs_dict['sex']) > 0:
@@ -553,14 +439,14 @@ def calc_risk_scores(bed_file, rs_id_map, phen_map, out_file=None, split_by_chro
             (betas, rss_pd, r, s) = linalg.lstsq(Xs, true_phens)
             adj_pred_dict['cov_sex_pc_adj'] = sp.dot(Xs, betas)
             pred_r2 = 1 - rss / rss0
-            print 'Cov+PCs+Sex adjusted prediction accuracy (R^2) for the whole genome PRS with raw effects was: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs))
+            print('Cov+PCs+Sex adjusted prediction accuracy (R^2) for the whole genome PRS with raw effects was: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
             pred_r2 = 1 - rss / rss00
-            print 'Cov+PCs+Sex adjusted prediction and PCs+Sex (R^2) for the whole genome PRS with raw effects was: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs))
+            print('Cov+PCs+Sex adjusted prediction and PCs+Sex (R^2) for the whole genome PRS with raw effects was: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
             pred_r2 = 1 - rss_pd / rss0
-            print 'Cov+PCs+Sex adjusted prediction accuracy (R^2) for the whole genome PRS with weighted effects was: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs))
+            print('Cov+PCs+Sex adjusted prediction accuracy (R^2) for the whole genome PRS with weighted effects was: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
             res_dict['Cov_PC_Sex_adj_pred_r2'] = pred_r2
             pred_r2 = 1 - rss_pd / rss00
-            print 'Cov+PCs+Sex adjusted prediction and PCs+Sex (R^2) for the whole genome PRS with weighted effects was: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs))
+            print('Cov+PCs+Sex adjusted prediction and PCs+Sex (R^2) for the whole genome PRS with weighted effects was: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
             res_dict['Cov_PC_Sex_adj_pred_r2+Cov_PC_Sex'] = pred_r2
 
 
@@ -569,12 +455,12 @@ def calc_risk_scores(bed_file, rs_id_map, phen_map, out_file=None, split_by_chro
     denominator = sp.dot(raw_effects_prs.T, raw_effects_prs)
     numerator = sp.dot(raw_effects_prs.T, y_norm)
     regression_slope = (numerator / denominator)[0][0]
-    print 'The slope for predictions with raw effects is:', regression_slope
+    print('The slope for predictions with raw effects is: %0.4f'% regression_slope)
 
     denominator = sp.dot(pval_derived_effects_prs.T, pval_derived_effects_prs)
     numerator = sp.dot(pval_derived_effects_prs.T, y_norm)
     regression_slope = (numerator / denominator)[0][0]
-    print 'The slope for predictions with weighted effects is:', regression_slope
+    print('The slope for predictions with weighted effects is: %0.4f'% regression_slope)
 
 
     num_individs = len(prs_dict['pval_derived_effects_prs'])
@@ -602,9 +488,9 @@ def calc_risk_scores(bed_file, rs_id_map, phen_map, out_file=None, split_by_chro
                 out_str += '\n'
                 f.write(out_str)
 
-        if len(adj_pred_dict.keys()) > 0:
+        if len(list(adj_pred_dict.keys())) > 0:
             with open(out_file + '.adj', 'w') as f:
-                adj_prs_labels = adj_pred_dict.keys()
+                adj_prs_labels = list(adj_pred_dict.keys())
                 out_str = 'IID, true_phens, raw_effects_prs, pval_derived_effects_prs, ' + \
                     ', '.join(adj_prs_labels)
                 out_str += '\n'
@@ -618,7 +504,7 @@ def calc_risk_scores(bed_file, rs_id_map, phen_map, out_file=None, split_by_chro
                     f.write(out_str)
         if weights_dict != None:
             oh5f = h5py.File(out_file + '.weights.hdf5', 'w')
-            for k1 in weights_dict.keys():
+            for k1 in list(weights_dict.keys()):
                 kg = oh5f.create_group(k1)
                 for k2 in weights_dict[k1]:
                     kg.create_dataset(k2, data=sp.array(weights_dict[k1][k2]))
@@ -626,22 +512,23 @@ def calc_risk_scores(bed_file, rs_id_map, phen_map, out_file=None, split_by_chro
     return res_dict
 
 
-def main():
-    p_dict = parse_parameters()
+def main(p_dict):
     non_zero_chromosomes = set()
 
     if p_dict['pf'] is None:
-        if p_dict['vgf'] is not None:
-            print 'Parsing phenotypes'
-            phen_map = parse_phen_file(p_dict['vgf'] + '.fam', 'FAM')
+        if p_dict['gf'] is not None:
+            print('Parsing phenotypes')
+            phen_map = parse_phen_file(p_dict['gf'] + '.fam', 'FAM')
         else:
             raise Exception('Validation phenotypes were not found.')
     else:
-        print 'Parsing phenotypes'
+        print('Parsing phenotypes')
         phen_map = parse_phen_file(p_dict['pf'], p_dict['pf_format'])
 
+    adjust_for_covs=False
     if p_dict['cov_file'] != None:
-        print 'Parsing additional covariates'
+        adjust_for_covs=True
+        print('Parsing additional covariates')
 
         with open(p_dict['cov_file'], 'r') as f:
             num_missing = 0
@@ -649,15 +536,17 @@ def main():
                 l = line.split()
                 iid = l[0]
                 if iid in phen_map:
-                    covariates = map(float, l[1:])
+                    covariates = list(map(float, l[1:]))
                     phen_map[iid]['covariates'] = covariates
                 else:
                     num_missing += 1
             if num_missing > 0:
-                print 'Unable to find %d iids in phen file!' % num_missing
+                print('Unable to find %d iids in phen file!' % num_missing)
 
+    adjust_for_pcs=False
     if p_dict['pcs_file']:
-        print 'Parsing PCs'
+        adjust_for_pcs=True
+        print('Parsing PCs')
 
         with open(p_dict['pcs_file'], 'r') as f:
             num_missing = 0
@@ -665,86 +554,72 @@ def main():
                 l = line.split()
                 iid = l[1]
                 if iid in phen_map:
-                    pcs = map(float, l[2:])
+                    pcs = list(map(float, l[2:]))
                     phen_map[iid]['pcs'] = pcs
                 else:
                     num_missing += 1
             if num_missing > 0:
-                print 'Unable to find %d iids in phen file!' % num_missing
+                print('Unable to find %d iids in phen file!' % num_missing)
 
     num_individs = len(phen_map)
     assert num_individs > 0, 'No phenotypes were found!'
 
     prs_file_is_missing = True
     res_dict = {}
-    if p_dict['res_format'] == 'LDPRED':
+    if p_dict['rf_format'] == 'LDPRED':
         weights_file = '%s_LDpred-inf.txt' % (p_dict['rf'])
         
         if os.path.isfile(weights_file):
-            print ''
-            print 'Calculating LDpred-inf risk scores'
+            print('')
+            print('Calculating LDpred-inf risk scores')
             rs_id_map = parse_ldpred_res(weights_file)
             out_file = '%s_LDpred-inf.txt' % (p_dict['out'])
-            calc_risk_scores(p_dict['vgf'], rs_id_map, phen_map, out_file=out_file, split_by_chrom=p_dict['split_by_chrom'],
-                             adjust_for_sex=p_dict['adjust_for_sex'], adjust_for_covariates=p_dict['adjust_for_covariates'],
-                             adjust_for_pcs=p_dict['adjust_for_pcs'])
+            calc_risk_scores(p_dict['gf'], rs_id_map, phen_map, out_file=out_file, 
+                             split_by_chrom=p_dict['split_by_chrom'],
+                             adjust_for_pcs=adjust_for_pcs,
+                             adjust_for_covariates=adjust_for_covs)
             prs_file_is_missing = False
 
-        for p in p_dict['PS']:
+        for p in p_dict['f']:
             weights_file = '%s_LDpred_p%0.4e.txt' % (p_dict['rf'], p)
             if os.path.isfile(weights_file):
-                print ''
-                print 'Calculating LDpred risk scores using p=%0.3e' % p
+                print('')
+                print('Calculating LDpred risk scores using p=%0.3e' % p)
                 rs_id_map = parse_ldpred_res(weights_file)
                 out_file = '%s_LDpred_p%0.4e.txt' % (p_dict['out'], p)
                 method_str = 'LDpred_p%0.4e' % (p)
-                res_dict[method_str] = calc_risk_scores(p_dict['vgf'], rs_id_map, phen_map, out_file=out_file,
-                                                        split_by_chrom=p_dict['split_by_chrom'], adjust_for_sex=p_dict['adjust_for_sex'],
-                                                        adjust_for_covariates=p_dict['adjust_for_covariates'],
-                                                        adjust_for_pcs=p_dict['adjust_for_pcs'])
+                res_dict[method_str] = calc_risk_scores(p_dict['gf'], rs_id_map, phen_map, out_file=out_file,
+                                                        split_by_chrom=p_dict['split_by_chrom'],
+                                                        adjust_for_pcs=adjust_for_pcs,
+                                                        adjust_for_covariates=adjust_for_covs)
                 prs_file_is_missing=False
 
         # Plot results?
 
-    elif p_dict['res_format'] == 'P+T':
-        weights_file = '%s_all_snps.txt' % (p_dict['rf'])
-        if os.path.isfile(weights_file):
-            print ''
-            print 'Calculating risk scores using all SNPs'
-            rs_id_map = parse_ldpred_res(weights_file)
-            out_file = '%s_all_snps.txt' % (p_dict['out'])
-            res_dict['all_snps'] = calc_risk_scores(p_dict['vgf'], rs_id_map, phen_map, out_file=out_file,
-                                                    split_by_chrom=p_dict['split_by_chrom'], adjust_for_sex=p_dict['adjust_for_sex'],
-                                                    adjust_for_covariates=p_dict['adjust_for_covariates'],
-                                                    adjust_for_pcs=p_dict['adjust_for_pcs'])
-            prs_file_is_missing=False
+    elif p_dict['rf_format'] == 'P+T':
 
-
-        for p_thres in p_dict['TS']:
-            weights_file = '%s_P+T_p%0.4e.txt' % (p_dict['rf'], p_thres)
-            print weights_file
-            if os.path.isfile(weights_file):
-                print ''
-                print 'Calculating P+T risk scores using p-value threshold of %0.3e' % p_thres
-                rs_id_map, non_zero_chromosomes = parse_pt_res(weights_file)
-                out_file = '%s_P+T_p%0.4e.txt' % (p_dict['out'], p_thres)
-                method_str = 'P+T_p%0.4e' % (p_thres)
-                res_dict[method_str] = calc_risk_scores(p_dict['vgf'], rs_id_map, phen_map, out_file=out_file,
-                                                        split_by_chrom=p_dict['split_by_chrom'], adjust_for_sex=p_dict['adjust_for_sex'],
-                                                        adjust_for_covariates=p_dict['adjust_for_covariates'],
-                                                        adjust_for_pcs=p_dict['adjust_for_pcs'],
-                                                        non_zero_chromosomes=non_zero_chromosomes)
-                prs_file_is_missing=False
+        for max_r2 in p_dict['r2']:
+            for p_thres in p_dict['p']:
+                weights_file = '%s_P+T_r%0.2f_p%0.4e.txt' % (p_dict['rf'], max_r2, p_thres)
+                print(weights_file)
+                if os.path.isfile(weights_file):
+                    print('')
+                    print('Calculating P+T risk scores using p-value threshold of %0.3e, and r2 threshold of %0.2f' % (p_thres, max_r2))
+                    rs_id_map, non_zero_chromosomes = parse_pt_res(weights_file)
+                    out_file = '%s_P+T_p%0.4e.txt' % (p_dict['out'], p_thres)
+                    method_str = 'P+T_p%0.4e' % (p_thres)
+                    res_dict[method_str] = calc_risk_scores(p_dict['gf'], rs_id_map, phen_map, out_file=out_file,
+                                                            split_by_chrom=p_dict['split_by_chrom'],
+                                                            non_zero_chromosomes=non_zero_chromosomes, 
+                                                            adjust_for_pcs=adjust_for_pcs,
+                                                            adjust_for_covariates=adjust_for_covs)
+                    prs_file_is_missing=False
 
         # Plot results?
     else:
         raise NotImplementedError(
-            'Results file format missing or unknown: %s' % p_dict['res_format'])
+            'Results file format missing or unknown: %s' % p_dict['rf_format'])
     
     if prs_file_is_missing:
-        print 'PRS weights files were not found.  This could be due to a misspecified --rf flag, or other issues.'
+        print('PRS weights files were not found.  This could be due to a misspecified --rf flag, or other issues.')
 
-
-
-if __name__ == '__main__':
-    main()

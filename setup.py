@@ -22,7 +22,7 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='0.9.09',
+    version='1.0.0',
 
     description='A Python package that adjusts GWAS summary statistics for the effects of linkage disequilibrium (LD)',
     long_description=long_description,
@@ -43,7 +43,7 @@ setup(
         #   3 - Alpha
         #   4 - Beta
         #   5 - Production/Stable
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
 
         # Indicate who your project is intended for
         'Intended Audience :: Science/Research',
@@ -53,12 +53,13 @@ setup(
         'License :: OSI Approved :: MIT License',
 
         #'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.6',
-        'Programming Language :: Python :: 2.7',
+        #'Programming Language :: Python :: 2.6',
+        #'Programming Language :: Python :: 2.7',
         #'Programming Language :: Python :: 3',
         #'Programming Language :: Python :: 3.3',
         #'Programming Language :: Python :: 3.4',
-        #'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
     ],
 
     # What does your project relate to?
@@ -112,11 +113,7 @@ setup(
     # pip to create the appropriate form of executable for the target platform.
     entry_points={
         'console_scripts': [
-            'ldpred=ldpred.LDpred:main',
-            'ldpred-inf=ldpred.LDpred_inf:main',
-            'pt=ldpred.LD_pruning_thres:main',
-            'coord=ldpred.coord_genotypes:main',
-            'validate=ldpred.validate:main',
+            'ldpred=LDpred:main',
         ],
     },
 )
