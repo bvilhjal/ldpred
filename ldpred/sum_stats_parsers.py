@@ -3,6 +3,7 @@ from scipy import stats
 from scipy import isinf
 import random
 import re
+import gzip
 from ldpred import util
 
 
@@ -40,6 +41,11 @@ def parse_sum_stats(h5f, p_dict, bimfile):
                     A1=p_dict['A1'], A2=p_dict['A2'], reffreq=p_dict['reffreq'], info=p_dict['info'],
                     rs=p_dict['rs'], pval=p_dict['pval'], eff=p_dict['eff'], ncol=p_dict['ncol'],
                     pos=p_dict['pos'], input_is_beta=p_dict['beta'], debug=p_dict['debug'])
+
+
+
+def is_gz(name):
+    return name.lower().endswith(('.gz', '.gzip'))
 
 
 def parse_sum_stats_custom(filename=None,
@@ -90,8 +96,11 @@ def parse_sum_stats_custom(filename=None,
     pos_filter = 0
     invalid_p = 0
     chrom_dict = {}
+    opener = open
+    if is_gz(filename):
+        opener = gzip.open
     print('Parsing summary statistics file: %s' % filename)
-    with open(filename) as f:
+    with opener(filename) as f:
 
         header = next(f)
         if debug:
