@@ -102,7 +102,7 @@ def parse_sum_stats_custom(filename=None,
     with opener(filename) as f:
         header = f.readline()
         if is_gz(filename):
-            header.decode('utf-8')
+            header = header.decode('utf-8')
         if debug:
             print(header)
         header_dict={}
@@ -111,7 +111,6 @@ def parse_sum_stats_custom(filename=None,
         for col in columns:
             header_dict[col] = index
             index+=1
-        print(header_dict)
         assert chr is None or chr in header_dict, 'Chromosome header cannot be found in summary statistic file'
         assert A2 in header_dict, 'Non-effective allele column cannot be found in summary statistic file'
         assert A1 in header_dict, 'Effective allele column cannot be found in summary statistic file'
