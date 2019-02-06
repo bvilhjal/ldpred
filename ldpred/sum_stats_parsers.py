@@ -249,7 +249,8 @@ def parse_sum_stats_custom(filename=None,
             print ('Still %d SNPs on chromosome %s' % (len(ps), chrom))
         g = ssg.create_group('chrom_%s' % chrom)
         g.create_dataset('ps', data=sp.array(ps))
-        g.create_dataset('freqs', data=freqs)
+        if reffreq:
+            g.create_dataset('freqs', data=freqs)
         g.create_dataset('betas', data=betas)
         g.create_dataset('log_odds', data=log_odds)
         num_snps += len(log_odds)
