@@ -337,9 +337,9 @@ def coordinate_genot_ss(genotype_file=None,
         
         write_coord_data(cord_data_g, coord_data_dict)
         
-        if plinkf_dict['has_phenotype']:
+        if debug and plinkf_dict['has_phenotype']:
+            rb_risk_scores += rb_prs
             risk_scores += prs
-        rb_risk_scores += rb_prs
         num_common_snps += len(betas)
 
     if debug and plinkf_dict['has_phenotype']:
