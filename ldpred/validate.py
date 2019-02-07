@@ -190,7 +190,7 @@ def parse_phen_file(pf, pf_format):
                     phen = float(l[1])
                     phen_map[iid] = {'phen': phen}
                     num_phens_found +=1
-        if pf_format == 'LONG':
+        if pf_format == 'LSTANDARD':
             """
             FID IID PHE
             """
