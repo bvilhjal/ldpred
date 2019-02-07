@@ -190,7 +190,18 @@ def parse_phen_file(pf, pf_format):
                     phen = float(l[1])
                     phen_map[iid] = {'phen': phen}
                     num_phens_found +=1
-
+        if pf_format == 'LONG':
+            """
+            FID IID PHE
+            """
+            print('Parsing Phenotypes')
+            with open(pf, 'r') as f:
+                for line in f:
+                    l = line.split()
+                    iid=l[1]
+                    phen=float(l[2])
+                    phen_map[iid] = {'phen':phen}
+                    num_phens_found+=1
         elif pf_format == 'S2':
             """
             IID Age Sex Height_Inches
