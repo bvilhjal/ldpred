@@ -57,14 +57,14 @@ In emergencies, please contact Bjarni Vilhjalmsson (bjarni.vilhjalmsson@gmail.co
 ## Using LDpred ##
 A typical LDpred workflow consists of 3 steps:
 
-### Step 1: Coordinate data###
+### Step 1: Coordinate data ###
 The first step is a data synchronization step, where two or three data sets, genotypes and summary statistics are synchronized.  This generates a HDF5 file which contains the synchronized genotypes.  This step can be done by running 
 
 `python LDpred.py coord`
 
 use --help for detailed options.  This step requires at least one genotype file (the LD reference genotypes), where we recommend at least 1000 unrelated individuals with the same ancestry make-up as the individuals for which summary statistics datasets are obtained from.  Another genotype file can also be given if the user intends to validate the predictions using a separate set of genotypes.
 
-### Step 2: Generate LDpred SNP weights###
+### Step 2: Generate LDpred SNP weights ###
 After generating the coordinated data file then the one can apply LDpred and run it on the synchronized dataset.  This step can be done by running 
 
 `python LDpred.py gibbs`
