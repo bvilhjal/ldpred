@@ -190,7 +190,29 @@ def parse_phen_file(pf, pf_format):
                     phen = float(l[1])
                     phen_map[iid] = {'phen': phen}
                     num_phens_found +=1
-
+        if pf_format == 'LSTANDARD':
+            """
+            FID IID PHE
+            """
+            print('Parsing Phenotypes')
+            with open(pf, 'r') as f:
+                # Read first line and see if it is header
+                line = f.readline()
+                l = line.split()
+                try:
+                    iid=l[1]
+                    phen=float(l[2])
+                    phen_map[iid] = {'phen':phen}
+                    num_phens_found+=1
+                except:
+                    # Do nothing
+                    print("Header is:", line)
+                for line in f:
+                    l = line.split()
+                    iid=l[1]
+                    phen=float(l[2])
+                    phen_map[iid] = {'phen':phen}
+                    num_phens_found+=1
         elif pf_format == 'S2':
             """
             IID Age Sex Height_Inches

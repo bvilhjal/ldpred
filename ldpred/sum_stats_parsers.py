@@ -3,6 +3,7 @@ from scipy import stats
 from scipy import isinf
 import random
 import re
+import gzip
 from ldpred import util
 
 
@@ -42,6 +43,11 @@ def parse_sum_stats(h5f, p_dict, bimfile):
                     pos=p_dict['pos'], input_is_beta=p_dict['beta'], debug=p_dict['debug'])
 
 
+
+def is_gz(name):
+    return name.lower().endswith(('.gz', '.gzip'))
+
+
 def parse_sum_stats_custom(filename=None,
                     bimfile=None,
                     hdf5_file=None,
@@ -64,7 +70,6 @@ def parse_sum_stats_custom(filename=None,
     assert not rs is None, 'Require header for RS ID'
     assert not eff is None, 'Require header for Statistics'
     assert not pval is None, 'Require header for pval'
-
     assert not ncol is None or not n is None, 'Require either N or NCOL information'
 
 
@@ -90,10 +95,14 @@ def parse_sum_stats_custom(filename=None,
     pos_filter = 0
     invalid_p = 0
     chrom_dict = {}
+    opener = open
+    if is_gz(filename):
+        opener = gzip.open
     print('Parsing summary statistics file: %s' % filename)
-    with open(filename) as f:
-
-        header = next(f)
+    with opener(filename) as f:
+        header = f.readline()
+        if is_gz(filename):
+            header = header.decode('utf-8')
         if debug:
             print(header)
         header_dict={}
@@ -114,6 +123,8 @@ def parse_sum_stats_custom(filename=None,
         # header_dict now contains the header column name for each corresponding input
         bad_chromosomes = set()
         for line in f:
+            if is_gz(filename):
+                line = line.decode('utf-8')
             l = (line.strip()).split()
             # get the SNP ID first
             sid = l[header_dict[rs]]

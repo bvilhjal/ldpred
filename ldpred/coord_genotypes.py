@@ -207,7 +207,8 @@ def coordinate_genot_ss(genotype_file=None,
                         betas[ss_i] = -betas[ss_i]
                         log_odds[ss_i] = -log_odds[ss_i]
                         if 'freqs' in ssg:
-                            ss_freqs[ss_i] = 1 - ss_freqs[ss_i]
+                            if ss_freqs[ss_i] > 0:
+                                ss_freqs[ss_i] = 1 - ss_freqs[ss_i]
                     else:
                         num_non_matching_nts += 1
                         tot_num_non_matching_nts += 1
@@ -253,11 +254,15 @@ def coordinate_genot_ss(genotype_file=None,
         # Check SNP frequencies..
         if check_mafs and 'freqs' in ssg:
             ss_freqs = ss_freqs[ok_indices['ss']]
-            freq_discrepancy_snp = sp.absolute(ss_freqs - (1 - freqs)) > 0.15 # array of np.bool
+            # Assuming freq less than 0 is missing data
+            freq_discrepancy_snp = sp.absolute(ss_freqs - (1 - freqs)) > 0.15
+            # Filter SNPs that doesn't have MAF info from sumstat
+            freq_discrepancy_snp = sp.logical_and(freq_discrepancy_snp, ss_freqs>0)
+            freq_discrepancy_snp = sp.logical_and(freq_discrepancy_snp, ss_freqs<1)
             if sp.any(freq_discrepancy_snp):
-                print('Warning: %d SNPs appear to have high frequency discrepancy between summary statistics and validation sample' % sp.sum(freq_discrepancy_snp))
-                print(freqs[freq_discrepancy_snp])
-                print(ss_freqs[freq_discrepancy_snp])
+                print('Warning: %d SNPs appear to have high frequency '
+                      'discrepancy between summary statistics and validation sample' %
+                      sp.sum(freq_discrepancy_snp))
 
                 # Filter freq_discrepancy_snps
                 ok_freq_snps = sp.logical_not(freq_discrepancy_snp)
@@ -716,7 +721,6 @@ def main(p_dict):
     
     sum_stats_parsers.parse_sum_stats(h5f, p_dict, bimfile)
     check_mafs = p_dict['maf']>0
-    
     if not p_dict['vgf'] == None:
         coordinate_genotypes_ss_w_ld_ref(genotype_file=p_dict['vgf'], reference_genotype_file=p_dict['gf'],
                                          check_mafs=check_mafs,
