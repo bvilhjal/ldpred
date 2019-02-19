@@ -10,7 +10,7 @@ described in Vilhjalmsson et al. (AJHG 2015) [http://www.cell.com/ajhg/abstract/
 
 ## Getting Started ##
 ### News ###
-Version 1.0, for python 3
+Jan 30th, 2019: Version 1.0 released and now for python 3
 
 ### Requirements ###
 LDpred currently requires three Python packages to be installed and in path.  These
