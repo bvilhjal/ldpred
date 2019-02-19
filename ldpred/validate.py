@@ -288,6 +288,51 @@ def parse_pt_res(file_name):
 
     return rs_id_map, non_zero_chromosomes
 
+def write_scores_file(out_file, prs_dict, raw_effects_prs, pval_derived_effects_prs, adj_pred_dict, weights_dict=None):
+    num_individs = len(prs_dict['iids'])
+    with open(out_file, 'w') as f:
+        out_str = 'IID, true_phens, raw_effects_prs, pval_derived_effects_prs'
+        if 'sex' in prs_dict:
+            out_str = out_str + ', sex'
+        if 'pcs' in prs_dict:
+            pcs_str = ', '.join(['PC%d' % (1 + pc_i)
+                                 for pc_i in range(len(prs_dict['pcs'][0]))])
+            out_str = out_str + ', ' + pcs_str
+        out_str += '\n'
+        f.write(out_str)
+        for i in range(num_individs):
+            out_str = '%s, %0.6e, %0.6e, %0.6e' % (prs_dict['iids'][i], prs_dict['true_phens'][i], raw_effects_prs[i],
+                                                     pval_derived_effects_prs[i])
+            if 'sex' in prs_dict:
+                out_str = out_str + ', %d' % prs_dict['sex'][i]
+            if 'pcs' in prs_dict:
+                pcs_str = ', '.join(map(str, prs_dict['pcs'][i]))
+                out_str = out_str +', '+ pcs_str
+            out_str += '\n'
+            f.write(out_str)
+
+    if len(list(adj_pred_dict.keys())) > 0:
+        with open(out_file + '.adj', 'w') as f:
+            adj_prs_labels = list(adj_pred_dict.keys())
+            out_str = 'IID, true_phens, raw_effects_prs, pval_derived_effects_prs, ' + \
+                ', '.join(adj_prs_labels)
+            out_str += '\n'
+            f.write(out_str)
+            for i in range(num_individs):
+                out_str = '%s, %0.6e, %0.6e, %0.6e' % (prs_dict['iids'][i], prs_dict['true_phens'][i], raw_effects_prs[i],
+                                                       pval_derived_effects_prs[i])
+                for adj_prs in adj_prs_labels:
+                    out_str += ', %0.4f' % adj_pred_dict[adj_prs][i]
+                out_str += '\n'
+                f.write(out_str)
+    if weights_dict != None:
+        oh5f = h5py.File(out_file + '.weights.hdf5', 'w')
+        for k1 in list(weights_dict.keys()):
+            kg = oh5f.create_group(k1)
+            for k2 in weights_dict[k1]:
+                kg.create_dataset(k2, data=sp.array(weights_dict[k1][k2]))
+        oh5f.close()
+
 
 def calc_risk_scores(bed_file, rs_id_map, phen_map, out_file=None, split_by_chrom=False, adjust_for_sex=False,
                      adjust_for_covariates=False, adjust_for_pcs=False, non_zero_chromosomes=None):
@@ -489,48 +534,7 @@ def calc_risk_scores(bed_file, rs_id_map, phen_map, out_file=None, split_by_chro
 
     # Write PRS out to file.
     if out_file != None:
-        with open(out_file, 'w') as f:
-            out_str = 'IID, true_phens, raw_effects_prs, pval_derived_effects_prs'
-            if 'sex' in prs_dict:
-                out_str = out_str + ', sex'
-            if 'pcs' in prs_dict:
-                pcs_str = ', '.join(['PC%d' % (1 + pc_i)
-                                     for pc_i in range(len(prs_dict['pcs'][0]))])
-                out_str = out_str + ', ' + pcs_str
-            out_str += '\n'
-            f.write(out_str)
-            for i in range(num_individs):
-                out_str = '%s, %0.6e, %0.6e, %0.6e, ' % (prs_dict['iids'][i], prs_dict['true_phens'][i], raw_effects_prs[i],
-                                                         pval_derived_effects_prs[i])
-                if 'sex' in prs_dict:
-                    out_str = out_str + '%d, ' % prs_dict['sex'][i]
-                if 'pcs' in prs_dict:
-                    pcs_str = ', '.join(map(str, prs_dict['pcs'][i]))
-                    out_str = out_str + pcs_str
-                out_str += '\n'
-                f.write(out_str)
-
-        if len(list(adj_pred_dict.keys())) > 0:
-            with open(out_file + '.adj', 'w') as f:
-                adj_prs_labels = list(adj_pred_dict.keys())
-                out_str = 'IID, true_phens, raw_effects_prs, pval_derived_effects_prs, ' + \
-                    ', '.join(adj_prs_labels)
-                out_str += '\n'
-                f.write(out_str)
-                for i in range(num_individs):
-                    out_str = '%s, %0.6e, %0.6e, %0.6e' % (prs_dict['iids'][i], prs_dict['true_phens'][i], raw_effects_prs[i],
-                                                           pval_derived_effects_prs[i])
-                    for adj_prs in adj_prs_labels:
-                        out_str += ', %0.4f' % adj_pred_dict[adj_prs][i]
-                    out_str += '\n'
-                    f.write(out_str)
-        if weights_dict != None:
-            oh5f = h5py.File(out_file + '.weights.hdf5', 'w')
-            for k1 in list(weights_dict.keys()):
-                kg = oh5f.create_group(k1)
-                for k2 in weights_dict[k1]:
-                    kg.create_dataset(k2, data=sp.array(weights_dict[k1][k2]))
-            oh5f.close()
+        write_scores_file(out_file, prs_dict, raw_effects_prs, pval_derived_effects_prs, adj_pred_dict, weights_dict=weights_dict)
     return res_dict
 
 

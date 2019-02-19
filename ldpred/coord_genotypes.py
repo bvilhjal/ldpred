@@ -265,7 +265,7 @@ def coordinate_genot_ss(genotype_file=None,
                       sp.sum(freq_discrepancy_snp))
 
                 # Filter freq_discrepancy_snps
-                ok_freq_snps = sp.negative(freq_discrepancy_snp)
+                ok_freq_snps = sp.logical_not(freq_discrepancy_snp)
                 raw_snps = raw_snps[ok_freq_snps]
                 snp_stds = snp_stds[ok_freq_snps]
                 snp_means = snp_means[ok_freq_snps]
@@ -342,9 +342,9 @@ def coordinate_genot_ss(genotype_file=None,
         
         write_coord_data(cord_data_g, coord_data_dict)
         
-        if plinkf_dict['has_phenotype']:
+        if debug and plinkf_dict['has_phenotype']:
+            rb_risk_scores += rb_prs
             risk_scores += prs
-        rb_risk_scores += rb_prs
         num_common_snps += len(betas)
 
     if debug and plinkf_dict['has_phenotype']:
@@ -602,12 +602,12 @@ def coordinate_genotypes_ss_w_ld_ref(genotype_file=None,
         # Check SNP frequencies..
         if check_mafs and 'freqs' in ssg:
             ss_freqs = ss_freqs[ok_indices['ss']]
-            freq_discrepancy_snp = sp.absolute(ss_freqs - (1 - freqs)) > 0.15
+            freq_discrepancy_snp = sp.absolute(ss_freqs - (1 - freqs)) > 0.15 #Array of np.bool values
             if sp.any(freq_discrepancy_snp):
                 print('Warning: %d SNPs were filtered due to high allele frequency discrepancy between summary statistics and validation sample' % sp.sum(freq_discrepancy_snp))
 
                 # Filter freq_discrepancy_snps
-                ok_freq_snps = sp.negative(freq_discrepancy_snp)
+                ok_freq_snps = sp.logical_not(freq_discrepancy_snp)
                 raw_snps = raw_snps[ok_freq_snps]
                 snp_stds = snp_stds[ok_freq_snps]
                 snp_means = snp_means[ok_freq_snps]
