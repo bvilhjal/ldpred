@@ -117,31 +117,33 @@ def parse_sum_stats_custom(filename=None,
             l = (line.strip()).split()
             # get the SNP ID first
             sid = l[header_dict[rs]]
-            # Get the chromosome information
-            chrom = 0
-            if not chr is None and chr in header_dict:
-                chrom = l[header_dict[chr]]
-                chrom = re.sub("chr", "", chrom)
-                if not chrom == snps_pos_map[sid]['chrom']:
-                    chr_filter += 1
-                    continue
-            else:
-                chrom = snps_pos_map[sid]['chrom']
-            if not chrom in util.ok_chromosomes:
-                bad_chromosomes.add(chrom)
-                continue
-            # Check if the chromosome of the SNP is correct
-
-            pos_read = 0
-            if not pos is None and pos in header_dict:
-                pos_read = int(l[header_dict[pos]])
-                if not pos_read == snps_pos_map[sid]['pos']:
-                    pos_filter += 1
-                    continue
-            else:
-                pos_read = snps_pos_map[sid]['pos']
-            # Now check the SNP ID
+            # check the SNP ID
             if sid in valid_sids:
+                # Get the chromosome information
+                chrom = 0
+                if not chr is None and chr in header_dict:
+                    chrom = l[header_dict[chr]]
+                    chrom = re.sub("chr", "", chrom)
+                    if not chrom == snps_pos_map[sid]['chrom']:
+                        chr_filter += 1
+                        continue
+                else:
+                    chrom = snps_pos_map[sid]['chrom']
+                if not chrom in util.ok_chromosomes:
+                    bad_chromosomes.add(chrom)
+                    continue
+                # Check if the chromosome of the SNP is correct
+    
+                pos_read = 0
+                if not pos is None and pos in header_dict:
+                    pos_read = int(l[header_dict[pos]])
+                    if not pos_read == snps_pos_map[sid]['pos']:
+                        pos_filter += 1
+                        continue
+                else:
+                    pos_read = snps_pos_map[sid]['pos']
+
+            
                 if not chrom in chrom_dict:
                     chrom_dict[chrom] = {'ps':[], 'log_odds':[], 'infos':[], 'freqs':[],
                              'betas':[], 'nts': [], 'sids': [], 'positions': []}
