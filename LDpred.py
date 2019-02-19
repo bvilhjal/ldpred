@@ -187,7 +187,7 @@ parser_score.add_argument('--gf', type=str, default=None,
                     help='Validation genotype file. '
                          'PLINK formatted genotypes for which we want to calculate risk scores.')
 parser_score.add_argument('--rf', type=str, required=True,
-                    help='SNP weights file, e.g. LDpred SNP weights.')
+                    help='SNP weights file (prefix used for output in preceding step), e.g. LDpred SNP weights.')
 parser_score.add_argument('--out', type=str, required=True,
                     help='The prefix of risk score output file.')
 parser_score.add_argument('--pf', type=str, default=None,
