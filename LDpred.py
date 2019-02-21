@@ -40,7 +40,7 @@ parser_pt = subparsers.add_parser('p+t', help='Obtain pruning+thresholding SNP w
 parser_score = subparsers.add_parser('score', help='Calculate polygenic scores using given SNP weights.')
 
 #General arguments
-parser.add_argument('--debug', type=bool, default=False, action='store_true',
+parser.add_argument('--debug', default=False, action='store_true',
                     help="Activate debugging mode (more verbose)")
 
 #coord arguments 
