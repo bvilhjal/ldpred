@@ -6,6 +6,7 @@ from ldpred import LDpred_gibbs
 from ldpred import LDpred_inf
 from ldpred import LD_pruning_thres
 from ldpred import validate
+import sys
 import textwrap
 
 __version__ = '1.0.0'
@@ -39,7 +40,7 @@ parser_pt = subparsers.add_parser('p+t', help='Obtain pruning+thresholding SNP w
 parser_score = subparsers.add_parser('score', help='Calculate polygenic scores using given SNP weights.')
 
 #General arguments
-parser.add_argument('--debug', default=False, action='store_true',
+parser.add_argument('--debug', type=bool, default=False, action='store_true',
                     help="Activate debugging mode (more verbose)")
 
 #coord arguments 
@@ -219,6 +220,10 @@ parser_score.add_argument('--p', default=[1,0.3,0.1,0.03,0.01,0.003,0.001,3*1E-4
 
 
 def main():
+    if len(sys.argv)==1:
+        print ('ERROR: No options provided.\n')
+        parser.print_help(sys.stderr)
+        sys.exit(1)
     parameters = parser.parse_args()
     p_dict= vars(parameters)
     if p_dict['debug']:

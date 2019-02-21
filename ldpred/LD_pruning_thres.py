@@ -85,13 +85,11 @@ def ld_pruning(data_file=None, ld_radius = None, out_file_prefix=None, p_thres=N
         num_snps_used = 0
         for chrom in chromsomes:
             chrom_str = 'chrom_%d'%chrom
-            #print 'Chromosome %s:' % chrom_str
             g = cord_data_g[chrom_str]
             pvalues = g['ps'][...]
             snp_filter = pvalues < p_thres
             num_snps = sp.sum(snp_filter)
             if num_snps == 0:
-                #print 'No SNPs, skipping chromosome'
                 continue
             tot_num_snps += num_snps
     
@@ -117,7 +115,6 @@ def ld_pruning(data_file=None, ld_radius = None, out_file_prefix=None, p_thres=N
                 nts.extend(nts_arr[snp_filter])
     
             if max_r2<1:
-                #print 'Generating LD table from genotypes.'
                 snp_means.shape = (len(snp_means),1)   
                 snp_stds.shape = (len(snp_means),1)   
                 #Normalize SNPs..

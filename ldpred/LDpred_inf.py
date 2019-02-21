@@ -109,10 +109,8 @@ def ldpred_inf_genomewide(data_file=None, ld_radius = None, ld_dict=None, out_fi
                 nts.extend(nts_arr)
         
             h2_chrom = herit_dict[chrom_str] 
-            #print 'Prior parameters: p=%0.3f, n=%d, m=%d, h2_chrom=%0.4f' % (p, n, n_snps, h2_chrom)
             updated_betas = ldpred_inf(pval_derived_betas, genotypes=None, reference_ld_mats=chrom_ref_ld_mats[chrom_str], 
                                                 h2=h2_chrom, n=n, ld_window_size=2*ld_radius, verbose=False)
-    
                     
             print('Calculating scores for Chromosome %s'%((chrom_str.split('_'))[1]))
             updated_betas = updated_betas / (snp_stds.flatten())
@@ -145,7 +143,7 @@ def ldpred_inf_genomewide(data_file=None, ld_radius = None, ld_dict=None, out_fi
         denominator = sp.dot(risk_scores_pval_derived.T, risk_scores_pval_derived)
         y_norm = (y-sp.mean(y))/sp.std(y)
         numerator = sp.dot(risk_scores_pval_derived.T, y_norm)
-        regression_slope = (numerator / denominator)#[0][0]
+        regression_slope = (numerator / denominator)
         print('The slope for predictions with P-value derived  effects is: %0.4f'%regression_slope)
         results_dict['slope_pd']=regression_slope
     
