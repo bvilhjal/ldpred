@@ -603,7 +603,8 @@ def parse_sum_stats_giant2(filename=None,
 
 def parse_sum_stats_pgc(filename=None,
                         bimfile=None,
-                        hdf5_file=None):
+                        hdf5_file=None, 
+                        debug=False):
     """
     Input format:
 
@@ -626,7 +627,8 @@ def parse_sum_stats_pgc(filename=None,
 
     print('Parsing the file: %s' % filename)
     with open(filename) as f:
-        print(next(f))
+        if debug:
+            print(next(f))
         missing_chromosomes = set()
         line_i = 0
         for line in f:
