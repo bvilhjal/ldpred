@@ -10,177 +10,10 @@ from ldpred import util
 from ldpred import ld
 
 
-def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_prefix=None, ps=None,
-               n=None, h2=None, num_iter=None, verbose=False, zero_jump_prob=0.05, burn_in=5):
-    """
-    Calculate LDpred for a genome
-    """    
-    
-    df = h5py.File(data_file, 'r')
-    has_phenotypes = False
-    if 'y' in df:
-        'Validation phenotypes found.'
-        y = df['y'][...]  # Phenotype
-        num_individs = len(y)
-        risk_scores_pval_derived = sp.zeros(num_individs)
-        has_phenotypes = True
-
-    ld_scores_dict = ld_dict['ld_scores_dict']
-    chrom_ld_dict = ld_dict['chrom_ld_dict']
-    chrom_ref_ld_mats = ld_dict['chrom_ref_ld_mats']
-        
-    print('Applying LDpred with LD radius: %d' % ld_radius)
-    results_dict = {}
-    cord_data_g = df['cord_data']
-
-    #Calculating genome-wide heritability using LD score regression, and partition heritability by chromsomes
-    herit_dict = ld.get_chromosome_herits(cord_data_g, ld_scores_dict, n, h2)
-
-    LDpred_inf_chrom_dict = {}
-    print('Calculating LDpred-inf weights')
-    for chrom_str in util.chromosomes_list:
-        if chrom_str in cord_data_g:
-            print('Calculating scores for Chromosome %s' % ((chrom_str.split('_'))[1]))           
-            g = cord_data_g[chrom_str]
-
-            # Filter monomorphic SNPs
-            snp_stds = g['snp_stds_ref'][...]
-            snp_stds = snp_stds.flatten()
-            ok_snps_filter = snp_stds > 0
-            pval_derived_betas = g['betas'][...]
-            pval_derived_betas = pval_derived_betas[ok_snps_filter]            
-            h2_chrom = herit_dict[chrom_str]
-            start_betas = LDpred_inf.ldpred_inf(pval_derived_betas, genotypes=None, reference_ld_mats=chrom_ref_ld_mats[chrom_str],
-                                                h2=h2_chrom, n=n, ld_window_size=2 * ld_radius, verbose=False)
-            LDpred_inf_chrom_dict[chrom_str] = start_betas
-    
-    
-    for p in ps:
-        print('Starting LDpred with p=%0.4f' % p)
-        p_str = '%0.4f' % p
-        results_dict[p_str] = {}
-    
-        if out_file_prefix:
-            # Preparing output files
-            raw_effect_sizes = []
-            ldpred_effect_sizes = []
-            ldpred_inf_effect_sizes = []
-            out_sids = []
-            chromosomes = []
-            out_positions = []
-            out_nts = []
-            
-        for chrom_str in util.chromosomes_list:
-            if chrom_str in cord_data_g:
-                g = cord_data_g[chrom_str]
-                if has_phenotypes:
-                    if 'raw_snps_val' in g:
-                        raw_snps = g['raw_snps_val'][...]
-                    else:
-                        raw_snps = g['raw_snps_ref'][...]
-                
-                # Filter monomorphic SNPs
-                snp_stds = g['snp_stds_ref'][...]
-                snp_stds = snp_stds.flatten()
-                pval_derived_betas = g['betas'][...]
-                positions = g['positions'][...]
-                sids = (g['sids'][...]).astype(util.sids_u_dtype)
-                log_odds = g['log_odds'][...]
-                nts = (g['nts'][...]).astype(util.nts_u_dtype)
-                ok_snps_filter = snp_stds > 0
-                if not sp.all(ok_snps_filter):
-                    snp_stds = snp_stds[ok_snps_filter]
-                    pval_derived_betas = pval_derived_betas[ok_snps_filter]
-                    positions = positions[ok_snps_filter]
-                    sids = sids[ok_snps_filter]
-                    log_odds = log_odds[ok_snps_filter]
-                    nts = nts[ok_snps_filter]
-                    if has_phenotypes:
-                        raw_snps = raw_snps[ok_snps_filter]
-
-
-                if out_file_prefix:
-                    chromosomes.extend([chrom_str] * len(pval_derived_betas))
-                    out_positions.extend(positions)
-                    out_sids.extend(sids)
-                    raw_effect_sizes.extend(log_odds)
-                    out_nts.extend(nts)
-        
-                
-                h2_chrom = herit_dict[chrom_str]
-                if 'chrom_ld_boundaries' in ld_dict:
-                    ld_boundaries = ld_dict['chrom_ld_boundaries'][chrom_str]
-                    res_dict = ldpred_gibbs(pval_derived_betas, h2=h2_chrom, n=n, p=p, ld_radius=ld_radius,
-                                            verbose=verbose, num_iter=num_iter, burn_in=burn_in, ld_dict=chrom_ld_dict[chrom_str],
-                                            start_betas=LDpred_inf_chrom_dict[chrom_str], ld_boundaries=ld_boundaries,
-                                            zero_jump_prob=zero_jump_prob)
-                else:
-                    res_dict = ldpred_gibbs(pval_derived_betas, h2=h2_chrom, n=n, p=p, ld_radius=ld_radius,
-                                            verbose=verbose, num_iter=num_iter, burn_in=burn_in, ld_dict=chrom_ld_dict[chrom_str],
-                                            start_betas=LDpred_inf_chrom_dict[chrom_str], zero_jump_prob=zero_jump_prob)
-                
-                updated_betas = res_dict['betas']
-                updated_inf_betas = res_dict['inf_betas']
-                sum_sqr_effects = sp.sum(updated_betas ** 2)
-                if sum_sqr_effects > herit_dict['gw_h2_ld_score_est']:
-                    print('Sum of squared updated effects estimates seems too large: %0.4f'% sum_sqr_effects)
-                    print('This suggests that the Gibbs sampler did not convergence.')
-                
-                print('Calculating scores for Chromosome %s' % ((chrom_str.split('_'))[1]))
-                updated_betas = updated_betas / (snp_stds.flatten())
-                updated_inf_betas = updated_inf_betas / (snp_stds.flatten())
-                ldpred_effect_sizes.extend(updated_betas)
-                ldpred_inf_effect_sizes.extend(updated_inf_betas)
-                if has_phenotypes:
-                    prs = sp.dot(updated_betas, raw_snps)
-                    risk_scores_pval_derived += prs
-                    corr = sp.corrcoef(y, prs)[0, 1]
-                    r2 = corr ** 2
-                    print('The R2 prediction accuracy of PRS using %s was: %0.4f' % (chrom_str, r2))
-        
-                    
-        if has_phenotypes:
-            num_indivs = len(y)
-            results_dict[p_str]['y'] = y
-            results_dict[p_str]['risk_scores_pd'] = risk_scores_pval_derived
-            print('Prediction accuracy was assessed using %d individuals.' % (num_indivs))
-    
-            corr = sp.corrcoef(y, risk_scores_pval_derived)[0, 1]
-            r2 = corr ** 2
-            results_dict[p_str]['r2_pd'] = r2
-            print('The  R2 prediction accuracy (observed scale) for the whole genome was: %0.4f (%0.6f)' % (r2, ((1 - r2) ** 2) / num_indivs))
-    
-            if corr < 0:
-                risk_scores_pval_derived = -1 * risk_scores_pval_derived
-            auc = util.calc_auc(y, risk_scores_pval_derived)
-            print('AUC for the whole genome was: %0.4f' % auc)
-    
-            # Now calibration                               
-            denominator = sp.dot(risk_scores_pval_derived.T, risk_scores_pval_derived)
-            y_norm = (y - sp.mean(y)) / sp.std(y)
-            numerator = sp.dot(risk_scores_pval_derived.T, y_norm)
-            regression_slope = (numerator / denominator)  # [0][0]
-            print('The slope for predictions with P-value derived  effects is: %0.4f' % regression_slope)
-            results_dict[p_str]['slope_pd'] = regression_slope
-        
-        weights_out_file = '%s_LDpred_p%0.4e.txt' % (out_file_prefix, p)
-        with open(weights_out_file, 'w') as f:
-            f.write('chrom    pos    sid    nt1    nt2    raw_beta     ldpred_beta\n')
-            for chrom, pos, sid, nt, raw_beta, ldpred_beta in zip(chromosomes, out_positions, out_sids, out_nts, raw_effect_sizes, ldpred_effect_sizes):
-                nt1, nt2 = nt[0], nt[1]
-                f.write('%s    %d    %s    %s    %s    %0.4e    %0.4e\n' % (chrom, pos, sid, nt1, nt2, raw_beta, ldpred_beta))
-
-    weights_out_file = '%s_LDpred-inf.txt' % (out_file_prefix)
-    with open(weights_out_file, 'w') as f:
-        f.write('chrom    pos    sid    nt1    nt2    raw_beta    ldpred_inf_beta \n')
-        for chrom, pos, sid, nt, raw_beta, ldpred_inf_beta in zip(chromosomes, out_positions, out_sids, out_nts, raw_effect_sizes, ldpred_inf_effect_sizes):
-            nt1, nt2 = nt[0], nt[1]
-            f.write('%s    %d    %s    %s    %s    %0.4e    %0.4e\n' % (chrom, pos, sid, nt1, nt2, raw_beta, ldpred_inf_beta))
-
 
         
 def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=1000, ld_radius=100,
-                 num_iter=60, burn_in=10, p=None, zero_jump_prob=0.05,
+                 num_iter=60, burn_in=10, p=None, zero_jump_prob=0.05, tight_sampling=False,
                  ld_dict=None, reference_ld_mats=None, ld_boundaries=None, verbose=False):
     """
     LDpred (Gibbs Sampler) 
@@ -215,7 +48,10 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=1000, l
 
         # Force an alpha shrink if estimates are way off compared to heritability estimates.  (Improves MCMC convergence.)
         h2_est = max(0.00001, sp.sum(curr_betas ** 2))
-        alpha = min(1 - zero_jump_prob, 1.0 / h2_est, (h2 + 1.0 / sp.sqrt(n)) / h2_est)
+        if tight_sampling:
+            alpha = min(1.0 - zero_jump_prob, 1.0 / h2_est, (h2 + 1.0 / sp.sqrt(n)) / h2_est)
+        else:
+            alpha = 1.0 - zero_jump_prob
 
         rand_ps = sp.random.random(m)
         rand_norms = stats.norm.rvs(0.0, (hdmp_hdmpn) * (1.0 / n), size=m)
@@ -315,6 +151,175 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=1000, l
     if verbose:
         print('\nTook %d minutes and %0.2f seconds' % (t / 60, t % 60))
     return {'betas':avg_betas, 'inf_betas':start_betas}
+
+
+def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_prefix=None, ps=None,
+               n=None, h2=None, num_iter=None, verbose=False, zero_jump_prob=0.05, burn_in=5):
+    """
+    Calculate LDpred for a genome
+    """    
+    
+    df = h5py.File(data_file, 'r')
+    has_phenotypes = False
+    if 'y' in df:
+        'Validation phenotypes found.'
+        y = df['y'][...]  # Phenotype
+        num_individs = len(y)
+        risk_scores_pval_derived = sp.zeros(num_individs)
+        has_phenotypes = True
+
+    ld_scores_dict = ld_dict['ld_scores_dict']
+    chrom_ld_dict = ld_dict['chrom_ld_dict']
+    chrom_ref_ld_mats = ld_dict['chrom_ref_ld_mats']
+        
+    print('Applying LDpred with LD radius: %d' % ld_radius)
+    results_dict = {}
+    cord_data_g = df['cord_data']
+
+    #Calculating genome-wide heritability using LD score regression, and partition heritability by chromsomes
+    herit_dict = ld.get_chromosome_herits(cord_data_g, ld_scores_dict, n, h2)
+
+    LDpred_inf_chrom_dict = {}
+    print('Calculating LDpred-inf weights')
+    for chrom_str in util.chromosomes_list:
+        if chrom_str in cord_data_g:
+            print('Calculating scores for Chromosome %s' % ((chrom_str.split('_'))[1]))           
+            g = cord_data_g[chrom_str]
+
+            # Filter monomorphic SNPs
+            snp_stds = g['snp_stds_ref'][...]
+            snp_stds = snp_stds.flatten()
+            ok_snps_filter = snp_stds > 0
+            pval_derived_betas = g['betas'][...]
+            pval_derived_betas = pval_derived_betas[ok_snps_filter]            
+            h2_chrom = herit_dict[chrom_str]
+            start_betas = LDpred_inf.ldpred_inf(pval_derived_betas, genotypes=None, reference_ld_mats=chrom_ref_ld_mats[chrom_str],
+                                                h2=h2_chrom, n=n, ld_window_size=2 * ld_radius, verbose=False)
+            LDpred_inf_chrom_dict[chrom_str] = start_betas
+    
+    
+    for p in ps:
+        print('Starting LDpred gibbs with p=%0.4f' % p)
+        p_str = '%0.4f' % p
+        results_dict[p_str] = {}
+    
+        if out_file_prefix:
+            # Preparing output files
+            raw_effect_sizes = []
+            ldpred_effect_sizes = []
+            ldpred_inf_effect_sizes = []
+            out_sids = []
+            chromosomes = []
+            out_positions = []
+            out_nts = []
+            
+        for chrom_str in util.chromosomes_list:
+            if chrom_str in cord_data_g:
+                g = cord_data_g[chrom_str]
+                if verbose and has_phenotypes:
+                    if 'raw_snps_val' in g:
+                        raw_snps = g['raw_snps_val'][...]
+                    else:
+                        raw_snps = g['raw_snps_ref'][...]
+                
+                # Filter monomorphic SNPs
+                snp_stds = g['snp_stds_ref'][...]
+                snp_stds = snp_stds.flatten()
+                pval_derived_betas = g['betas'][...]
+                positions = g['positions'][...]
+                sids = (g['sids'][...]).astype(util.sids_u_dtype)
+                log_odds = g['log_odds'][...]
+                nts = (g['nts'][...]).astype(util.nts_u_dtype)
+                ok_snps_filter = snp_stds > 0
+                if not sp.all(ok_snps_filter):
+                    snp_stds = snp_stds[ok_snps_filter]
+                    pval_derived_betas = pval_derived_betas[ok_snps_filter]
+                    positions = positions[ok_snps_filter]
+                    sids = sids[ok_snps_filter]
+                    log_odds = log_odds[ok_snps_filter]
+                    nts = nts[ok_snps_filter]
+                    if verbose and has_phenotypes:
+                        raw_snps = raw_snps[ok_snps_filter]
+
+
+                if out_file_prefix:
+                    chromosomes.extend([chrom_str] * len(pval_derived_betas))
+                    out_positions.extend(positions)
+                    out_sids.extend(sids)
+                    raw_effect_sizes.extend(log_odds)
+                    out_nts.extend(nts)
+        
+                
+                h2_chrom = herit_dict[chrom_str]
+                if 'chrom_ld_boundaries' in ld_dict:
+                    ld_boundaries = ld_dict['chrom_ld_boundaries'][chrom_str]
+                    res_dict = ldpred_gibbs(pval_derived_betas, h2=h2_chrom, n=n, p=p, ld_radius=ld_radius,
+                                            verbose=verbose, num_iter=num_iter, burn_in=burn_in, ld_dict=chrom_ld_dict[chrom_str],
+                                            start_betas=LDpred_inf_chrom_dict[chrom_str], ld_boundaries=ld_boundaries,
+                                            zero_jump_prob=zero_jump_prob)
+                else:
+                    res_dict = ldpred_gibbs(pval_derived_betas, h2=h2_chrom, n=n, p=p, ld_radius=ld_radius,
+                                            verbose=verbose, num_iter=num_iter, burn_in=burn_in, ld_dict=chrom_ld_dict[chrom_str],
+                                            start_betas=LDpred_inf_chrom_dict[chrom_str], zero_jump_prob=zero_jump_prob)
+                
+                updated_betas = res_dict['betas']
+                updated_inf_betas = res_dict['inf_betas']
+                sum_sqr_effects = sp.sum(updated_betas ** 2)
+                if sum_sqr_effects > herit_dict['gw_h2_ld_score_est']:
+                    print('Sum of squared updated effects estimates seems too large: %0.4f'% sum_sqr_effects)
+                    print('This suggests that the Gibbs sampler did not convergence.')
+                
+                print('Calculating scores for Chromosome %s' % ((chrom_str.split('_'))[1]))
+                updated_betas = updated_betas / (snp_stds.flatten())
+                updated_inf_betas = updated_inf_betas / (snp_stds.flatten())
+                ldpred_effect_sizes.extend(updated_betas)
+                ldpred_inf_effect_sizes.extend(updated_inf_betas)
+                if verbose and has_phenotypes:
+                    prs = sp.dot(updated_betas, raw_snps)
+                    risk_scores_pval_derived += prs
+                    corr = sp.corrcoef(y, prs)[0, 1]
+                    r2 = corr ** 2
+                    print('The R2 prediction accuracy of PRS using %s was: %0.4f' % (chrom_str, r2))
+        
+                    
+        if verbose and has_phenotypes:
+            num_indivs = len(y)
+            results_dict[p_str]['y'] = y
+            results_dict[p_str]['risk_scores_pd'] = risk_scores_pval_derived
+            print('Prediction accuracy was assessed using %d individuals.' % (num_indivs))
+    
+            corr = sp.corrcoef(y, risk_scores_pval_derived)[0, 1]
+            r2 = corr ** 2
+            results_dict[p_str]['r2_pd'] = r2
+            print('The  R2 prediction accuracy (observed scale) for the whole genome was: %0.4f (%0.6f)' % (r2, ((1 - r2) ** 2) / num_indivs))
+    
+            if corr < 0:
+                risk_scores_pval_derived = -1 * risk_scores_pval_derived
+            auc = util.calc_auc(y, risk_scores_pval_derived)
+            print('AUC for the whole genome was: %0.4f' % auc)
+    
+            # Now calibration                               
+            denominator = sp.dot(risk_scores_pval_derived.T, risk_scores_pval_derived)
+            y_norm = (y - sp.mean(y)) / sp.std(y)
+            numerator = sp.dot(risk_scores_pval_derived.T, y_norm)
+            regression_slope = (numerator / denominator)  # [0][0]
+            print('The slope for predictions with P-value derived  effects is: %0.4f' % regression_slope)
+            results_dict[p_str]['slope_pd'] = regression_slope
+        
+        weights_out_file = '%s_LDpred_p%0.4e.txt' % (out_file_prefix, p)
+        with open(weights_out_file, 'w') as f:
+            f.write('chrom    pos    sid    nt1    nt2    raw_beta     ldpred_beta\n')
+            for chrom, pos, sid, nt, raw_beta, ldpred_beta in zip(chromosomes, out_positions, out_sids, out_nts, raw_effect_sizes, ldpred_effect_sizes):
+                nt1, nt2 = nt[0], nt[1]
+                f.write('%s    %d    %s    %s    %s    %0.4e    %0.4e\n' % (chrom, pos, sid, nt1, nt2, raw_beta, ldpred_beta))
+
+    weights_out_file = '%s_LDpred-inf.txt' % (out_file_prefix)
+    with open(weights_out_file, 'w') as f:
+        f.write('chrom    pos    sid    nt1    nt2    raw_beta    ldpred_inf_beta \n')
+        for chrom, pos, sid, nt, raw_beta, ldpred_inf_beta in zip(chromosomes, out_positions, out_sids, out_nts, raw_effect_sizes, ldpred_inf_effect_sizes):
+            nt1, nt2 = nt[0], nt[1]
+            f.write('%s    %d    %s    %s    %s    %0.4e    %0.4e\n' % (chrom, pos, sid, nt1, nt2, raw_beta, ldpred_inf_beta))
+
 
 
 def main(p_dict):

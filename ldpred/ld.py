@@ -19,7 +19,6 @@ def get_LDpred_ld_tables(snps, ld_radius=100, ld_window_size=0, h2=None, n_train
     
     ld_dict = {}
     m, n = snps.shape
-    print(m, n)
     ld_scores = sp.ones(m)
     ret_dict = {}
     if gm_ld_radius is None:
@@ -208,7 +207,7 @@ def get_ld_dict(cord_data_file, local_ld_file_prefix, ld_radius, gm_ld_radius=No
         cord_data_g = df['cord_data']
 
         for chrom_str in cord_data_g:
-            print('Working on %s' % chrom_str)
+            print('Calculating LD for chromosome %s' % chrom_str)
             g = cord_data_g[chrom_str]
             if 'raw_snps_ref' in g:
                 raw_snps = g['raw_snps_ref'][...]
