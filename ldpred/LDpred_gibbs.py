@@ -106,7 +106,7 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=1000, l
                 # Local LD matrix
                 D_i = ld_dict[snp_i]
                 
-                # Local (most recently updated) effect estimates
+                # Local (most recently updated) effect imates
                 local_betas = curr_betas[start_i: stop_i]
                 
                 # Calculate the local posterior mean, used when sampling.
@@ -183,7 +183,7 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
     print('Calculating LDpred-inf weights')
     for chrom_str in util.chromosomes_list:
         if chrom_str in cord_data_g:
-            print('Calculating scores for Chromosome %s' % ((chrom_str.split('_'))[1]))           
+            print('Calculating SNP weights for Chromosome %s' % ((chrom_str.split('_'))[1]))           
             g = cord_data_g[chrom_str]
 
             # Filter monomorphic SNPs
@@ -213,7 +213,10 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
             out_positions = []
             out_nts = []
             
+        chrom_i = 0
+        num_chrom = len(util.chromosomes_list)
         for chrom_str in util.chromosomes_list:
+            chrom_i+=1
             if chrom_str in cord_data_g:
                 g = cord_data_g[chrom_str]
                 if verbose and has_phenotypes:
@@ -269,7 +272,12 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
                     print('Sum of squared updated effects estimates seems too large: %0.4f'% sum_sqr_effects)
                     print('This suggests that the Gibbs sampler did not convergence.')
                 
-                print('Calculating scores for Chromosome %s' % ((chrom_str.split('_'))[1]))
+                if verbose:
+                    print('Calculating SNP weights for Chromosome %s' % ((chrom_str.split('_'))[1]))
+                else:
+                    sys.stdout.write('\b\b\b\b\b\b\b%0.2f%%' % (100.0 * (min(1, float(chrom_i + 1) / num_chrom))))
+                    sys.stdout.flush()
+
                 updated_betas = updated_betas / (snp_stds.flatten())
                 updated_inf_betas = updated_inf_betas / (snp_stds.flatten())
                 ldpred_effect_sizes.extend(updated_betas)

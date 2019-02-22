@@ -592,7 +592,7 @@ def main(p_dict):
 
     prs_file_is_missing = True
     res_dict = {}
-    if p_dict['rf_format'] == 'LDPRED':
+    if p_dict['rf_format'] == 'LDPRED' or p_dict['rf_format']=='ANY':
         weights_file = '%s_LDpred-inf.txt' % (p_dict['rf'])
         
         if os.path.isfile(weights_file):
@@ -622,7 +622,7 @@ def main(p_dict):
 
         # Plot results?
 
-    elif p_dict['rf_format'] == 'P+T':
+    elif p_dict['rf_format'] == 'P+T' or p_dict['rf_format']=='ANY':
 
         for max_r2 in p_dict['r2']:
             for p_thres in p_dict['p']:

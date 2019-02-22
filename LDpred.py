@@ -74,13 +74,14 @@ parser_coord.add_argument('--skip-coordination', default=False, action='store_tr
                     help="Assumes that the alleles have already been coordinated between LD reference, "
                          "validation samples, and the summary statistics files")
 parser_coord.add_argument('--beta', default=False, action='store_true',
-                    help="Assumes the summary statistics are BETA instead of OR")
+                    help='Assumes the summary statistics are BETA (linear regression) instead of OR (logistic '
+                         'regression)')
 parser_coord.add_argument('--maf', type=float, default=0.01,
                     help='MAF filtering threshold.  Set to 0 to disable MAF filtering.')
-parser_coord.add_argument('--ssf-format', type=str, default="CUSTOM", 
+parser_coord.add_argument('--ssf-format', type=str, default="CUSTOM", choices={'CUSTOM','STANDARD','GIANT', 'PGC'},
                     help='This is the format type of the summary statistics file. '
-                    'Currently there are two implementations, "STANDARD", "BASIC", "GIANT", '
-                    'and "PGC".  The standard format is described above.')
+                    'By default the CUSTOM format requires the user to specify the file format using additional '
+                    'arguments.')
 parser_coord.add_argument('--rs', type=str, default="SNP",
                     help="Column header of SNP ID")
 parser_coord.add_argument('--A1', type=str, default="A1",
@@ -192,30 +193,26 @@ parser_score.add_argument('--rf', type=str, required=True,
 parser_score.add_argument('--out', type=str, required=True,
                     help='The prefix of risk score output file.')
 parser_score.add_argument('--pf', type=str, default=None,
-                    help='A file with individual IDs and phenotypes. Two formats are supported a (PLINK) '
-                        'FAM format, and STANDARD format (default), which is a whitespace/tab delimited file '
-                        'with two columns IID and PHEN.')
-parser_score.add_argument('--pf-format', type=str, default='STANDARD',
+                    help='A file with individual IDs and phenotypes.')
+parser_score.add_argument('--pf-format', type=str, default='STANDARD', choices = {'STANDARD','FAM'},
                     help='Phenotype file format. Two formats are supported a (PLINK) FAM format, and '
                     'STANDARD format (default), which is a whitespace/tab delimited file with two '
                     'columns IID and PHEN.')
-parser_score.add_argument('--rf-format', type=str, default='LDPRED',
-                    help='The format to expect the results to be in.  The default format is LDPRED, '
-                         'which refers to the format which running LDpred output. LDPRED-INF and P+T '
-                         '(LD-pruning + p-value thresholding) are also implemented.')
+parser_score.add_argument('--rf-format', type=str, default='ANY', choices = {'ANY','LDPRED', 'P+T'},
+                    help='The format to expect the results to be in.')
 parser_score.add_argument('--cov-file', type=str, default=None,
                     help='Covariate file, format is whitespace-delimted file with columns IID, COV1, COV2, etc.')
 parser_score.add_argument('--pcs-file', type=str, default=None,
                     help='PCs file, format is whitespace-delimted file with columns FID, IID, PC1, PC2, etc.')
-parser_score.add_argument('--split-by-chrom', type=bool, default=False,
+parser_score.add_argument('--split-by-chrom', default=False, action='store_true',
                     help='')
-parser_score.add_argument('--r2', default=[1,0.2], nargs='+', type=float,
-                    help="Fraction of causal variants used in the Gibbs sampler")
 parser_score.add_argument('--f', default=[1,0.3,0.1,0.03,0.01,0.003,0.001], nargs='+', type=float,
                     help="Fraction of causal variants used in the Gibbs sampler")
 parser_score.add_argument('--p', default=[1,0.3,0.1,0.03,0.01,0.003,0.001,3*1E-4,
                                           1E-4,3*1E-5,1E-5,1E-6,1E-7,1E-8], nargs='+', type=float,
-                    help="P value thresholds")
+                    help="P value thresholds (P+T)")
+parser_score.add_argument('--r2', default=[1,0.2], nargs='+', type=float,
+                    help="LD R2 thresholds (P+T)")
 
 
 

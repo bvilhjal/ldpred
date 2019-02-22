@@ -263,7 +263,7 @@ def get_ld_dict(cord_data_file, local_ld_file_prefix, ld_radius, gm_ld_radius=No
     return ld_dict
 
 
-def get_chromosome_herits(cord_data_g, ld_scores_dict, n, h2=None):
+def get_chromosome_herits(cord_data_g, ld_scores_dict, n, max_h2=1, h2=None):
     """
     Calculating genome-wide heritability using LD score regression, and partition heritability by chromosome
     """
@@ -286,13 +286,16 @@ def get_chromosome_herits(cord_data_g, ld_scores_dict, n, h2=None):
     print('Genome-wide lambda inflation: %0.4f'% chi_square_lambda)
     print('Genome-wide mean LD score: %0.4f'% L)
     gw_h2_ld_score_est = max(0.0001, (max(1, chi_square_lambda) - 1) / (n * (L / num_snps)))
-    print('Estimated genome-wide heritability: %0.4f'% gw_h2_ld_score_est)
+    print('LD-score estimated genome-wide heritability: %0.4f'% gw_h2_ld_score_est)
     assert chi_square_lambda>1, 'Something is wrong with the GWAS summary statistics, parsing of them, or the given GWAS sample size (N). Lambda (the mean Chi-square statistic) is too small.  '
 
     #Only use LD score heritability if it is not given as argument. 
     if h2==None:
-        h2 = gw_h2_ld_score_est
-
+        if gw_h2_ld_score_est>1:
+            print ('LD-score estimated heritability is suspiciously large, suggesting that the given sample size is wrong, or that SNPs are enriched for heritability (e.g. using p-value thresholding). If the SNPs are enriched for heritability we suggest using the --h2 flag to provide a more reasonable heritability estimate.')
+        h2 = min(gw_h2_ld_score_est,max_h2)
+    print('Heritability used for inference: %0.4f'%h2)
+        
     #Distributing heritabilities among chromosomes.
     for k in herit_dict:
         herit_dict[k] = h2 * herit_dict[k]/float(num_snps)

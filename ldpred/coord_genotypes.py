@@ -36,7 +36,6 @@ def _verify_coord_data_(data_dict):
     """
     Verify that merged data is ok
     """
-    print('Verifying coordinated data')
     num_snps = len(data_dict['raw_snps_ref'])
     assert num_snps ==len(data_dict['snp_stds_ref']), 'Inconsistencies in coordinated data sizes'
     assert num_snps ==len(data_dict['snp_means_ref']), 'Inconsistencies in coordinated data sizes'
@@ -57,7 +56,7 @@ def _verify_coord_data_(data_dict):
 
 def write_coord_data(cord_data_g, coord_dict):
     _verify_coord_data_(coord_dict)
-    print('Now storing coordinated data to HDF5 file.')
+    print('Storing coordinated data to HDF5 file.')
     ofg = cord_data_g.create_group(coord_dict['chrom'])
     ofg.create_dataset('raw_snps_ref', data=coord_dict['raw_snps_ref'], compression='lzf')
     ofg.create_dataset('snp_stds_ref', data=coord_dict['snp_stds_ref'])
@@ -123,14 +122,14 @@ def coordinate_genot_ss(genotype_file=None,
     tot_num_non_matching_nts = 0
     for chrom in chromosomes:
         chr_str = 'chrom_%d' % chrom
-        print('Working on chromsome: %s' % chr_str)
+        print('Coordinating data for chromosome %s' % chr_str)
 
         chrom_d = chr_dict[chr_str]
         try:
             ssg = ssf['chrom_%d' % chrom]
         except Exception as err_str:
             print(err_str)
-            print('Did not find chromsome in SS dataset.')
+            print('Did not find chromosome in SS dataset.')
             print('Continuing.')
             continue
 
@@ -374,7 +373,7 @@ def coordinate_genotypes_ss_w_ld_ref(genotype_file=None,
     from plinkio import plinkfile
     plinkf = plinkfile.PlinkFile(genotype_file)
 
-    # Loads only the individuals... (I think?)
+    # Loads only the individuals... 
     plinkf_dict = plinkfiles.get_phenotypes(plinkf)
 
     # Figure out chromosomes and positions.
@@ -421,7 +420,7 @@ def coordinate_genotypes_ss_w_ld_ref(genotype_file=None,
         ok_indices = {'g': [], 'rg': [], 'ss': []}
 
         chr_str = 'chrom_%d' % chrom
-        print('Working on chromsome: %s' % chr_str)
+        print('Coordinating data for chromosome %s' % chr_str)
 
         chrom_d = chr_dict[chr_str]
         chrom_d_ref = chr_dict_ref[chr_str]
@@ -429,7 +428,7 @@ def coordinate_genotypes_ss_w_ld_ref(genotype_file=None,
             ssg = ssf['chrom_%d' % chrom]
         except Exception as err_str:
             print(err_str)
-            print('Did not find chromsome in SS dataset.')
+            print('Did not find chromosome in SS dataset.')
             print('Continuing.')
             continue
 
@@ -594,7 +593,7 @@ def coordinate_genotypes_ss_w_ld_ref(genotype_file=None,
         log_odds = log_odds[ok_indices['ss']]  
 
         ps = ssg['ps'][...][ok_indices['ss']]
-        nts = sp.array(ok_nts)  # [order]
+        nts = sp.array(ok_nts)  
         sids = (ssg['sids'][...]).astype(util.sids_u_dtype)
         sids = sids[ok_indices['ss']]
 
@@ -679,8 +678,6 @@ def coordinate_genotypes_ss_w_ld_ref(genotype_file=None,
                            'freqs_val':freqs}
           
         write_coord_data(cord_data_g, coord_data_dict)
-
-        # risk_scores += prs
         maf_adj_risk_scores += maf_adj_prs
         num_common_snps += len(betas)
 
@@ -699,6 +696,8 @@ def coordinate_genotypes_ss_w_ld_ref(genotype_file=None,
 
 def main(p_dict):
 
+    summary_dict = {}
+    
     bimfile = None
     if p_dict['N'] is None:
         print('Please specify an integer value for the sample size used to calculate the GWAS summary statistics.')
@@ -730,5 +729,7 @@ def main(p_dict):
         coordinate_genot_ss(genotype_file=p_dict['gf'], check_mafs=check_mafs,
                             hdf5_file=h5f, min_maf=p_dict['maf'], skip_coordination=p_dict['skip_coordination'], 
                             debug=p_dict['debug'])
+
+    
 
     h5f.close()
