@@ -33,6 +33,9 @@ def parse_sum_stats(h5f, p_dict, bimfile):
     elif p_dict['ssf_format'] == 'GIANT':
         parse_sum_stats_giant(
             filename=p_dict['ssf'], bimfile=bimfile, hdf5_file=h5f, debug=p_dict['debug'])
+    elif p_dict['ssf_format'] == 'BOLT_LMM':
+        parse_sum_stats_boltlmm(
+            filename=p_dict['ssf'], bimfile=bimfile, hdf5_file=h5f, debug=p_dict['debug'])
     elif p_dict['ssf_format'] == 'GIANT2':
         parse_sum_stats_giant2(
             filename=p_dict['ssf'], bimfile=bimfile, hdf5_file=h5f, debug=p_dict['debug'])
@@ -264,6 +267,29 @@ def parse_sum_stats_custom(filename=None,
     print('%d SNPs excluded due to invalid chromosome position' % pos_filter)
     print('%d SNPs excluded due to invalid P value' % invalid_p)
     print('%d SNPs parsed from summary statistics file.' % num_snps)
+
+
+def parse_sum_stats_boltlmm(filename=None,
+                             bimfile=None,
+                             hdf5_file=None,
+                             n=None,
+                             debug=False):
+    parse_sum_stats_custom(filename=filename,
+                    bimfile=bimfile,
+                    hdf5_file=hdf5_file,
+                    n=n,
+                    chr='CHR',
+                    pos='BP',
+                    A1='ALLELE1',
+                    A2='ALLELE0',
+                    reffreq='A1FREQ',
+                    info=None,
+                    rs='SNP',
+                    pval='P_BOLT_LMM_INF', 
+                    eff='BETA',
+                    ncol=14,
+                    input_is_beta=True, 
+                    debug=debug)
 
 
 def parse_sum_stats_standard(filename=None,

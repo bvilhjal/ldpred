@@ -247,7 +247,6 @@ def get_ld_dict(cord_data_file, local_ld_file_prefix, ld_radius, gm_ld_radius=No
         ld_scores_dict = {'avg_gw_ld_score': avg_gw_ld_score, 'chrom_dict':chrom_ld_scores_dict}    
         
         print('Done calculating the LD table and LD score, writing to file: %s'%local_ld_dict_file)
-        print('Genome-wide average LD score was: %0.4f' %ld_scores_dict['avg_gw_ld_score'])
         ld_dict = {'ld_scores_dict':ld_scores_dict, 'chrom_ld_dict':chrom_ld_dict, 'chrom_ref_ld_mats':chrom_ref_ld_mats}
         if gm_ld_radius is not None:
             ld_dict['chrom_ld_boundaries'] = chrom_ld_boundaries 
