@@ -286,7 +286,8 @@ def parse_pt_res(file_name):
 
     return rs_id_map, non_zero_chromosomes
 
-def write_scores_file(out_file, prs_dict, raw_effects_prs, pval_derived_effects_prs, adj_pred_dict, weights_dict=None):
+def write_scores_file(out_file, prs_dict, raw_effects_prs, pval_derived_effects_prs, adj_pred_dict, 
+                      output_regression_betas=False, weights_dict=None):
     num_individs = len(prs_dict['iids'])
     with open(out_file, 'w') as f:
         print ('Writing polygenic scores to file %s'%out_file)
@@ -324,9 +325,9 @@ def write_scores_file(out_file, prs_dict, raw_effects_prs, pval_derived_effects_
                     out_str += ', %0.4f' % adj_pred_dict[adj_prs][i]
                 out_str += '\n'
                 f.write(out_str)
-    if weights_dict != None:
+    if output_regression_betas and weights_dict != None:
         hdf5file = out_file + '.weights.hdf5'
-        print ('Writing polygenic scores SNP weights to file %s'%hdf5file)
+        print ('Writing PRS regression weights to file %s'%hdf5file)
         oh5f = h5py.File(hdf5file, 'w')
         for k1 in list(weights_dict.keys()):
             kg = oh5f.create_group(k1)

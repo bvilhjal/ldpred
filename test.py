@@ -18,43 +18,41 @@ try:
     print(cmd_str + '\n')
     assert os.system(cmd_str) == 0, 'Problems when coordinating data!'
     
-    out_file = tmp_file_prefix + '.res'
     print('Running LDpred-inf with coordinated file prefix: %s ' % tmp_file_prefix)
     cmd_str = 'python LDpred.py --debug inf --cf=%s  --ldr=100   --ldf=%s  --N=10000  --out=%s' % (coord_file, tmp_file_prefix, tmp_file_prefix)
     print(cmd_str + '\n')
     assert os.system(cmd_str) == 0, 'Problems when running LDpred_inf!'
     
-    out_file = tmp_file_prefix + '.res'
     print('Running LDpred with coordinated file prefix: %s ' % tmp_file_prefix)
     cmd_str = 'python LDpred.py --debug gibbs --cf=%s  --ldr=100   --ldf=%s  --f=0.001 --N=10000  --out=%s' % (coord_file, tmp_file_prefix, tmp_file_prefix)
     print(cmd_str + '\n')
     assert os.system(cmd_str) == 0, 'Problems when running LDpred!'
     
-    out_file = tmp_file_prefix + '.res'
     print('Running P+T with coordinated file prefix: %s ' % tmp_file_prefix)
     cmd_str = 'python LDpred.py --debug p+t --cf=%s  --ldr=100  --p=0.001 --out=%s' % (coord_file, tmp_file_prefix)
     print(cmd_str + '\n')
     assert os.system(cmd_str) == 0, 'Problems when running P+T!'
     
-    out_file = tmp_file_prefix + '.res'
+    prs_file_prefix = tmp_file_prefix + 'prs'
     print('Validating results with output file prefix: %s' % tmp_file_prefix)
-    cmd_str = 'python LDpred.py --debug score --gf=./test_data/LDpred_data_p0.001_test_0  --rf=%s  --out=%s' % (tmp_file_prefix, tmp_file_prefix)
+    cmd_str = 'python LDpred.py --debug score --gf=./test_data/LDpred_data_p0.001_test_0  --rf=%s  --out=%s' % (tmp_file_prefix, prs_file_prefix)
     print(cmd_str + '\n')
     assert os.system(cmd_str) == 0, 'Problems with the validation step!'
     
-    out_file = tmp_file_prefix + '.res'
+    prs_file_prefix2 = tmp_file_prefix + 'prs_2'
     print('Validating results with output file prefix: %s' % tmp_file_prefix)
-    cmd_str = 'python LDpred.py --debug score --gf=./test_data/LDpred_data_p0.001_test_0  --rf=%s  --rf-format=P+T --out=%s' % (tmp_file_prefix, tmp_file_prefix)
+    cmd_str = 'python LDpred.py score --gf=./test_data/LDpred_data_p0.001_test_0  --rf=%s  --out=%s' % (tmp_file_prefix, prs_file_prefix2)
+    print(cmd_str + '\n')
+    assert os.system(cmd_str) == 0, 'Problems with the validation step!'
+    print('Test finished successfully!')
+
+    prs_file_prefix = tmp_file_prefix + 'prs_P+T'
+    print('Validating results with output file prefix: %s' % tmp_file_prefix)
+    cmd_str = 'python LDpred.py score --gf=./test_data/LDpred_data_p0.001_test_0  --rf=%s  --rf-format=P+T --out=%s' % (tmp_file_prefix, prs_file_prefix)
     print(cmd_str + '\n')
     assert os.system(cmd_str) == 0, 'Problems with the P+T validation step!'
     print('Test finished successfully!')
 
-    out_file = tmp_file_prefix + '2.res'
-    print('Validating results with output file prefix: %s' % tmp_file_prefix)
-    cmd_str = 'python LDpred.py score --gf=./test_data/LDpred_data_p0.001_test_0  --rf=%s  --rf-format=P+T --out=%s' % (tmp_file_prefix, tmp_file_prefix)
-    print(cmd_str + '\n')
-    assert os.system(cmd_str) == 0, 'Problems with the P+T validation step!'
-    print('Test finished successfully!')
 
 except Exception as e:
     print("Test failed: ",e)
