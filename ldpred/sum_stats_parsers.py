@@ -1,7 +1,6 @@
 import scipy as sp
 from scipy import stats
 from scipy import isinf
-import random
 import re
 import gzip
 from ldpred import util

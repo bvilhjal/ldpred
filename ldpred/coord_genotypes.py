@@ -8,28 +8,7 @@ from ldpred import sum_stats_parsers
 from ldpred import util
 from ldpred import plinkfiles
 
-def get_chrom_dict_bim(bim_file, chromosomes):
-    chr_dict = {}
-    for chrom in chromosomes:
-        chr_str = 'chrom_%d' % chrom
-        chr_dict[chr_str] = {'sids': [],
-                             'snp_indices': [], 'positions': [], 'nts': []}
 
-    with open(bim_file) as f:
-        for i, line in enumerate(f):
-            l = line.split()
-            chrom = int(l[0])
-            chr_str = 'chrom_%d' % chrom
-            sid_str = l[1]
-            sid_list = sid_str.split(':')
-            sid = sid_list[0]
-            chr_dict[chr_str]['sids'].append(sid)
-            chr_dict[chr_str]['snp_indices'].append(i)
-            chr_dict[chr_str]['positions'].append(int(l[3]))
-            chr_dict[chr_str]['nts'].append([l[4], l[5]])
-
-    print('Genotype dictionary filled')
-    return chr_dict
 
 
 def _verify_coord_data_(data_dict):

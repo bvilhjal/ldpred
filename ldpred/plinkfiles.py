@@ -25,7 +25,6 @@ def get_chrom_dict(loci, chromosomes):
     return chr_dict
 
 
-
 def parse_plink_snps(genotype_file, snp_indices):
     plinkf = plinkfile.PlinkFile(genotype_file)
     samples = plinkf.get_samples()
