@@ -77,7 +77,7 @@ def ldpred_inf_genomewide(data_file=None, ld_radius = None, ld_dict=None, out_fi
     cord_data_g = df['cord_data']
 
     #Calculating genome-wide heritability using LD score regression, and partition heritability by chromsomes
-    herit_dict = ld.get_chromosome_herits(cord_data_g, ld_scores_dict, n, h2)
+    herit_dict = ld.get_chromosome_herits(cord_data_g, ld_scores_dict, n, h2=h2)
 
     if out_file_prefix:
         #Preparing output files

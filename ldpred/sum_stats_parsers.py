@@ -55,11 +55,15 @@ def parse_sum_stats_custom(filename=None,
                     bimfile=None,
                     hdf5_file=None,
                     n=None,
-                    chr=None,
+                    ch=None,
                     pos=None,
                     A1=None,
                     A2=None,
                     reffreq=None,
+                    case_freq = None,
+                    control_freq = None,
+                    case_n = None,
+                    control_n = None,
                     info=None,
                     rs=None,
                     pval=None, 
@@ -76,7 +80,7 @@ def parse_sum_stats_custom(filename=None,
     assert not ncol is None or not n is None, 'Require either N or NCOL information'
 
 
-    if chr is None:
+    if ch is None:
         assert not bimfile is None, 'Require bimfile when chromosome header not provided'
         print("Chromosome Header not provided, will use info from bim file")
     if pos is None:
@@ -114,7 +118,7 @@ def parse_sum_stats_custom(filename=None,
         for col in columns:
             header_dict[col] = index
             index+=1
-        assert chr is None or chr in header_dict, 'Chromosome header cannot be found in summary statistic file'
+        assert ch is None or ch in header_dict, 'Chromosome header cannot be found in summary statistic file'
         assert A2 in header_dict, 'Non-effective allele column cannot be found in summary statistic file'
         assert A1 in header_dict, 'Effective allele column cannot be found in summary statistic file'
         assert eff in header_dict, 'Effect size column not found in summary statistic file'
@@ -136,11 +140,10 @@ def parse_sum_stats_custom(filename=None,
                 # Get the chromosome information
                 chrom = 0
                 if not chr is None and chr in header_dict:
-                    chrom = l[header_dict[chr]]
+                    chrom = l[header_dict[ch]]
                     chrom = re.sub("chr", "", chrom)
                     if not chrom == snps_pos_map[sid]['chrom']:
                         chr_filter += 1
-                        continue
                 else:
                     chrom = snps_pos_map[sid]['chrom']
                 if not chrom in util.ok_chromosomes:
@@ -157,7 +160,6 @@ def parse_sum_stats_custom(filename=None,
                 else:
                     pos_read = snps_pos_map[sid]['pos']
 
-            
                 if not chrom in chrom_dict:
                     chrom_dict[chrom] = {'ps':[], 'log_odds':[], 'infos':[], 'freqs':[],
                              'betas':[], 'nts': [], 'sids': [], 'positions': []}
@@ -169,7 +171,24 @@ def parse_sum_stats_custom(filename=None,
                         chrom_dict[chrom]['freqs'].append(-1)
                     else:
                         chrom_dict[chrom]['freqs'].append(float(l[header_dict[reffreq]]))
-                else:
+                elif (case_n is not None and control_n is not None 
+                      and case_n in header_dict and control_n in header_dict 
+                      and case_freq is not None and control_freq is not None 
+                      and case_freq in header_dict and control_freq in header_dict) :
+                    if (l[header_dict[control_n]] == '.' or l[header_dict[control_n]] == 'NA' 
+                        or l[header_dict[case_n]] == '.' or l[header_dict[case_n]] == 'NA' 
+                        or l[header_dict[control_freq]] == '.' or l[header_dict[control_freq]] == 'NA' 
+                        or l[header_dict[case_freq]] == '.' or l[header_dict[case_freq]] == 'NA'):
+                        chrom_dict[chrom]['freqs'].append(-1)
+                    else:
+                        case_N = float(l[header_dict[case_n]])
+                        control_N = float(l[header_dict[control_n]])
+                        N = case_N+control_N
+                        a_scalar =  case_N/ N
+                        u_scalar = control_N / N
+                        freq = float(l[header_dict[case_freq]]) * a_scalar + float(l[header_dict[control_freq]]) * u_scalar
+                        chrom_dict[chrom]['freqs'].append(freq)
+                else:  
                     chrom_dict[chrom]['freqs'].append(-1)
                 # Get the INFO score
                 info_sc = -1
@@ -278,7 +297,7 @@ def parse_sum_stats_boltlmm(filename=None,
                     bimfile=bimfile,
                     hdf5_file=hdf5_file,
                     n=n,
-                    chr='CHR',
+                    ch='CHR',
                     pos='BP',
                     A1='ALLELE1',
                     A2='ALLELE0',
@@ -287,10 +306,8 @@ def parse_sum_stats_boltlmm(filename=None,
                     rs='SNP',
                     pval='P_BOLT_LMM_INF', 
                     eff='BETA',
-                    ncol=14,
                     input_is_beta=True, 
                     debug=debug)
-
 
 def parse_sum_stats_standard(filename=None,
                              bimfile=None,
@@ -305,103 +322,21 @@ def parse_sum_stats_standard(filename=None,
     chr1    1020496 G       A       0.85073 0.98751 rs6678318    0.1287  -0.00826075392985992
 
     """
-
-    if bimfile is not None:
-        valid_sids = set()
-        if debug:
-            print('Parsing bim file: %s' % bimfile)
-        with open(bimfile) as f:
-            for line in f:
-                l = line.split()
-                valid_sids.add(l[1])
-
-    chrom_dict = {}
-
-    print('Parsing summary statistics file: %s' % filename)
-    with open(filename) as f:
-        if debug:
-            print(next(f))
-        missing_chromosomes = set()
-        for line in f:
-            l = (line.strip()).split()
-            chrom = l[0][3:]
-            if not chrom in util.valid_chromosomes:
-                missing_chromosomes.add(chrom)
-                continue
-            pos = int(l[1])
-            sid = l[6]
-            if sid in valid_sids:
-                if not chrom in chrom_dict:
-                    chrom_dict[chrom] = {'ps': [], 'log_odds': [], 'infos': [], 'freqs': [],
-                                         'betas': [], 'nts': [], 'sids': [], 'positions': []}
-                chrom_dict[chrom]['sids'].append(sid)
-                chrom_dict[chrom]['positions'].append(pos)
-                chrom_dict[chrom]['freqs'].append(float(l[4]))
-                info = float(l[5])
-                chrom_dict[chrom]['infos'].append(info)
-                pval = float(l[7])
-                chrom_dict[chrom]['ps'].append(pval)
-                nt = [l[2], l[3]]
-                chrom_dict[chrom]['nts'].append(nt)
-                raw_beta = float(l[8])
-                chrom_dict[chrom]['log_odds'].append(raw_beta)
-                beta = sp.sign(raw_beta) * stats.norm.ppf(pval / 2.0)
-
-                chrom_dict[chrom]['betas'].append(beta / sp.sqrt(n))
-
-        util.check_chromosomes(missing_chromosomes)
-
-    print('SS file loaded, now sorting and storing in HDF5 file.')
-    assert not 'sum_stats' in hdf5_file, 'Something is wrong with HDF5 file.  Summary stats already found.'
-    ssg = hdf5_file.create_group('sum_stats')
-    num_snps = 0
-    for chrom in chrom_dict:
-        if debug:
-            print('%d SNPs on chromosome %s' % (len(chrom_dict[chrom]['positions']), chrom))
-        sl = list(zip(chrom_dict[chrom]['positions'], chrom_dict[chrom]['sids'], chrom_dict[chrom]['nts'],
-                 chrom_dict[chrom]['betas'], chrom_dict[chrom]['log_odds'], chrom_dict[chrom]['infos'],
-                 chrom_dict[chrom]['freqs'], chrom_dict[chrom]['ps']))
-        sl.sort()
-        ps = []
-        betas = []
-        nts = []
-        sids = []
-        positions = []
-        log_odds = []
-        infos = []
-        freqs = []
-        prev_pos = -1
-        for pos, sid, nt, beta, lo, info, frq, p in sl:
-            if pos == prev_pos:
-                if debug:
-                    print('duplicated position %d' % pos)
-                continue
-            else:
-                prev_pos = pos
-            ps.append(p)
-            betas.append(beta)
-            nts.append(nt)
-            sids.append(sid)
-            positions.append(pos)
-            log_odds.append(lo)
-            infos.append(info)
-            freqs.append(frq)
-        nts = sp.array(nts,dtype=nts_dtype)
-        sids = sp.array(sids,dtype=sids_dtype)
-        if debug:
-            print('Still %d SNPs on chromosome %s' % (len(ps), chrom))
-        g = ssg.create_group('chrom_%s' % chrom)
-        g.create_dataset('ps', data=sp.array(ps))
-        g.create_dataset('freqs', data=freqs)
-        g.create_dataset('betas', data=betas)
-        g.create_dataset('log_odds', data=log_odds)
-        num_snps += len(log_odds)
-        g.create_dataset('infos', data=infos)
-        g.create_dataset('nts', data=nts)
-        g.create_dataset('sids', data=sids)
-        g.create_dataset('positions', data=positions)
-        hdf5_file.flush()
-    print('%d SNPs parsed from summary statistics file.' % num_snps)
+    parse_sum_stats_custom(filename=filename,
+                    bimfile=bimfile,
+                    hdf5_file=hdf5_file,
+                    n=n,
+                    ch='chr',
+                    pos='pos',
+                    A1='ref',
+                    A2='alt',
+                    reffreq='reffrq',
+                    info='info',
+                    rs='rs',
+                    pval='pval', 
+                    eff='effalt',
+                    input_is_beta=True, 
+                    debug=debug)
 
 
 def parse_sum_stats_giant(filename=None,
@@ -418,102 +353,22 @@ def parse_sum_stats_giant(filename=None,
 
     """
 
-    snps_pos_map = {}
-    assert bimfile is not None, 'BIM file is required'
-    valid_sids = set()
-    if debug:
-        print('Parsing bim file: %s' % bimfile)
-    with open(bimfile) as f:
-        for line in f:
-            l = line.split()
-            valid_sids.add(l[1])
-            snps_pos_map[l[1]] = {'pos': int(l[3]), 'chrom': l[0]}
-
-    chrom_dict = {}
-
-    print('Parsing the file: %s' % filename)
-    with open(filename) as f:
-        if debug:
-            print(next(f))
-        missing_chromosomes = set()
-        for line in f:
-            l = (line.strip()).split()
-            sid = l[0]
-            if debug and random.random() > 0.1:
-                continue
-            if sid in valid_sids:
-                pos = snps_pos_map[sid]['pos']
-                chrom = snps_pos_map[sid]['chrom']
-                if not chrom in util.valid_chromosomes:
-                    missing_chromosomes.add(chrom)
-                    continue
-                if not chrom in chrom_dict:
-                    chrom_dict[chrom] = {'ps': [], 'log_odds': [], 'freqs': [],
-                                         'betas': [], 'nts': [], 'sids': [], 'positions': []}
-                chrom_dict[chrom]['sids'].append(sid)
-                chrom_dict[chrom]['positions'].append(pos)
-                if l[3] == '.' or l[3] == 'NA':
-                    freq = -1
-                else:
-                    freq = float(l[3])
-                chrom_dict[chrom]['freqs'].append(freq)
-                raw_beta = float(l[4])
-                pval = float(l[6])
-                n = float(l[7]) #Sample size
-                chrom_dict[chrom]['ps'].append(pval)
-                nt = [l[1], l[2]]
-                chrom_dict[chrom]['nts'].append(nt)
-                beta = sp.sign(raw_beta) * stats.norm.ppf(pval / 2.0)
-                chrom_dict[chrom]['betas'].append(beta / sp.sqrt(n))
-                chrom_dict[chrom]['log_odds'].append(beta / sp.sqrt(n))
-
-        util.check_chromosomes(missing_chromosomes)
-
-    print('SS file loaded, now sorting and storing in HDF5 file.')
-    assert not 'sum_stats' in hdf5_file, 'Something is wrong with HDF5 file?  Summary stats already found.'
-    ssg = hdf5_file.create_group('sum_stats')
-    num_snps = 0
-    for chrom in chrom_dict:
-        print('%d SNPs on chromosome %d' % (len(chrom_dict[chrom]['positions']), chrom))
-        sl = list(zip(chrom_dict[chrom]['positions'], chrom_dict[chrom]['sids'], chrom_dict[chrom]['nts'],
-                 chrom_dict[chrom]['betas'], chrom_dict[chrom]['log_odds'],
-                 chrom_dict[chrom]['freqs'], chrom_dict[chrom]['ps']))
-        sl.sort()
-        ps = []
-        betas = []
-        nts = []
-        sids = []
-        positions = []
-        log_odds = []
-        freqs = []
-        prev_pos = -1
-        for pos, sid, nt, beta, lo, frq, p in sl:
-            if pos == prev_pos:
-                print('duplicated position %d' % pos)
-                continue
-            else:
-                prev_pos = pos
-            ps.append(p)
-            betas.append(beta)
-            nts.append(nt)
-            sids.append(sid)
-            positions.append(pos)
-            log_odds.append(lo)
-            freqs.append(frq)
-        print('Still %d SNPs on chromosome %s' % (len(ps), chrom))
-        g = ssg.create_group('chrom_%s' % chrom)
-        g.create_dataset('ps', data=sp.array(ps))
-        g.create_dataset('freqs', data=freqs)
-        g.create_dataset('betas', data=betas)
-        g.create_dataset('log_odds', data=log_odds)
-        num_snps += len(log_odds)
-        g.create_dataset('nts', data=nts)
-        g.create_dataset('sids', data=sids)
-        g.create_dataset('positions', data=positions)
-        hdf5_file.flush()
-    print('%d SNPs parsed from summary statistics file.' % num_snps)
-
-
+    parse_sum_stats_custom(filename=filename,
+                    bimfile=bimfile,
+                    hdf5_file=hdf5_file,
+                    ch=None,
+                    pos=None,
+                    A1='Allele1',
+                    A2='Allele2',
+                    reffreq='Freq.Allele1.HapMapCEU',
+                    info=None,
+                    rs='MarkerName',
+                    pval='p', 
+                    eff='b',
+                    ncol='N',
+                    input_is_beta=True, 
+                    debug=debug)
+    
 def parse_sum_stats_giant2(filename=None,
                            bimfile=None,
                            hdf5_file=None,
@@ -527,104 +382,21 @@ def parse_sum_stats_giant2(filename=None,
     rs737656 a g 0.3667 -0.0073 0.0064 0.25 60529.2
 
     """
-    lc_CAPs_dict = {'a': 'A', 'c': 'C', 'g': 'G', 't': 'T'}
-
-    snps_pos_map = {}
-    assert bimfile is not None, 'BIM file is required'
-    valid_sids = set()
-    print('Parsing bim file: %s' % bimfile)
-    with open(bimfile) as f:
-        for line in f:
-            l = line.split()
-            valid_sids.add(l[1])
-            snps_pos_map[l[1]] = {'pos': int(l[3]), 'chrom': l[0]}
-
-    chrom_dict = {}
-
-    print('Parsing the file: %s' % filename)
-    with open(filename) as f:
-        if debug:
-            print(next(f))
-        missing_chromosomes = set()
-        for line in f:
-            l = (line.strip()).split()
-            sid = l[0]
-            if debug and random.random() > 0.1:
-                continue
-            if sid in valid_sids:
-                pos = snps_pos_map[sid]['pos']
-                chrom = snps_pos_map[sid]['chrom']
-                if not chrom in util.valid_chromosomes:
-                    missing_chromosomes.add(chrom)
-                    continue
-
-                if not chrom in chrom_dict:
-                    chrom_dict[chrom] = {'ps': [], 'log_odds': [], 'freqs': [],
-                                         'betas': [], 'nts': [], 'sids': [], 'positions': []}
-                chrom_dict[chrom]['sids'].append(sid)
-                chrom_dict[chrom]['positions'].append(pos)
-                if l[3] == '.' or l[3] == 'NA':
-                    freq = -1
-                else:
-                    freq = float(l[3])
-                chrom_dict[chrom]['freqs'].append(freq)
-                raw_beta = float(l[4])
-                pval = float(l[6])
-                n = float(l[7])
-                chrom_dict[chrom]['ps'].append(pval)
-                nt = [lc_CAPs_dict[l[1]], lc_CAPs_dict[l[2]]]
-                chrom_dict[chrom]['nts'].append(nt)
-                beta = sp.sign(raw_beta) * stats.norm.ppf(pval / 2.0)
-                chrom_dict[chrom]['betas'].append(beta / sp.sqrt(n))
-                chrom_dict[chrom]['log_odds'].append(beta / sp.sqrt(n))
-
-        
-        util.check_chromosomes(missing_chromosomes)
-
-    print('SS file loaded, now sorting and storing in HDF5 file.')
-    assert not 'sum_stats' in hdf5_file, 'Something is wrong with HDF5 file?  Summary stats already found.'
-    ssg = hdf5_file.create_group('sum_stats')
-    num_snps = 0
-    for chrom in chrom_dict:
-        print('%d SNPs on chromosome %d' % (len(chrom_dict[chrom]['positions']), chrom))
-        sl = list(zip(chrom_dict[chrom]['positions'], chrom_dict[chrom]['sids'], chrom_dict[chrom]['nts'],
-                 chrom_dict[chrom]['betas'], chrom_dict[chrom]['log_odds'],
-                 chrom_dict[chrom]['freqs'], chrom_dict[chrom]['ps']))
-        sl.sort()
-        ps = []
-        betas = []
-        nts = []
-        sids = []
-        positions = []
-        log_odds = []
-        freqs = []
-        prev_pos = -1
-        for pos, sid, nt, beta, lo, frq, p in sl:
-            if pos == prev_pos:
-                print('duplicated position %d' % pos)
-                continue
-            else:
-                prev_pos = pos
-            ps.append(p)
-            betas.append(beta)
-            nts.append(nt)
-            sids.append(sid)
-            positions.append(pos)
-            log_odds.append(lo)
-            freqs.append(frq)
-        print('Still %d SNPs on chromosome %s' % (len(ps), chrom))
-        g = ssg.create_group('chrom_%s' % chrom)
-        g.create_dataset('ps', data=sp.array(ps))
-        g.create_dataset('freqs', data=freqs)
-        g.create_dataset('betas', data=betas)
-        g.create_dataset('log_odds', data=log_odds)
-        num_snps += len(log_odds)
-        g.create_dataset('nts', data=nts)
-        g.create_dataset('sids', data=sids)
-        g.create_dataset('positions', data=positions)
-        hdf5_file.flush()
-    print('%d SNPs parsed from summary statistics file.' % num_snps)
-
+    parse_sum_stats_custom(filename=filename,
+                    bimfile=bimfile,
+                    hdf5_file=hdf5_file,
+                    ncol='N',
+                    ch=None,
+                    pos=None,
+                    A1='A1',
+                    A2='A2',
+                    reffreq='Freq.Hapmap.Ceu',
+                    info=None,
+                    rs='MarkerName',
+                    pval='P.2gc', 
+                    eff='BETA',
+                    input_is_beta=True, 
+                    debug=debug)
 
 
 def parse_sum_stats_pgc(filename=None,
@@ -638,109 +410,27 @@ def parse_sum_stats_pgc(filename=None,
     ...
 
     """
+    parse_sum_stats_custom(filename=filename,
+                    bimfile=bimfile,
+                    hdf5_file=hdf5_file,
+                    ch='CHR',
+                    pos='BP',
+                    A1='A1',
+                    A2='A2',
+                    reffreq='Freq.Hapmap.Ceu',
+                    case_freq = 'FRQ_A_30232',
+                    control_freq = 'FRQ_U_40578',
+                    case_n = 'FRQ_A_30232',
+                    control_n = 'FRQ_U_40578',
+                    info='INFO',
+                    rs='SNP',
+                    pval='P', 
+                    eff='OR',
+                    ncol='ngt',
+                    input_is_beta=False, 
+                    debug=debug)
 
-    if bimfile is not None:
-        print('Parsing SNP list')
-        valid_sids = set()
-        print('Parsing bim file: %s' % bimfile)
-        with open(bimfile) as f:
-            for line in f:
-                l = line.split()
-                valid_sids.add(l[1])
-        print('Parsed %d SNP IDs from bim file.'%len(valid_sids))
 
-    chrom_dict = {}
-
-    print('Parsing the file: %s' % filename)
-    with open(filename) as f:
-        if debug:
-            print(next(f))
-        missing_chromosomes = set()
-        line_i = 0
-        for line in f:
-            line_i +=1
-            l = (line.strip()).split()
-            chrom = l[0]
-            if not chrom in util.valid_chromosomes:
-                missing_chromosomes.add(chrom)
-                continue
-            pos = int(l[2])
-            sid = l[1]
-            if sid in valid_sids:
-                if not chrom in chrom_dict:
-                    chrom_dict[chrom] = {'ps': [], 'log_odds': [], 'infos': [], 'freqs': [],
-                                         'betas': [], 'nts': [], 'sids': [], 'positions': []}
-                chrom_dict[chrom]['sids'].append(sid)
-                chrom_dict[chrom]['positions'].append(pos)
-                freq_a = float(l[5])
-                freq_u = float(l[6])
-                n_cases = float(l[15])
-                n_controls = float(l[16])
-                n = n_cases+n_controls
-                a_scalar =  n_cases/ n
-                u_scalar = n_controls / n
-                freq = freq_a * a_scalar + freq_u * u_scalar
-                chrom_dict[chrom]['freqs'].append(freq)
-                info = float(l[7])
-                chrom_dict[chrom]['infos'].append(info)
-                pval = float(l[10])
-                chrom_dict[chrom]['ps'].append(pval)
-                nt = [l[3], l[4]]
-                chrom_dict[chrom]['nts'].append(nt)
-                raw_beta = sp.log(float(l[8]))
-                chrom_dict[chrom]['log_odds'].append(raw_beta)
-                beta = sp.sign(raw_beta) * stats.norm.ppf(pval / 2.0)
-
-                chrom_dict[chrom]['betas'].append(beta / sp.sqrt(n))
-        util.check_chromosomes(missing_chromosomes)
-
-    print('SS file loaded, now sorting and storing in HDF5 file.')
-    assert not 'sum_stats' in hdf5_file, 'Something is wrong with HDF5 file? Summary stats already found.'
-    ssg = hdf5_file.create_group('sum_stats')
-    num_snps = 0
-    for chrom in chrom_dict:
-        print('Parsed summary stats for %d SNPs on chromosome %s' % (len(chrom_dict[chrom]['positions']), chrom))
-        sl = list(zip(chrom_dict[chrom]['positions'], chrom_dict[chrom]['sids'], chrom_dict[chrom]['nts'],
-                 chrom_dict[chrom]['betas'], chrom_dict[chrom]['log_odds'], chrom_dict[chrom]['infos'],
-                 chrom_dict[chrom]['freqs'], chrom_dict[chrom]['ps']))
-        sl.sort()
-        ps = []
-        betas = []
-        nts = []
-        sids = []
-        positions = []
-        log_odds = []
-        infos = []
-        freqs = []
-        prev_pos = -1
-        for pos, sid, nt, beta, lo, info, frq, p in sl:
-            if pos == prev_pos:
-                print('duplicated position %d' % pos)
-                continue
-            else:
-                prev_pos = pos
-            ps.append(p)
-            betas.append(beta)
-            nts.append(nt)
-            sids.append(sid)
-            positions.append(pos)
-            log_odds.append(lo)
-            infos.append(info)
-            freqs.append(frq)
-        nts = sp.array(nts,dtype=nts_dtype)
-        sids = sp.array(sids,dtype=sids_dtype)
-        g = ssg.create_group('chrom_%s' % chrom)
-        g.create_dataset('ps', data=sp.array(ps))
-        g.create_dataset('freqs', data=freqs)
-        g.create_dataset('betas', data=betas)
-        g.create_dataset('log_odds', data=log_odds)
-        num_snps += len(log_odds)
-        g.create_dataset('infos', data=infos)
-        g.create_dataset('nts', data=nts)
-        g.create_dataset('sids', data=sids)
-        g.create_dataset('positions', data=positions)
-        hdf5_file.flush()
-    print('In all, %d SNPs parsed from summary statistics file.' % num_snps)
 
 
 def parse_sum_stats_pgc_small(filename=None,
@@ -757,97 +447,21 @@ def parse_sum_stats_pgc_small(filename=None,
     ...
 
     """
+    parse_sum_stats_custom(filename=filename,
+                    bimfile=bimfile,
+                    hdf5_file=hdf5_file,
+                    ch='hg19chrc',
+                    pos='bp',
+                    A1='a1',
+                    A2='a2',
+                    info='info',
+                    rs='snpid',
+                    pval='p', 
+                    eff='or',
+                    n=n,
+                    input_is_beta=False, 
+                    debug=debug)
 
-    if bimfile is not None:
-        print('Parsing SNP list')
-        valid_sids = set()
-        print('Parsing bim file: %s' % bimfile)
-        with open(bimfile) as f:
-            for line in f:
-                l = line.split()
-                valid_sids.add(l[1])
-        print(len(valid_sids))
-
-    chrom_dict = {}
-
-    print('Parsing the file: %s' % filename)
-    with open(filename) as f:
-        if debug:
-            print (next(f))
-        missing_chromosomes = set()
-        for line in f:
-            l = (line.strip()).split()
-            chrom_str = l[0]
-            chrom = chrom_str[3:]
-            if not chrom in util.valid_chromosomes:
-                missing_chromosomes.add(chrom)
-                continue
-            pos = int(l[4])
-            sid = l[1]
-            if sid in valid_sids:
-                if not chrom in chrom_dict:
-                    chrom_dict[chrom] = {'ps': [], 'log_odds': [], 'infos': [],
-                                         'betas': [], 'nts': [], 'sids': [],
-                                         'positions': []}
-                chrom_dict[chrom]['sids'].append(sid)
-                chrom_dict[chrom]['positions'].append(pos)
-                info = float(l[5])
-                chrom_dict[chrom]['infos'].append(info)
-                pval = float(l[8])
-                chrom_dict[chrom]['ps'].append(pval)
-                nt = [l[2], l[3]]
-                chrom_dict[chrom]['nts'].append(nt)
-                raw_beta = sp.log(float(l[6]))
-                chrom_dict[chrom]['log_odds'].append(raw_beta)
-                beta = sp.sign(raw_beta) * stats.norm.ppf(pval / 2.0)
-
-                chrom_dict[chrom]['betas'].append(beta / sp.sqrt(n))
-        util.check_chromosomes(missing_chromosomes)
-
-    print('SS file loaded, now sorting and storing in HDF5 file.')
-    assert not 'sum_stats' in hdf5_file, 'Something is wrong with HDF5 file? Summary stats already found.'
-    ssg = hdf5_file.create_group('sum_stats')
-    num_snps = 0
-    for chrom in chrom_dict:
-        print('Parsed summary stats for %d SNPs on chromosome %s' % (len(chrom_dict[chrom]['positions']), chrom))
-        sl = list(zip(chrom_dict[chrom]['positions'], chrom_dict[chrom]['sids'], chrom_dict[chrom]['nts'],
-                 chrom_dict[chrom]['betas'], chrom_dict[chrom]['log_odds'], chrom_dict[chrom]['infos'],
-                 chrom_dict[chrom]['ps']))
-        sl.sort()
-        ps = []
-        betas = []
-        nts = []
-        sids = []
-        positions = []
-        log_odds = []
-        infos = []
-        prev_pos = -1
-        for pos, sid, nt, beta, lo, info, p in sl:
-            if pos == prev_pos:
-                print('duplicated position %d' % pos)
-                continue
-            else:
-                prev_pos = pos
-            ps.append(p)
-            betas.append(beta)
-            nts.append(nt)
-            sids.append(sid)
-            positions.append(pos)
-            log_odds.append(lo)
-            infos.append(info)
-        nts = sp.array(nts,dtype=nts_dtype)
-        sids = sp.array(sids,dtype=sids_dtype)
-        g = ssg.create_group('chrom_%s' % chrom)
-        g.create_dataset('ps', data=sp.array(ps))
-        g.create_dataset('betas', data=betas)
-        g.create_dataset('log_odds', data=log_odds)
-        num_snps += len(log_odds)
-        g.create_dataset('infos', data=infos)
-        g.create_dataset('nts', data=nts)
-        g.create_dataset('sids', data=sids)
-        g.create_dataset('positions', data=positions)
-        hdf5_file.flush()
-    print('In all, %d SNPs parsed from summary statistics file.' % num_snps)
 
 
 def parse_sum_stats_basic(filename=None,
@@ -864,89 +478,17 @@ def parse_sum_stats_basic(filename=None,
     ...
 
     """
-
-    if bimfile is not None:
-        valid_sids = set()
-        print('Parsing bim file: %s' % bimfile)
-        with open(bimfile) as f:
-            for line in f:
-                l = line.split()
-                valid_sids.add(l[1])
-    chrom_dict = {}
-
-    print('Parsing the file: %s' % filename)
-    with open(filename) as f:
-        missing_chromosomes = set()
-        if debug:
-            print(next(f))
-        for line in f:
-            l = (line.strip()).split()
-            chrom_str = l[0]
-            chrom = chrom_str[3:]
-            if not chrom in util.valid_chromosomes:
-                missing_chromosomes.add(chrom)
-                continue
-            pos = int(l[4])
-            sid = l[1]
-            if sid in valid_sids:
-                if not chrom in chrom_dict:
-                    chrom_dict[chrom] = {'ps': [], 'log_odds': [], 'infos': [],
-                                         'betas': [], 'nts': [], 'sids': [],
-                                         'positions': []}
-                chrom_dict[chrom]['sids'].append(sid)
-                chrom_dict[chrom]['positions'].append(pos)
-                pval = float(l[6])
-                chrom_dict[chrom]['ps'].append(pval)
-                nt = [l[2], l[3]]
-                chrom_dict[chrom]['nts'].append(nt)
-                odds_ratio = float(l[5])
-                assert odds_ratio > 0, 'The odds ratios appear to have negative values.  Please use an appropriate data format.'
-                raw_beta = sp.log(odds_ratio)
-                chrom_dict[chrom]['log_odds'].append(raw_beta)
-                beta = sp.sign(raw_beta) * stats.norm.ppf(pval / 2.0)
-                chrom_dict[chrom]['betas'].append(beta / sp.sqrt(n))
-
-        util.check_chromosomes(missing_chromosomes)
-
-    print('SS file loaded, now sorting and storing in HDF5 file.')
-    assert not 'sum_stats' in hdf5_file, 'Something is wrong with HDF5 file? Summary stats already found.'
-    ssg = hdf5_file.create_group('sum_stats')
-    num_snps = 0
-    for chrom in chrom_dict:
-        print('Parsed summary stats for %d SNPs on chromosome %s' % (len(chrom_dict[chrom]['positions']), chrom))
-        sl = list(zip(chrom_dict[chrom]['positions'], chrom_dict[chrom]['sids'], chrom_dict[chrom]['nts'],
-                 chrom_dict[chrom]['betas'], chrom_dict[chrom]['log_odds'], chrom_dict[chrom]['ps']))
-        sl.sort()
-        ps = []
-        betas = []
-        nts = []
-        sids = []
-        positions = []
-        log_odds = []
-        prev_pos = -1
-        for pos, sid, nt, beta, lo, p in sl:
-            if pos == prev_pos:
-                print('duplicated position %d' % pos)
-                continue
-            else:
-                prev_pos = pos
-            ps.append(p)
-            betas.append(beta)
-            nts.append(nt)
-            sids.append(sid)
-            positions.append(pos)
-            log_odds.append(lo)
-        nts = sp.array(nts,dtype=nts_dtype)
-        sids = sp.array(sids,dtype=sids_dtype)
-        g = ssg.create_group('chrom_%s' % chrom)
-        g.create_dataset('ps', data=sp.array(ps))
-        g.create_dataset('betas', data=betas)
-        g.create_dataset('log_odds', data=log_odds)
-        num_snps += len(log_odds)
-        g.create_dataset('nts', data=nts)
-        g.create_dataset('sids', data=sids)
-        g.create_dataset('positions', data=positions)
-        hdf5_file.flush()
-    print('In all, %d SNPs parsed from summary statistics file.' % num_snps)
-
-
+    parse_sum_stats_custom(filename=filename,
+                    bimfile=bimfile,
+                    hdf5_file=hdf5_file,
+                    ch='hg19chrc',
+                    pos='bp',
+                    A1='a1',
+                    A2='a2',
+                    info='info',
+                    rs='snpid',
+                    pval='p', 
+                    eff='or',
+                    n=n,
+                    input_is_beta=False, 
+                    debug=debug)
