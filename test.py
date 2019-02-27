@@ -48,6 +48,14 @@ try:
     print(cmd_str + '\n')
     assert os.system(cmd_str) == 0, 'Problems with the P+T validation step!'
     print('Test finished successfully!')
+
+    out_file = tmp_file_prefix + '2.res'
+    print('Validating results with output file prefix: %s' % tmp_file_prefix)
+    cmd_str = 'python LDpred.py score --gf=./test_data/LDpred_data_p0.001_test_0  --rf=%s  --rf-format=P+T --out=%s' % (tmp_file_prefix, tmp_file_prefix)
+    print(cmd_str + '\n')
+    assert os.system(cmd_str) == 0, 'Problems with the P+T validation step!'
+    print('Test finished successfully!')
+
 except Exception as e:
     print("Test failed: ",e)
 

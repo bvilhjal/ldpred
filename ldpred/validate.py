@@ -326,7 +326,7 @@ def write_scores_file(out_file, prs_dict, raw_effects_prs, pval_derived_effects_
                 f.write(out_str)
     if weights_dict != None:
         hdf5file = out_file + '.weights.hdf5'
-        print ('Writing polygenic scores SNP weights to file %s'%out_file)
+        print ('Writing polygenic scores SNP weights to file %s'%hdf5file)
         oh5f = h5py.File(hdf5file, 'w')
         for k1 in list(weights_dict.keys()):
             kg = oh5f.create_group(k1)
