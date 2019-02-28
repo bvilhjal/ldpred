@@ -59,7 +59,7 @@ def parse_sum_stats(h5f, p_dict, bimfile):
         parse_sum_stats_custom(ncol='N', A1='A1', A2='A2', reffreq='Freq.Hapmap.Ceu', rs='MarkerName',
                     pval='P.2gc', eff='BETA', input_is_beta=True, **ss_args)
     elif p_dict['ssf_format'] == 'CUSTOM':
-        parse_sum_stats_custom(chr=p_dict['chr'],
+        parse_sum_stats_custom(ch=p_dict['chr'],
                     A1=p_dict['A1'], A2=p_dict['A2'], reffreq=p_dict['reffreq'], info=p_dict['info'],
                     rs=p_dict['rs'], pval=p_dict['pval'], eff=p_dict['eff'], ncol=p_dict['ncol'],
                     pos=p_dict['pos'], input_is_beta=p_dict['beta'], **ss_args)
