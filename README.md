@@ -12,7 +12,8 @@ described in Vilhjalmsson et al. (AJHG 2015) [http://www.cell.com/ajhg/abstract/
 ### News ###
 Jan 30th, 2019: Version 1.0 released and now for python 3
 
-Added a wiki with Q and A.  Please add questions (and answers)
+Feb 28th, 2019: Added a wiki with Q and A.  Please add questions (and answers)
+https://github.com/bvilhjal/ldpred/wiki/LDpred-Wiki
 
 ### Requirements ###
 LDpred currently requires three Python packages to be installed and in path.  These
