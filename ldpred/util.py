@@ -4,6 +4,9 @@ Various general utility functions.
 """
 import scipy as sp
 from scipy import stats
+import pickle
+import gzip
+import os
 
 # LDpred currently ignores the Y and MT chromosomes.
 ok_chromosomes = ['%d' % (x) for x in range(1, 23)]
@@ -34,6 +37,9 @@ nts_dtype = "|S1"
 
 sids_u_dtype = '<U30'
 nts_u_dtype = '<U1'
+
+my_path = os.path.abspath(os.path.dirname(__file__))
+hm3_file = os.path.join(my_path, "../reference/hm3_sids.txt.gz")
 
 def check_chromosomes(missing_chromosomes):
         if len(missing_chromosomes) > 0:
@@ -130,4 +136,10 @@ def obs_r2_to_liab(R2_osb,K=0.01,P=0.5):
     theta =d**2 - d*t
     R2_liab_cc =  (R2_osb*C)/(1+(R2_osb*C*theta))
     return R2_liab_cc
-
+    
+def load_hapmap_SNPs():
+    my_path = os.path.abspath(os.path.dirname(__file__))
+    f = gzip.open(hm3_file, 'r')
+    hm3_sids = pickle.load(f)
+    f.close()
+    return hm3_sids

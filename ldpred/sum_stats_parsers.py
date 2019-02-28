@@ -5,11 +5,9 @@ import re
 import gzip
 from ldpred import util
 
-sids_dtype = "S30"  # 30 character limit
-nts_dtype = "S1"
 
 def parse_sum_stats(h5f, p_dict, bimfile):
-    ss_args = {'filename':p_dict['ssf'], 'bimfile':bimfile, 'hdf5_file':h5f, 'n':p_dict['N'], 'debug':p_dict['debug']}
+    ss_args = {'filename':p_dict['ssf'], 'bimfile':bimfile, 'hdf5_file':h5f, 'only_hm3':p_dict['only_hm3'], 'n':p_dict['N'], 'debug':p_dict['debug']}
     if p_dict['ssf_format'] == 'STANDARD':
         if p_dict['N'] is None: 
             raise Exception('This summary statistics format requires summary statistics sample size to be given, i.e. set --N flag.')        
@@ -73,7 +71,7 @@ def is_gz(name):
     return name.lower().endswith(('.gz', '.gzip'))
 
 
-def parse_sum_stats_custom(filename=None, bimfile=None, hdf5_file=None, n=None, ch=None, pos=None,
+def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_file=None, n=None, ch=None, pos=None,
                     A1=None, A2=None, reffreq=None, case_freq=None, control_freq=None, case_n=None,
                     control_n=None, info=None, rs=None, pval=None, eff=None, ncol=None,
                     input_is_beta=False, debug=False):
@@ -93,6 +91,9 @@ def parse_sum_stats_custom(filename=None, bimfile=None, hdf5_file=None, n=None, 
         print("Position Header not provided, will use info from bim file")
 
     snps_pos_map = {}
+    if only_hm3:
+        hm3_sids = util.load_hapmap_SNPs()
+    
     if bimfile is not None:
         valid_sids = set()
         if debug:
@@ -101,10 +102,20 @@ def parse_sum_stats_custom(filename=None, bimfile=None, hdf5_file=None, n=None, 
             for line in f:
                 l = line.split()
                 # Bim file format is CHR SNP BP
-                valid_sids.add(l[1])
-                snps_pos_map[l[1]] = {'pos':int(l[3]), 'chrom':l[0]}
+                sid = l[1]
+                if only_hm3:
+                    if sid in hm3_sids:
+                        valid_sids.add()
+                        snps_pos_map[sid] = {'pos':int(l[3]), 'chrom':l[0]}
+                else:
+                    valid_sids.add(sid)
+                    snps_pos_map[sid] = {'pos':int(l[3]), 'chrom':l[0]}
+
         if len(valid_sids)==0:
             raise Exception('Unable to parse BIM file')
+    else:
+        raise Exception('Unable to load LD reference or validation genotypes bim file')
+        
     chr_filter = 0
     pos_filter = 0
     invalid_p = 0
@@ -271,8 +282,8 @@ def parse_sum_stats_custom(filename=None, bimfile=None, hdf5_file=None, n=None, 
             log_odds.append(lo)
             infos.append(info)
             freqs.append(frq)
-        nts = sp.array(nts, dtype=nts_dtype)
-        sids = sp.array(sids, dtype=sids_dtype)
+        nts = sp.array(nts, dtype=util.nts_dtype)
+        sids = sp.array(sids, dtype=util.sids_dtype)
         if debug:
             if not num_non_finite == 0:
                 print('%d SNPs have non-finite statistics on chromosome %s' % (num_non_finite, chrom))

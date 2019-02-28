@@ -68,6 +68,8 @@ parser_coord.add_argument('--vgf', type=str, default=None,
                          'set of validation SNPs.  To maximize accuracy, we recommend calculating LDpred '
                          'weights for the subset of SNPs that are used to calculate the risk scores in the '
                          'target (validation) sample.')
+parser_coord.add_argument('--only-hm3', default=False, action='store_true',
+                    help='Restrict analysis to 1.2M HapMap 3 SNPs.')
 parser_coord.add_argument('--ilist', type=str,
                     help='List of individuals to include in the analysis. ', default=None)
 parser_coord.add_argument('--skip-coordination', default=False, action='store_true',
