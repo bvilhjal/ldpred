@@ -5,71 +5,78 @@ import re
 import gzip
 from ldpred import util
 
-
-sids_dtype = "S30" #30 character limit
+sids_dtype = "S30"  # 30 character limit
 nts_dtype = "S1"
 
-
 def parse_sum_stats(h5f, p_dict, bimfile):
+    ss_args = {'filename':p_dict['ssf'], 'bimfile':bimfile, 'hdf5_file':h5f, 'n':p_dict['N'], 'debug':p_dict['debug']}
     if p_dict['ssf_format'] == 'STANDARD':
         if p_dict['N'] is None: 
             raise Exception('This summary statistics format requires summary statistics sample size to be given, i.e. set --N flag.')        
-        parse_sum_stats_standard(
-            filename=p_dict['ssf'], bimfile=bimfile, hdf5_file=h5f, n=p_dict['N'], debug=p_dict['debug'])
+        """
+        chr     pos     ref     alt     reffrq  info    rs       pval    effalt
+        chr1    1020428 C       T       0.85083 0.98732 rs6687776    0.0587  -0.0100048507289348
+        """        
+        parse_sum_stats_custom(ch='chr', pos='pos', A1='ref', A2='alt', reffreq='reffrq', info='info',
+                    rs='rs', pval='pval', eff='effalt', input_is_beta=True, **ss_args)      
     elif p_dict['ssf_format'] == 'PGC_OLD':
         if p_dict['N'] is None: 
             raise Exception('This summary statistics format requires summary statistics sample size to be given, i.e. set --N flag.')        
-        parse_sum_stats_pgc_small(
-            filename=p_dict['ssf'], bimfile=bimfile, hdf5_file=h5f, n=p_dict['N'], debug=p_dict['debug'])
+        """
+        hg19chrc        snpid   a1      a2      bp      info    or      se      p       ngt
+        chr1    rs4951859       C       G       729679  0.631   0.97853 0.0173  0.2083  0    
+        """
+        parse_sum_stats_custom(ch='hg19chrc', pos='bp', A1='a1', A2='a2', info='info', rs='snpid', pval='p', eff='or',
+                    input_is_beta=False, **ss_args)
     elif p_dict['ssf_format'] == 'BASIC':
         if p_dict['N'] is None: 
             raise Exception('This summary statistics format requires summary statistics sample size to be given, i.e. set --N flag.')        
-        parse_sum_stats_basic(
-            filename=p_dict['ssf'], bimfile=bimfile, hdf5_file=h5f, n=p_dict['N'], debug=p_dict['debug'])
+        """
+        hg19chrc    snpid    a1    a2    bp    or    p       
+        chr1    rs4951859    C    G    729679    0.97853    0.2083      
+        """
+        parse_sum_stats_custom(ch='hg19chrc', pos='bp', A1='a1', A2='a2', info='info', rs='snpid', pval='p',
+                    eff='or', input_is_beta=False, **ss_args)
     elif p_dict['ssf_format'] == 'PGC':
-        parse_sum_stats_pgc(
-            filename=p_dict['ssf'], bimfile=bimfile, hdf5_file=h5f, debug=p_dict['debug'])
+        """    
+        CHR    SNP    BP    A1    A2    FRQ_A_30232    FRQ_U_40578    INFO    OR    SE    P    ngt    Direction    HetISqt    HetChiSq    HetDf    HetPVa
+        ...    
+        """
+        parse_sum_stats_custom(ch='CHR', pos='BP', A1='A1', A2='A2', reffreq='Freq.Hapmap.Ceu',
+                    case_freq='FRQ_A_30232', control_freq='FRQ_U_40578', case_n='FRQ_A_30232',
+                    control_n='FRQ_U_40578', info='INFO', rs='SNP', pval='P', eff='OR',
+                    ncol='ngt', input_is_beta=False, **ss_args)
     elif p_dict['ssf_format'] == 'GIANT':
-        parse_sum_stats_giant(
-            filename=p_dict['ssf'], bimfile=bimfile, hdf5_file=h5f, debug=p_dict['debug'])
-    elif p_dict['ssf_format'] == 'BOLT_LMM':
-        parse_sum_stats_boltlmm(
-            filename=p_dict['ssf'], bimfile=bimfile, hdf5_file=h5f, debug=p_dict['debug'])
+        """
+        MarkerName Allele1 Allele2 Freq.Allele1.HapMapCEU p N
+        rs10 a c 0.0333 0.8826 78380    
+        """
+        parse_sum_stats_custom(A1='Allele1', A2='Allele2', reffreq='Freq.Allele1.HapMapCEU', rs='MarkerName',
+                    pval='p', eff='b', ncol='N', input_is_beta=True, **ss_args)
     elif p_dict['ssf_format'] == 'GIANT2':
-        parse_sum_stats_giant2(
-            filename=p_dict['ssf'], bimfile=bimfile, hdf5_file=h5f, debug=p_dict['debug'])
+        """
+        MarkerName A1 A2 Freq.Hapmap.Ceu BETA SE.2gc P.2gc N
+        rs4747841 a g 0.55 0.0025 0.0061 0.68 60558.2
+        """
+        parse_sum_stats_custom(ncol='N', A1='A1', A2='A2', reffreq='Freq.Hapmap.Ceu', rs='MarkerName',
+                    pval='P.2gc', eff='BETA', input_is_beta=True, **ss_args)
     elif p_dict['ssf_format'] == 'CUSTOM':
-        parse_sum_stats_custom(filename=p_dict['ssf'], bimfile=bimfile, hdf5_file=h5f, n=p_dict['N'], chr=p_dict['chr'],
+        parse_sum_stats_custom(chr=p_dict['chr'],
                     A1=p_dict['A1'], A2=p_dict['A2'], reffreq=p_dict['reffreq'], info=p_dict['info'],
                     rs=p_dict['rs'], pval=p_dict['pval'], eff=p_dict['eff'], ncol=p_dict['ncol'],
-                    pos=p_dict['pos'], input_is_beta=p_dict['beta'], debug=p_dict['debug'])
-
+                    pos=p_dict['pos'], input_is_beta=p_dict['beta'], **ss_args)
+    else:
+        raise Exception('Unknown Summary Statistics Format.')
 
 
 def is_gz(name):
     return name.lower().endswith(('.gz', '.gzip'))
 
 
-def parse_sum_stats_custom(filename=None,
-                    bimfile=None,
-                    hdf5_file=None,
-                    n=None,
-                    ch=None,
-                    pos=None,
-                    A1=None,
-                    A2=None,
-                    reffreq=None,
-                    case_freq = None,
-                    control_freq = None,
-                    case_n = None,
-                    control_n = None,
-                    info=None,
-                    rs=None,
-                    pval=None, 
-                    eff=None,
-                    ncol=None,
-                    input_is_beta=False, 
-                    debug=False):
+def parse_sum_stats_custom(filename=None, bimfile=None, hdf5_file=None, n=None, ch=None, pos=None,
+                    A1=None, A2=None, reffreq=None, case_freq=None, control_freq=None, case_n=None,
+                    control_n=None, info=None, rs=None, pval=None, eff=None, ncol=None,
+                    input_is_beta=False, debug=False):
     # Check required fields are here
     assert not A2 is None, 'Require header for non-effective allele'
     assert not A1 is None, 'Require header for effective allele'
@@ -77,7 +84,6 @@ def parse_sum_stats_custom(filename=None,
     assert not eff is None, 'Require header for Statistics'
     assert not pval is None, 'Require header for pval'
     assert not ncol is None or not n is None, 'Require either N or NCOL information'
-
 
     if ch is None:
         assert not bimfile is None, 'Require bimfile when chromosome header not provided'
@@ -97,6 +103,8 @@ def parse_sum_stats_custom(filename=None,
                 # Bim file format is CHR SNP BP
                 valid_sids.add(l[1])
                 snps_pos_map[l[1]] = {'pos':int(l[3]), 'chrom':l[0]}
+        if len(valid_sids)==0:
+            raise Exception('Unable to parse BIM file')
     chr_filter = 0
     pos_filter = 0
     invalid_p = 0
@@ -111,12 +119,12 @@ def parse_sum_stats_custom(filename=None,
             header = header.decode('utf-8')
         if debug:
             print(header)
-        header_dict={}
+        header_dict = {}
         columns = (header.strip()).split()
         index = 0
         for col in columns:
             header_dict[col] = index
-            index+=1
+            index += 1
         assert ch is None or ch in header_dict, 'Chromosome header cannot be found in summary statistic file'
         assert A2 in header_dict, 'Non-effective allele column cannot be found in summary statistic file'
         assert A1 in header_dict, 'Effective allele column cannot be found in summary statistic file'
@@ -182,8 +190,8 @@ def parse_sum_stats_custom(filename=None,
                     else:
                         case_N = float(l[header_dict[case_n]])
                         control_N = float(l[header_dict[control_n]])
-                        N = case_N+control_N
-                        a_scalar =  case_N/ N
+                        N = case_N + control_N
+                        a_scalar = case_N / N
                         u_scalar = control_N / N
                         freq = float(l[header_dict[case_freq]]) * a_scalar + float(l[header_dict[control_freq]]) * u_scalar
                         chrom_dict[chrom]['freqs'].append(freq)
@@ -208,21 +216,20 @@ def parse_sum_stats_custom(filename=None,
                     chrom_dict[chrom]['log_odds'].append(raw_beta)
                     beta = sp.sign(raw_beta) * stats.norm.ppf(pval_read / 2.0)
                     if n is None:
-                        chrom_dict[chrom]['betas'].append(beta/ sp.sqrt(int(header_dict[ncol])))
+                        chrom_dict[chrom]['betas'].append(beta / sp.sqrt(int(header_dict[ncol])))
                     else:
                         chrom_dict[chrom]['betas'].append(beta / sp.sqrt(n))
                 else:
                     beta = sp.sign(raw_beta) * stats.norm.ppf(pval_read / 2.0)
                     if n is None:
-                        chrom_dict[chrom]['log_odds'].append(beta/ sp.sqrt(int(header_dict[ncol])))
-                        chrom_dict[chrom]['betas'].append(beta/ sp.sqrt(int(header_dict[ncol])))
+                        chrom_dict[chrom]['log_odds'].append(beta / sp.sqrt(int(header_dict[ncol])))
+                        chrom_dict[chrom]['betas'].append(beta / sp.sqrt(int(header_dict[ncol])))
                     else:
                         chrom_dict[chrom]['log_odds'].append(beta / sp.sqrt(n))
                         chrom_dict[chrom]['betas'].append(beta / sp.sqrt(n))
 
-
         if len(bad_chromosomes) > 0:
-            print('Ignored chromosomes: %s'%(','.join(list(bad_chromosomes))))
+            print('Ignored chromosomes: %s' % (','.join(list(bad_chromosomes))))
             print('Please note that only data on chromosomes 1-23, and X are parsed.')
 
     print('SS file loaded, now sorting and storing in HDF5 file.')
@@ -254,7 +261,7 @@ def parse_sum_stats_custom(filename=None,
             else:
                 prev_pos = pos
             if not sp.isfinite(beta):
-                num_non_finite+=1
+                num_non_finite += 1
                 continue
             ps.append(p)
             betas.append(beta)
@@ -264,8 +271,8 @@ def parse_sum_stats_custom(filename=None,
             log_odds.append(lo)
             infos.append(info)
             freqs.append(frq)
-        nts = sp.array(nts,dtype=nts_dtype)
-        sids = sp.array(sids,dtype=sids_dtype)
+        nts = sp.array(nts, dtype=nts_dtype)
+        sids = sp.array(sids, dtype=sids_dtype)
         if debug:
             if not num_non_finite == 0:
                 print('%d SNPs have non-finite statistics on chromosome %s' % (num_non_finite, chrom))
@@ -286,208 +293,3 @@ def parse_sum_stats_custom(filename=None,
     print('%d SNPs excluded due to invalid P value' % invalid_p)
     print('%d SNPs parsed from summary statistics file.' % num_snps)
 
-
-def parse_sum_stats_boltlmm(filename=None,
-                             bimfile=None,
-                             hdf5_file=None,
-                             n=None,
-                             debug=False):
-    parse_sum_stats_custom(filename=filename,
-                    bimfile=bimfile,
-                    hdf5_file=hdf5_file,
-                    n=n,
-                    ch='CHR',
-                    pos='BP',
-                    A1='ALLELE1',
-                    A2='ALLELE0',
-                    reffreq='A1FREQ',
-                    info=None,
-                    rs='SNP',
-                    pval='P_BOLT_LMM_INF', 
-                    eff='BETA',
-                    input_is_beta=True, 
-                    debug=debug)
-
-def parse_sum_stats_standard(filename=None,
-                             bimfile=None,
-                             hdf5_file=None,
-                             n=None,
-                             debug=False):
-    """
-    Input format:
-
-     chr     pos     ref     alt     reffrq  info    rs       pval    effalt
-    chr1    1020428 C       T       0.85083 0.98732 rs6687776    0.0587  -0.0100048507289348
-    chr1    1020496 G       A       0.85073 0.98751 rs6678318    0.1287  -0.00826075392985992
-
-    """
-    parse_sum_stats_custom(filename=filename,
-                    bimfile=bimfile,
-                    hdf5_file=hdf5_file,
-                    n=n,
-                    ch='chr',
-                    pos='pos',
-                    A1='ref',
-                    A2='alt',
-                    reffreq='reffrq',
-                    info='info',
-                    rs='rs',
-                    pval='pval', 
-                    eff='effalt',
-                    input_is_beta=True, 
-                    debug=debug)
-
-
-def parse_sum_stats_giant(filename=None,
-                          bimfile=None,
-                          hdf5_file=None,
-                          debug=False):
-    """
-    Input format:
-
-    MarkerName      Allele1 Allele2 Freq.Allele1.HapMapCEU  b       SE      p       N
-    MarkerName Allele1 Allele2 Freq.Allele1.HapMapCEU p N
-    rs10 a c 0.0333 0.8826 78380
-    rs1000000 a g 0.3667 0.1858 133822
-
-    """
-
-    parse_sum_stats_custom(filename=filename,
-                    bimfile=bimfile,
-                    hdf5_file=hdf5_file,
-                    ch=None,
-                    pos=None,
-                    A1='Allele1',
-                    A2='Allele2',
-                    reffreq='Freq.Allele1.HapMapCEU',
-                    info=None,
-                    rs='MarkerName',
-                    pval='p', 
-                    eff='b',
-                    ncol='N',
-                    input_is_beta=True, 
-                    debug=debug)
-    
-def parse_sum_stats_giant2(filename=None,
-                           bimfile=None,
-                           hdf5_file=None,
-                           debug=False):
-    """
-    Input format:
-
-    MarkerName A1 A2 Freq.Hapmap.Ceu BETA SE.2gc P.2gc N
-    rs4747841 a g 0.55 0.0025 0.0061 0.68 60558.2
-    rs4749917 t c 0.45 -0.0025 0.0061 0.68 60558.1
-    rs737656 a g 0.3667 -0.0073 0.0064 0.25 60529.2
-
-    """
-    parse_sum_stats_custom(filename=filename,
-                    bimfile=bimfile,
-                    hdf5_file=hdf5_file,
-                    ncol='N',
-                    ch=None,
-                    pos=None,
-                    A1='A1',
-                    A2='A2',
-                    reffreq='Freq.Hapmap.Ceu',
-                    info=None,
-                    rs='MarkerName',
-                    pval='P.2gc', 
-                    eff='BETA',
-                    input_is_beta=True, 
-                    debug=debug)
-
-
-def parse_sum_stats_pgc(filename=None,
-                        bimfile=None,
-                        hdf5_file=None, 
-                        debug=False):
-    """
-    Input format:
-
-    CHR    SNP    BP    A1    A2    FRQ_A_30232    FRQ_U_40578    INFO    OR    SE    P    ngt    Direction    HetISqt    HetChiSq    HetDf    HetPVa
-    ...
-
-    """
-    parse_sum_stats_custom(filename=filename,
-                    bimfile=bimfile,
-                    hdf5_file=hdf5_file,
-                    ch='CHR',
-                    pos='BP',
-                    A1='A1',
-                    A2='A2',
-                    reffreq='Freq.Hapmap.Ceu',
-                    case_freq = 'FRQ_A_30232',
-                    control_freq = 'FRQ_U_40578',
-                    case_n = 'FRQ_A_30232',
-                    control_n = 'FRQ_U_40578',
-                    info='INFO',
-                    rs='SNP',
-                    pval='P', 
-                    eff='OR',
-                    ncol='ngt',
-                    input_is_beta=False, 
-                    debug=debug)
-
-
-
-
-def parse_sum_stats_pgc_small(filename=None,
-                              bimfile=None,
-                              hdf5_file=None,
-                              n=None, 
-                              debug=False):
-    """
-    Input format:
-
-    hg19chrc        snpid   a1      a2      bp      info    or      se      p       ngt
-    chr1    rs4951859       C       G       729679  0.631   0.97853 0.0173  0.2083  0
-    chr1    rs142557973     T       C       731718  0.665   1.01949 0.0198  0.3298  0
-    ...
-
-    """
-    parse_sum_stats_custom(filename=filename,
-                    bimfile=bimfile,
-                    hdf5_file=hdf5_file,
-                    ch='hg19chrc',
-                    pos='bp',
-                    A1='a1',
-                    A2='a2',
-                    info='info',
-                    rs='snpid',
-                    pval='p', 
-                    eff='or',
-                    n=n,
-                    input_is_beta=False, 
-                    debug=debug)
-
-
-
-def parse_sum_stats_basic(filename=None,
-                          bimfile=None,
-                          hdf5_file=None,
-                          n=None,
-                          debug=False):
-    """
-    Input format:
-
-    hg19chrc    snpid    a1    a2    bp    or    p       
-    chr1    rs4951859    C    G    729679    0.97853    0.2083  
-    chr1    rs142557973    T    C    731718    1.01949    0.3298  
-    ...
-
-    """
-    parse_sum_stats_custom(filename=filename,
-                    bimfile=bimfile,
-                    hdf5_file=hdf5_file,
-                    ch='hg19chrc',
-                    pos='bp',
-                    A1='a1',
-                    A2='a2',
-                    info='info',
-                    rs='snpid',
-                    pval='p', 
-                    eff='or',
-                    n=n,
-                    input_is_beta=False, 
-                    debug=debug)
