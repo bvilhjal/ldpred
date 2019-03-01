@@ -40,11 +40,17 @@ With these three packages in place, you should be all set to install and use LDp
 
 ### Installing LDpred ###
 
-As with most Python packages, configurating LDpred is simple.  You can either use **git** (which is installed on most systems) and clone this repository using the following git command:
+As with most Python packages, configurating LDpred is simple.  You can use **pip** to install it by typing
+
+`pip install ldpred`
+
+This should automatically take care of dependencies.
+
+Alternatively you can use **git** (which is installed on most systems) and clone this repository using the following git command:
 
 `git clone https://github.com/bvilhjal/ldpred.git`
 
-Alternatively, you can simply download the source files and place them somewhere.
+Finally, you can also download the source files and place them somewhere.
 
 With the Python source code in place and the three packages **h5py**, **scipy**, and **libplinkio** installed, then you should be ready to use LDpred.
 
