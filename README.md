@@ -10,10 +10,15 @@ described in Vilhjalmsson et al. (AJHG 2015) [http://www.cell.com/ajhg/abstract/
 
 ## Getting Started ##
 ### News ###
-Jan 30th, 2019: Version 1.0 released and now for python 3
+Mar 1st, 2019: Version 1.0.0 is finally available on pip using 
+
+`pip install ldpred`
 
 Feb 28th, 2019: Added a wiki with Q and A.  Please add questions (and answers)
 https://github.com/bvilhjal/ldpred/wiki/LDpred-Wiki
+
+Jan 30th, 2019: Version 1.0 released and now for python 3
+
 
 ### Requirements ###
 LDpred currently requires three Python packages to be installed and in path.  These
@@ -35,11 +40,17 @@ With these three packages in place, you should be all set to install and use LDp
 
 ### Installing LDpred ###
 
-As with most Python packages, configurating LDpred is simple.  You can either use **git** (which is installed on most systems) and clone this repository using the following git command:
+As with most Python packages, configurating LDpred is simple.  You can use **pip** to install it by typing
+
+`pip install ldpred`
+
+This should automatically take care of dependencies.
+
+Alternatively you can use **git** (which is installed on most systems) and clone this repository using the following git command:
 
 `git clone https://github.com/bvilhjal/ldpred.git`
 
-Alternatively, you can simply download the source files and place them somewhere.
+Finally, you can also download the source files and place them somewhere.
 
 With the Python source code in place and the three packages **h5py**, **scipy**, and **libplinkio** installed, then you should be ready to use LDpred.
 
@@ -90,3 +101,5 @@ In addition to the LDpred gibbs sampler and infinitesimal model methods, the pac
 
 This method often yields better predictions than LDpred when the LD reference panel is small, or when the training data is very large (due to problems with gibbs sampler convergence).
 
+### Acknowledges ###
+Thanks to all who provided bug reports and contributed code.
