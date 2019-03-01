@@ -10,10 +10,14 @@ described in Vilhjalmsson et al. (AJHG 2015) [http://www.cell.com/ajhg/abstract/
 
 ## Getting Started ##
 ### News ###
-Jan 30th, 2019: Version 1.0 released and now for python 3
+Mar 1st, 2019: Version 1.0.0 is finally available on pip using 
+`pip install ldpred`
 
 Feb 28th, 2019: Added a wiki with Q and A.  Please add questions (and answers)
 https://github.com/bvilhjal/ldpred/wiki/LDpred-Wiki
+
+Jan 30th, 2019: Version 1.0 released and now for python 3
+
 
 ### Requirements ###
 LDpred currently requires three Python packages to be installed and in path.  These
