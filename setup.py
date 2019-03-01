@@ -98,7 +98,8 @@ setup(
                 './test_data/LDpred_data_p0.001_test_0.bed','./test_data/LDpred_data_p0.001_ss_0.txt','./test_data/LDpred_data_p0.001_train_0.fam',
                 './test_data/LDpred_data_p0.001_train_0.bim','./test_data/LDpred_data_p0.001_train_0.bed','./test_data/LDpred_cc_data_p0.001_test_0.fam',
                 './test_data/LDpred_cc_data_p0.001_test_0.bim','./test_data/LDpred_cc_data_p0.001_test_0.bed','./test_data/LDpred_cc_data_p0.001_ss_0.txt',
-                './test_data/LDpred_cc_data_p0.001_train_0.fam','./test_data/LDpred_cc_data_p0.001_train_0.bim','./test_data/LDpred_cc_data_p0.001_train_0.bed']
+                './test_data/LDpred_cc_data_p0.001_train_0.fam','./test_data/LDpred_cc_data_p0.001_train_0.bim','./test_data/LDpred_cc_data_p0.001_train_0.bed',
+                './reference/hm3_sids.txt.gz']
                 },
     include_package_data=True,
     # Although 'package_data' is the preferred approach, in some case you may
