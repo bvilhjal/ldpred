@@ -331,7 +331,8 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
 
 
 def main(p_dict):
-    ld_dict = ld.get_ld_dict(p_dict['cf'], p_dict['ldf'], p_dict['ldr'])    
+    ld_dict = ld.get_ld_dict(p_dict['cf'], p_dict['ldf'], p_dict['ldr'], verbose=p_dict['debug'],
+                              compressed=not p_dict['no_ld_compression'], use_hickle=p_dict['hickle_ld'])    
     ldpred_genomewide(data_file=p_dict['cf'], out_file_prefix=p_dict['out'], ps=p_dict['f'], ld_radius=p_dict['ldr'],
                       ld_dict=ld_dict, n=p_dict['N'], num_iter=p_dict['n_iter'], burn_in=p_dict['n_burn_in'], 
                       h2=p_dict['h2'], verbose=p_dict['debug'])

@@ -4,9 +4,19 @@ Various useful LD functions.
 
 """
 import scipy as sp    
-import sys, os, gzip, pickle
+import sys, os, gzip
 import time
 import h5py
+import pickle
+
+hickle_available = False
+try:
+    import hickle
+    hickle_available = True
+except:
+    # hickle not found, using pickle instead
+    pass
+
 from numpy import linalg 
 from ldpred import util
 
@@ -187,13 +197,20 @@ def smart_ld_pruning(scores, ld_table, max_ld=0.5, verbose=False, reverse=False)
     return pruning_vector             
 
 
-def get_ld_dict(cord_data_file, local_ld_file_prefix, ld_radius, gm_ld_radius=None):
+def get_ld_dict(cord_data_file, local_ld_file_prefix, ld_radius, gm_ld_radius=None, verbose=False, compressed=True, use_hickle=False):
     """
     Returns the LD dictionary.  Creates a new LD file, if the file doesn't already exist.
     """
-    local_ld_dict_file = '%s_ldradius%d.pickled.gz'%(local_ld_file_prefix, ld_radius)
+    if use_hickle:
+        if not hickle_available:
+            print ('Unable to find hickle on your system, using pickle instead.')
+            print ('See http://telegraphic.github.io/hickle/ for how to install.')
+            use_hickle = False
+    
+    local_ld_dict_file = _get_ld_filename_(local_ld_file_prefix, ld_radius, compressed=compressed)
     
     if not os.path.isfile(local_ld_dict_file):             
+        t0 = time.time()
         chrom_ld_scores_dict = {}
         chrom_ld_dict = {}
         chrom_ref_ld_mats = {}
@@ -207,7 +224,8 @@ def get_ld_dict(cord_data_file, local_ld_file_prefix, ld_radius, gm_ld_radius=No
         cord_data_g = df['cord_data']
 
         for chrom_str in cord_data_g:
-            print('Calculating LD for chromosome %s' % chrom_str)
+            if verbose:
+                print('Calculating LD for chromosome %s' % chrom_str)
             g = cord_data_g[chrom_str]
             if 'raw_snps_ref' in g:
                 raw_snps = g['raw_snps_ref'][...]
@@ -246,19 +264,21 @@ def get_ld_dict(cord_data_file, local_ld_file_prefix, ld_radius, gm_ld_radius=No
         avg_gw_ld_score = ld_score_sum / float(num_snps)
         ld_scores_dict = {'avg_gw_ld_score': avg_gw_ld_score, 'chrom_dict':chrom_ld_scores_dict}    
         
-        print('Done calculating the LD table and LD score, writing to file: %s'%local_ld_dict_file)
+        t1 = time.time()
+        t = (t1 - t0)
+        if verbose:
+            print('\nIt took %d minutes and %0.2f seconds to calculate LD information' % (t / 60, t % 60))
+            print('Done calculating the LD table and LD score, writing to file: %s'%local_ld_dict_file)
         ld_dict = {'ld_scores_dict':ld_scores_dict, 'chrom_ld_dict':chrom_ld_dict, 'chrom_ref_ld_mats':chrom_ref_ld_mats}
         if gm_ld_radius is not None:
             ld_dict['chrom_ld_boundaries'] = chrom_ld_boundaries 
-        f = gzip.open(local_ld_dict_file, 'wb')
-        pickle.dump(ld_dict, f, protocol=2)
-        f.close()
-        print('LD information is now pickled.')
+        _serialize_ld_info_(local_ld_dict_file, ld_dict, verbose=verbose, compressed=compressed)
+        if verbose:
+            print('LD information has now been serialized (written to disk).')
     else:
-        print('Loading LD information from file: %s' % local_ld_dict_file)
-        f = gzip.open(local_ld_dict_file, 'r')
-        ld_dict = pickle.load(f)
-        f.close()
+        if verbose:
+            print('Loading LD information from file: %s' % local_ld_dict_file)
+        ld_dict = _load_ld_info_(local_ld_dict_file, verbose=verbose, compressed=compressed)
     return ld_dict
 
 
@@ -301,3 +321,61 @@ def get_chromosome_herits(cord_data_g, ld_scores_dict, n, max_h2=1, h2=None):
     
     herit_dict['gw_h2_ld_score_est'] = gw_h2_ld_score_est
     return herit_dict
+
+def _get_ld_filename_(local_ld_file_prefix, ld_radius, compressed=True, use_hickle=False):
+    if use_hickle:
+        if compressed:
+            return '%s_ldradius%d_gzip.hkl'%(local_ld_file_prefix, ld_radius)
+        else:
+            return '%s_ldradius%d.hkl'%(local_ld_file_prefix, ld_radius)
+
+    else:
+        if compressed:
+            return '%s_ldradius%d.pkl.gz'%(local_ld_file_prefix, ld_radius)
+        else:
+            return '%s_ldradius%d.pkl'%(local_ld_file_prefix, ld_radius)
+
+
+def _serialize_ld_info_(local_ld_dict_file, ld_dict, verbose=False, compressed=True, use_hickle=False):
+    t0 = time.time()
+    if use_hickle:
+        f = h5py.File(local_ld_dict_file, 'w')
+        if compressed:
+            print('Storing compressed LD information to hdf5 file')
+            hickle.dump(ld_dict, f, compression='gzip')
+        else:
+            hickle.dump(ld_dict, f)
+        f.close()
+    else:
+        if compressed:
+            print('Storing LD information to compressed pickle file')
+            f = gzip.open(local_ld_dict_file, 'wb')
+        else:
+            f = open(local_ld_dict_file, 'wb')            
+        pickle.dump(ld_dict, f, protocol=-1)
+        f.close()
+    t1 = time.time()
+    t = (t1 - t0)
+    if verbose:
+        print('\nIt took %d minutes and %0.2f seconds to write LD information to disk.' % (t / 60, t % 60))
+        print('LD information file size on disk: %0.4f Mb' % float(os.path.getsize(local_ld_dict_file)/1000000.0))
+
+
+def _load_ld_info_(local_ld_dict_file, verbose=True, compressed=True, use_hickle=False):
+    t0 = time.time()
+    if use_hickle:
+        f = h5py.File(local_ld_dict_file, 'r')
+        ld_dict = hickle.load(f)
+        f.close()
+    else:
+        if compressed:
+            f = gzip.open(local_ld_dict_file, 'r')
+        else:
+            f = open(local_ld_dict_file, 'r')            
+        ld_dict = pickle.load(f)
+        f.close()
+    t1 = time.time()
+    t = (t1 - t0)
+    if verbose:
+        print('\nIt took %d minutes and %0.2f seconds to load LD information from disk.' % (t / 60, t % 60))
+    return ld_dict

@@ -138,6 +138,14 @@ parser_gibbs.add_argument('--n-burn-in', type=int, default=5,
 parser_gibbs.add_argument('--h2', type=float, default=None, 
                     help='The heritability assumed by LDpred.  By default it estimates the heritability from'
                     ' the GWAS summary statistics using LD score regression (Bulik-Sullivan et al., Nat Genet 2015).')
+parser_gibbs.add_argument('--no-ld-compression', default=False, action='store_true',
+                    help='Do not compress LD information.  Saves storing and loading time of LD information, '
+                    'but takes more space on disk.')
+parser_gibbs.add_argument('--hickle-ld', default=False, action='store_true',
+                    help='Use hickle instead of pickle for storing LD files.  This saves memory, but generally'
+                    'takes more time to write and load. Requires hickle to be installed on your system, '
+                    'see http://telegraphic.github.io/hickle/ for how to install.')
+
 # parser_gibbs.add_argument('--gm-ldr', type=float, default=None, 
 #                     help='If this option is set, then a genetic map will be used to calculate LD-radius. '
 #                     'A value around 1 is arguably reasonable.')
@@ -162,6 +170,13 @@ parser_inf.add_argument('--N', type=int, default=100000, required=True,
 parser_inf.add_argument('--h2', type=float, default=None, 
                     help='The heritability assumed by LDpred.  By default it estimates the heritability from'
                     ' the GWAS summary statistics using LD score regression (Bulik-Sullivan et al., Nat Genet 2015).')
+parser_inf.add_argument('--no-ld-compression', default=False, action='store_true',
+                    help='Do not compress LD information.  Saves storing and loading time of LD information, '
+                    'but takes more space on disk.')
+parser_inf.add_argument('--hickle-ld', default=False, action='store_true',
+                    help='Use hickle instead of pickle for storing LD files.  This saves memory, but generally'
+                    'takes more time to write and load. Requires hickle to be installed on your system, '
+                    'see http://telegraphic.github.io/hickle/ for how to install.')
 # parser_inf.add_argument('--gm-ldr', type=float, default=None, 
 #                     help='If this option is set, then a genetic map will be used to calculate LD-radius. '
 #                     'A value around 1 is arguably reasonable.')
