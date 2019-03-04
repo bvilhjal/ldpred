@@ -19,8 +19,6 @@ opp_strand_dict = {'A': 'T', 'G': 'C', 'T': 'A', 'C': 'G'}
 
 valid_nts = set(['A', 'T', 'C', 'G'])
 
-lc_CAPs_dict = {'a': 'A', 'c': 'C', 'g': 'G', 't': 'T'}
-
 
 # LDpred currently ignores the Y and MT chromosomes.
 valid_chromosomes = ['%d' % (x) for x in range(1, 24)]

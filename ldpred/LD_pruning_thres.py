@@ -168,7 +168,7 @@ def ld_pruning(data_file=None, ld_radius = None, out_file_prefix=None, p_thres=N
             print('The slope for predictions with P-value derived  effects is: %0.4f' %regression_slope)
             results_dict[p_str]['slope_pd']=regression_slope
         
-            weights_out_file = '%s_P+T_r%0.2f_p%0.4e.txt'%(out_file_prefix, max_r2, p_thres)
+        weights_out_file = '%s_P+T_r%0.2f_p%0.4e.txt'%(out_file_prefix, max_r2, p_thres)
         
         with open(weights_out_file,'w') as f:
             f.write('chrom    pos    sid    nt1    nt2    raw_beta    raw_pval_beta    updated_beta    updated_pval_beta \n')

@@ -12,12 +12,18 @@ try:
     print('Note that this test currently only tests the core functionality of LDpred.')
     print('Please report bugs on github (https://github.com/bvilhjal/ldpred) or to Bjarni J Vilhjalmsson (bjarni.vilhjalmsson@gmail.com).\n')
     
-    coord_file = tmp_file_prefix + '.coord.hdf5'
+    coord_file = tmp_file_prefix + '.coord0.hdf5'
     print('Coordinating test data into file %s' % coord_file)
     cmd_str = 'python LDpred.py --debug coord --gf=./test_data/LDpred_data_p0.001_train_0 --vgf=./test_data/LDpred_data_p0.001_test_0 --ssf=./test_data/LDpred_data_p0.001_ss_0.txt --ssf-format=STANDARD  --N=10000  --out=%s' % coord_file
     print(cmd_str + '\n')
     assert os.system(cmd_str) == 0, 'Problems when coordinating data!'
     
+    coord_file = tmp_file_prefix + '.coord.hdf5'
+    print('Coordinating test data into file %s' % coord_file)
+    cmd_str = 'python LDpred.py --debug coord --gf=./test_data/LDpred_data_p0.001_train_0 --vbim=./test_data/LDpred_data_p0.001_test_0.bim --ssf=./test_data/LDpred_data_p0.001_ss_0.txt --ssf-format=STANDARD  --beta --N=10000  --out=%s' % coord_file
+    print(cmd_str + '\n')
+    assert os.system(cmd_str) == 0, 'Problems when coordinating data!'
+
     print('Running LDpred-inf with coordinated file prefix: %s ' % tmp_file_prefix)
     cmd_str = 'python LDpred.py --debug inf --cf=%s  --ldr=100   --ldf=%s  --N=10000  --out=%s' % (coord_file, tmp_file_prefix, tmp_file_prefix)
     print(cmd_str + '\n')

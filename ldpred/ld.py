@@ -282,7 +282,7 @@ def get_ld_dict(cord_data_file, local_ld_file_prefix, ld_radius, gm_ld_radius=No
     return ld_dict
 
 
-def get_chromosome_herits(cord_data_g, ld_scores_dict, n, max_h2=1, h2=None):
+def get_chromosome_herits(cord_data_g, ld_scores_dict, n, h2=None, max_h2=1):
     """
     Calculating genome-wide heritability using LD score regression, and partition heritability by chromosome
     """

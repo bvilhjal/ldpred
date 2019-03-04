@@ -80,6 +80,9 @@ parser_coord.add_argument('--beta', default=False, action='store_true',
                          'regression)')
 parser_coord.add_argument('--maf', type=float, default=0.01,
                     help='MAF filtering threshold.  Set to 0 to disable MAF filtering.')
+parser_coord.add_argument('--max-freq-discrep', type=float, default=0.15,
+                    help='Max frequency discrepancy allowed between reported sum stats frequency and frequency '
+                    'in the LD reference data.  To disable check, set to 1.')
 parser_coord.add_argument('--ssf-format', type=str, default="CUSTOM", choices={'CUSTOM','STANDARD','GIANT', 'PGC'},
                     help='This is the format type of the summary statistics file. '
                     'By default the CUSTOM format requires the user to specify the file format using additional '
