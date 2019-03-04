@@ -9,13 +9,13 @@ from ldpred import validate
 import sys
 import textwrap
 
-__version__ = '1.0.0'
+__version__ = '1.0.1'
  
 
 parser = argparse.ArgumentParser(prog='LDpred',
                                  formatter_class=argparse.RawDescriptionHelpFormatter,
                                  description=textwrap.dedent("""\
-                                    \033[96mLDpred v. 1.0\033[0m
+                                    \033[96mLDpred v. 1.0.1\033[0m
 --------------------------------------------------------------------------------------
                             Thank you for using\033[1m LDpred\033[0m!
 
