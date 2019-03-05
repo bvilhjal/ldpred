@@ -8,8 +8,7 @@ from ldpred import sum_stats_parsers
 from ldpred import util
 from ldpred import plinkfiles
 from plinkio import plinkfile
-
-
+import time
 
 
 def _verify_coord_data_(data_dict):
@@ -60,17 +59,35 @@ def write_coord_data(cord_data_g, coord_dict):
         ofg.create_dataset('genetic_map', data=coord_dict['genetic_map'])
 
 
-def coordinate_datasets(reference_genotype_file=None,
-                                     validation_genotype_file=None,
-                                     hdf5_file=None,
-                                     genetic_map_dir=None,
-                                     min_maf=0.01,
-                                     skip_coordination=False, 
-                                     max_freq_discrep = 0.15,
-                                     debug=False):
-    if debug: 
-        print('Harmonizing data w LD reference genotype file: %s \nand validation genotype file: %s' % (reference_genotype_file, validation_genotype_file))
+def print_summary(summary_dict, log_file=None):
+    print('')
+    print( ('-' *25)  + ' Summary of Coordination Step '+ ('-' *25))
+    for k in sorted(summary_dict.keys()):
+        sd = summary_dict[k]
+        val_str= str(sd['value'])
+        if len(val_str)>28:
+            print ('{:<50}:'.format(sd['name']))
+            print ('{:>80}'.format(val_str))
+        else:
+            print ('{:<50}:{:>29}'.format(sd['name'],str(sd['value'])))
+    print ('-' * 80)
+    print('')
+        
+                   
+def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
+                        validation_genotype_file=None,
+                        genetic_map_dir=None,
+                        min_maf=0.01,
+                        skip_coordination=False, 
+                        max_freq_discrep = 0.15,
+                        debug=False):
     
+    t0 = time.time()
+    if validation_genotype_file is not None:
+        print('Coordinating datasets (Summary statistics, LD reference genotypes, and Validation genotypes).')
+    else:
+        print('Coordinating datasets (Summary statistics and LD reference genotypes).')
+        
     plinkf = plinkfile.PlinkFile(reference_genotype_file)
 
     # Figure out chromosomes and positions.
@@ -78,8 +95,10 @@ def coordinate_datasets(reference_genotype_file=None,
         print('Parsing plinkf_dict_val reference genotypes')
     loci = plinkf.get_loci()
     plinkf.close()
+    summary_dict[4]={'name':'Num individuals in LD Reference data','value':plinkfiles.get_num_indivs(reference_genotype_file)}
+    summary_dict[4.1]={'name':'Num SNPs in LD Reference data','value':len(loci)}
     gf_chromosomes = [l.chromosome for l in loci]
-
+    
     chromosomes = sp.unique(gf_chromosomes)
     chromosomes.sort()
 
@@ -95,6 +114,7 @@ def coordinate_datasets(reference_genotype_file=None,
         
         loci_val = plinkf_val.get_loci()
         plinkf_val.close()
+        summary_dict[5]={'name':'Num SNPs in Validation data','value':len(loci_val)}
 
         chr_dict_val = plinkfiles.get_chrom_dict(loci_val, chromosomes)
 
@@ -102,7 +122,8 @@ def coordinate_datasets(reference_genotype_file=None,
         assert not 'iids' in hdf5_file, 'Something is wrong with the HDF5 file, no individuals IDs were found.'
         if plinkf_dict_val['has_phenotype']:
             hdf5_file.create_dataset('y', data=plinkf_dict_val['phenotypes'])
-    
+            summary_dict[6]={'name':'Num validation phenotypes','value':plinkf_dict_val['num_individs']}
+   
         hdf5_file.create_dataset('fids', data=sp.array(plinkf_dict_val['fids'], dtype=util.fids_dtype))
         hdf5_file.create_dataset('iids', data=sp.array(plinkf_dict_val['iids'], dtype=util.iids_dtype))
 
@@ -116,16 +137,25 @@ def coordinate_datasets(reference_genotype_file=None,
     num_common_snps = 0
     # corr_list = []
 
+
+
+    chromosomes_found = set()
+    num_snps_common_before_filtering =0
+    num_snps_common_after_filtering =0
     tot_num_non_matching_nts = 0
+    tot_num_ambig_nts = 0
+    tot_num_freq_discrep_filtered_snps = 0
+    tot_num_maf_filtered_snps = 0
     tot_g_ss_nt_concord_count = 0
     if validation_genotype_file is not None:
         tot_g_vg_nt_concord_count = 0
         tot_vg_ss_nt_concord_count = 0
-
+        
     # Now iterate over chromosomes
     for chrom in chromosomes:
         chr_str = 'chrom_%d' % chrom
-        print('Coordinating data for chromosome %s' % chr_str)
+        if debug:
+            print('Coordinating data for chromosome %s' % chr_str)
 
         try:
             ssg = ssf['chrom_%d' % chrom]
@@ -134,15 +164,15 @@ def coordinate_datasets(reference_genotype_file=None,
             print('Did not find chromosome in SS dataset.')
             print('Continuing.')
             continue
-
+        
+        chromosomes_found.add(chrom)
+        
         #Get summary statistics chromosome group
         ssg = ssf['chrom_%d' % chrom]
         ss_sids = (ssg['sids'][...]).astype(util.sids_u_dtype)
         if validation_genotype_file is not None:
             chrom_d_val = chr_dict_val[chr_str]
             vg_sids = chrom_d_val['sids']
-            if debug:
-                print('Found %d SNPs in LD validation data, and %d SNPs in summary statistics.' % (len(vg_sids), len(ss_sids)))
             common_sids = sp.intersect1d(ss_sids, vg_sids)
             
             # A map from sid to index for validation data        
@@ -160,8 +190,6 @@ def coordinate_datasets(reference_genotype_file=None,
         #The indices to retain for the LD reference genotypes
         chrom_d = chr_dict[chr_str]
         g_sids = chrom_d['sids']
-        if debug:
-            print('Found %d SNPs in LD reference data.' % (len(g_sids)))
         common_sids = sp.intersect1d(common_sids, g_sids)
         
         # A map from sid to index for LD reference data        
@@ -350,8 +378,8 @@ def coordinate_datasets(reference_genotype_file=None,
         if debug:
             print('%d SNPs had ambiguous nucleotides.' % num_ambig_nts)
             print('%d SNPs were excluded due to nucleotide issues.' % num_non_matching_nts)
-            print('%d SNPs were retained on chromosome %d.' % (len(ok_indices['g']), chrom))
 
+        
         # Resorting by position
         positions = sp.array(chrom_d['positions'])[ok_indices['g']]
 
@@ -386,12 +414,10 @@ def coordinate_datasets(reference_genotype_file=None,
         # Check SNP frequencies, screen for possible problems..
         if max_freq_discrep<1 and 'freqs' in ssg:
             ss_freqs = ss_freqs[ok_indices['ss']]
-            freq_discrepancy_snp = sp.absolute(ss_freqs - (1 - freqs)) > max_freq_discrep #Array of np.bool values
-            num_freq_discrep_filtered_snps = len(freq_discrepancy_snp)-sp.sum(freq_discrepancy_snp)
+            freq_discrepancy_snp = sp.absolute(ss_freqs - freqs) > max_freq_discrep #Array of np.bool values
+            num_freq_discrep_filtered_snps = sp.sum(freq_discrepancy_snp)
             assert num_freq_discrep_filtered_snps>=0, "Problems when filtering SNPs with frequency discrepencies"
             if num_freq_discrep_filtered_snps>0:
-                print('Warning: %d SNPs were filtered due to high allele frequency discrepancy between summary statistics and LD reference sample' % sp.sum(freq_discrepancy_snp))
-
                 # Filter freq_discrepancy_snps
                 ok_freq_snps = sp.logical_not(freq_discrepancy_snp)
                 raw_snps = raw_snps[ok_freq_snps]
@@ -469,9 +495,21 @@ def coordinate_datasets(reference_genotype_file=None,
             coord_data_dict['freqs_val']=freqs_val
             coord_data_dict['log_odds_prs']=maf_adj_prs
             maf_adj_risk_scores += maf_adj_prs
-          
+         
+         
         write_coord_data(cord_data_g, coord_data_dict)
         num_common_snps += len(betas)
+        
+        if debug:
+            print('%d SNPs were retained on chromosome %d.' % (len(sids), chrom))
+        
+        num_snps_common_before_filtering += len(common_sids)
+        num_snps_common_after_filtering += len(sids)
+        tot_num_ambig_nts += num_ambig_nts
+        tot_num_freq_discrep_filtered_snps += num_freq_discrep_filtered_snps
+        tot_num_maf_filtered_snps += num_maf_filtered_snps
+
+
 
     # Now calculate the prediction r^2
     if validation_genotype_file:
@@ -480,23 +518,32 @@ def coordinate_datasets(reference_genotype_file=None,
                 plinkf_dict_val['phenotypes'], maf_adj_risk_scores)[0, 1]
             print('Log odds, per PRS correlation for the whole genome was %0.4f (r^2=%0.4f)' % (maf_adj_corr, maf_adj_corr ** 2))
             print('Overall nucleotide concordance counts: rg_vg: %d, rg_ss: %d, vg_ss: %d' % (tot_g_vg_nt_concord_count, tot_g_ss_nt_concord_count, tot_vg_ss_nt_concord_count))
-            print('In all, %d SNPs were excluded due to nucleotide issues.' % tot_num_non_matching_nts)
     else:
         if debug:
             print('Overall nucleotide concordance counts, rg_ss: %d' % (tot_g_ss_nt_concord_count))        
-            print('In all, %d SNPs were excluded due to nucleotide issues.' % tot_num_non_matching_nts)
-    print('%d SNPs were retained across all datasets.' % num_common_snps)
     
+    summary_dict[7]={'name':'Num chromosomes used','value':len(chromosomes_found)}
+    summary_dict[8]={'name':'SNPs common across datasets','value':num_snps_common_before_filtering}
+    summary_dict[9]={'name':'SNPs retained after filtering','value':num_snps_common_after_filtering}
+    summary_dict[10]={'name':'SNPs w ambiguous nucleotides filtered','value':tot_num_ambig_nts}
+    summary_dict[11]={'name':'SNPs w other nucleotide discrepancies filtered','value':tot_num_non_matching_nts}
+    if min_maf>0:
+        summary_dict[12]={'name':'SNPs w MAF<%0.3f filtered'%min_maf,'value':tot_num_maf_filtered_snps}
+    if max_freq_discrep<0.5:
+        summary_dict[13]={'name':'SNPs w allele freq discrepancy > %0.3f filtered'%max_freq_discrep,'value':tot_num_freq_discrep_filtered_snps}
+
+    t1 = time.time()
+    t = (t1 - t0)
+    summary_dict[15]={'name':'Run time for coordinating datasets','value': '%d min and %0.2f sec'%(t / 60, t % 60)}
+
 
 
 def main(p_dict):
 
-    summary_dict = {}
     
     bimfile = None
     if p_dict['N'] is None:
         print('Please specify an integer value for the sample size used to calculate the GWAS summary statistics.')
-    print('Preparing to parse summary statistics')
     if p_dict['vbim'] is not None:
         bimfile = p_dict['vbim']
     elif p_dict['vgf'] is not None:
@@ -513,18 +560,20 @@ def main(p_dict):
 
     h5f = h5py.File(p_dict['out'], 'w')
     
-    sum_stats_parsers.parse_sum_stats(h5f, p_dict, bimfile)
+    summary_dict = {}
+    summary_dict[0]={'name':'Summary statistics filename','value':p_dict['ssf']}
+    summary_dict[1]={'name':'LD reference genotypes filename','value':p_dict['gf']}
+    summary_dict[3]={'name':'Coordinated data output filename','value':p_dict['out']}
     if p_dict['vgf'] is not None:
-        coordinate_datasets(reference_genotype_file=p_dict['gf'],validation_genotype_file=p_dict['vgf'], 
-                                         max_freq_discrep=p_dict['max_freq_discrep'],
-                                         hdf5_file=h5f, min_maf=p_dict['maf'], 
-                                         skip_coordination=p_dict['skip_coordination'], 
-                                         debug=p_dict['debug'])
-    else:
-        coordinate_datasets(reference_genotype_file=p_dict['gf'], 
-                                         max_freq_discrep=p_dict['max_freq_discrep'],
-                                         hdf5_file=h5f, min_maf=p_dict['maf'], 
-                                         skip_coordination=p_dict['skip_coordination'], 
-                                         debug=p_dict['debug'])
+        summary_dict[2]={'name':'Validation genotypes filename','value':p_dict['vgf']}
+
+    sum_stats_parsers.parse_sum_stats(h5f, p_dict, bimfile, summary_dict)
+    coordinate_datasets(p_dict['gf'], h5f,summary_dict,
+                        validation_genotype_file=p_dict['vgf'], 
+                        max_freq_discrep=p_dict['max_freq_discrep'],
+                        min_maf=p_dict['maf'], 
+                        skip_coordination=p_dict['skip_coordination'], 
+                        debug=p_dict['debug'])
+    print_summary(summary_dict)
     
     h5f.close()

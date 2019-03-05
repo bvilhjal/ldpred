@@ -4,9 +4,11 @@ from scipy import isinf
 import re
 import gzip
 from ldpred import util
+import time
 
-
-def parse_sum_stats(h5f, p_dict, bimfile):
+def parse_sum_stats(h5f, p_dict, bimfile, summary_dict):
+    t0 = time.time()
+   
     ss_args = {'filename':p_dict['ssf'], 'bimfile':bimfile, 'hdf5_file':h5f, 'only_hm3':p_dict['only_hm3'], 'n':p_dict['N'], 'debug':p_dict['debug']}
     if p_dict['ssf_format'] == 'STANDARD':
         if p_dict['N'] is None: 
@@ -65,6 +67,9 @@ def parse_sum_stats(h5f, p_dict, bimfile):
                     pos=p_dict['pos'], input_is_beta=p_dict['beta'], **ss_args)
     else:
         raise Exception('Unknown Summary Statistics Format.')
+    t1 = time.time()
+    t = (t1 - t0)
+    summary_dict[14]={'name':'Run time for parsing summary stats','value': '%d min and %0.2f sec'%(t / 60, t % 60)}
 
 
 def is_gz(name):
@@ -299,8 +304,9 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
         g.create_dataset('sids', data=sids)
         g.create_dataset('positions', data=positions)
         hdf5_file.flush()
-    print('%d SNPs excluded due to invalid chromosome ID.' % chr_filter)
-    print('%d SNPs excluded due to invalid chromosome position' % pos_filter)
-    print('%d SNPs excluded due to invalid P value' % invalid_p)
-    print('%d SNPs parsed from summary statistics file.' % num_snps)
+    if debug:
+        print('%d SNPs excluded due to invalid chromosome ID.' % chr_filter)
+        print('%d SNPs excluded due to invalid chromosome position' % pos_filter)
+        print('%d SNPs excluded due to invalid P value' % invalid_p)
+        print('%d SNPs parsed from summary statistics file.' % num_snps)
 

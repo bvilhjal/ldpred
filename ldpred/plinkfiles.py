@@ -6,7 +6,7 @@ Uses plinkio.
 import scipy as sp
 from plinkio import plinkfile
 
-def get_chrom_dict(loci, chromosomes):
+def get_chrom_dict(loci, chromosomes, debug=False):
     chr_dict = {}
     for chrom in chromosomes:
         chr_str = 'chrom_%s' % chrom
@@ -21,7 +21,8 @@ def get_chrom_dict(loci, chromosomes):
         chr_dict[chr_str]['positions'].append(pos)
         chr_dict[chr_str]['nts'].append([l.allele1, l.allele2])
       
-    print('Genotype dictionary filled')
+    if debug:
+        print('Genotype dictionary filled')
     return chr_dict
 
 
@@ -62,8 +63,13 @@ def parse_plink_snps(genotype_file, snp_indices):
     freqs = sp.sum(raw_snps, 1, dtype='float32') / (2 * float(num_indivs))
     return raw_snps, freqs
 
+def get_num_indivs(genotype_file):
+    plinkf = plinkfile.PlinkFile(genotype_file)
+    samples = plinkf.get_samples()
+    plinkf.close()
+    return len(samples)
 
-def get_phenotypes(plinkf):
+def get_phenotypes(plinkf, debug=False):
     samples = plinkf.get_samples()
     num_individs = len(samples)
     Y = [s.phenotype for s in samples]
@@ -76,9 +82,11 @@ def get_phenotypes(plinkf):
     elif len(unique_phens) == 2:
         cc_bins = sp.bincount(Y)
         assert len(cc_bins) == 2, 'Problems with loading phenotype'
-        print('Loaded %d controls and %d cases' % (cc_bins[0], cc_bins[1]))
+        if debug:
+            print('Loaded %d controls and %d cases' % (cc_bins[0], cc_bins[1]))
         has_phenotype = True
     else:
-        print('Found quantitative phenotype values')
+        if debug:
+            print('Found quantitative phenotype values')
         has_phenotype = True
     return {'has_phenotype':has_phenotype, 'fids':fids, 'iids':iids, 'phenotypes':Y, 'num_individs':num_individs}

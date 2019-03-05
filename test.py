@@ -14,7 +14,7 @@ try:
     
     coord_file = tmp_file_prefix + '.coord0.hdf5'
     print('Coordinating test data into file %s' % coord_file)
-    cmd_str = 'python LDpred.py --debug coord --gf=./test_data/LDpred_data_p0.001_train_0 --vgf=./test_data/LDpred_data_p0.001_test_0 --ssf=./test_data/LDpred_data_p0.001_ss_0.txt --ssf-format=STANDARD  --N=10000  --out=%s' % coord_file
+    cmd_str = 'python LDpred.py coord --gf=./test_data/LDpred_data_p0.001_train_0 --vgf=./test_data/LDpred_data_p0.001_test_0 --ssf=./test_data/LDpred_data_p0.001_ss_0.txt --ssf-format=STANDARD  --N=10000  --out=%s' % coord_file
     print(cmd_str + '\n')
     assert os.system(cmd_str) == 0, 'Problems when coordinating data!'
     
