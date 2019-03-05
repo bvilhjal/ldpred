@@ -9,7 +9,7 @@ import time
 def parse_sum_stats(h5f, p_dict, bimfile, summary_dict):
     t0 = time.time()
    
-    ss_args = {'filename':p_dict['ssf'], 'bimfile':bimfile, 'hdf5_file':h5f, 'only_hm3':p_dict['only_hm3'], 'n':p_dict['N'], 'debug':p_dict['debug']}
+    ss_args = {'filename':p_dict['ssf'], 'bimfile':bimfile, 'hdf5_file':h5f, 'only_hm3':p_dict['only_hm3'], 'n':p_dict['N'], 'debug':p_dict['debug'], 'summary_dict':summary_dict}
     if p_dict['ssf_format'] == 'STANDARD':
         if p_dict['N'] is None: 
             raise Exception('This summary statistics format requires summary statistics sample size to be given, i.e. set --N flag.')        
@@ -79,7 +79,7 @@ def is_gz(name):
 def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_file=None, n=None, ch=None, pos=None,
                     A1=None, A2=None, reffreq=None, case_freq=None, control_freq=None, case_n=None,
                     control_n=None, info=None, rs=None, pval=None, eff=None, ncol=None,
-                    input_is_beta=False, debug=False):
+                    input_is_beta=False, debug=False, summary_dict = None):
     # Check required fields are here
     assert not A2 is None, 'Require header for non-effective allele'
     assert not A1 is None, 'Require header for effective allele'
@@ -309,4 +309,6 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
         print('%d SNPs excluded due to invalid chromosome position' % pos_filter)
         print('%d SNPs excluded due to invalid P value' % invalid_p)
         print('%d SNPs parsed from summary statistics file.' % num_snps)
+    summary_dict[3.1]={'name':'Num SNPs parsed from sum stats file','value':num_snps}
+    summary_dict[3.2]={'name':'Num invalid P-values in sum stats','value':invalid_p}
 
