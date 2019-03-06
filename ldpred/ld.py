@@ -197,7 +197,9 @@ def smart_ld_pruning(scores, ld_table, max_ld=0.5, verbose=False, reverse=False)
     return pruning_vector             
 
 
-def get_ld_dict(cord_data_file, local_ld_file_prefix, ld_radius, gm_ld_radius=None, verbose=False, compressed=True, use_hickle=False):
+def get_ld_dict(cord_data_file, local_ld_file_prefix, ld_radius, 
+                gm_ld_radius=None, verbose=False, compressed=True, 
+                use_hickle=False, summary_dict=None):
     """
     Returns the LD dictionary.  Creates a new LD file, if the file doesn't already exist.
     """
@@ -263,6 +265,7 @@ def get_ld_dict(cord_data_file, local_ld_file_prefix, ld_radius, gm_ld_radius=No
             num_snps += n_snps
         avg_gw_ld_score = ld_score_sum / float(num_snps)
         ld_scores_dict = {'avg_gw_ld_score': avg_gw_ld_score, 'chrom_dict':chrom_ld_scores_dict}    
+        summary_dict[1.1]={'name':'Average LD score:','value':avg_gw_ld_score}
         
         t1 = time.time()
         t = (t1 - t0)
@@ -282,7 +285,7 @@ def get_ld_dict(cord_data_file, local_ld_file_prefix, ld_radius, gm_ld_radius=No
     return ld_dict
 
 
-def get_chromosome_herits(cord_data_g, ld_scores_dict, n, h2=None, max_h2=1):
+def get_chromosome_herits(cord_data_g, ld_scores_dict, n, h2=None, max_h2=1, debug=False, summary_dict={}):
     """
     Calculating genome-wide heritability using LD score regression, and partition heritability by chromosome
     """
@@ -302,10 +305,13 @@ def get_chromosome_herits(cord_data_g, ld_scores_dict, n, h2=None, max_h2=1):
 
     L = ld_scores_dict['avg_gw_ld_score']
     chi_square_lambda = sp.mean(n * sum_beta2s / float(num_snps))
-    print('Genome-wide lambda inflation: %0.4f'% chi_square_lambda)
-    print('Genome-wide mean LD score: %0.4f'% L)
     gw_h2_ld_score_est = max(0.0001, (max(1, chi_square_lambda) - 1) / (n * (L / num_snps)))
-    print('LD-score estimated genome-wide heritability: %0.4f'% gw_h2_ld_score_est)
+    if debug:
+        print('Genome-wide lambda inflation: %0.4f'% chi_square_lambda)
+        print('Genome-wide mean LD score: %0.4f'% L)
+        print('LD-score estimated genome-wide heritability: %0.4f'% gw_h2_ld_score_est)
+    summary_dict[1.11]={'name':'Genome-wide (LDscore) estimated heritability:','value':'%0.4f'%gw_h2_ld_score_est}
+    summary_dict[1.12]={'name':'Chi-square lambda (inflation statistic).','value':'%0.4f'%chi_square_lambda}
     assert chi_square_lambda>1, 'Something is wrong with the GWAS summary statistics, parsing of them, or the given GWAS sample size (N). Lambda (the mean Chi-square statistic) is too small.  '
 
     #Only use LD score heritability if it is not given as argument. 
@@ -320,6 +326,7 @@ def get_chromosome_herits(cord_data_g, ld_scores_dict, n, h2=None, max_h2=1):
         herit_dict[k] = h2 * herit_dict[k]/float(num_snps)
     
     herit_dict['gw_h2_ld_score_est'] = gw_h2_ld_score_est
+
     return herit_dict
 
 def _get_ld_filename_(local_ld_file_prefix, ld_radius, compressed=True, use_hickle=False):

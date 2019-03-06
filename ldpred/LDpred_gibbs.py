@@ -8,6 +8,7 @@ import h5py
 from ldpred import LDpred_inf
 from ldpred import util
 from ldpred import ld
+from ldpred import reporting
 
 
 
@@ -23,7 +24,7 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=1000, l
     n = float(n)
     
     # If no starting values for effects were given, then use the infinitesimal model starting values.
-    if start_betas is None:
+    if start_betas is None and verbose:
         print('Initializing LDpred effects with posterior mean LDpred-inf effects.')
         print('Calculating LDpred-inf effects.')
         start_betas = LDpred_inf.ldpred_inf(beta_hats, genotypes=genotypes, reference_ld_mats=reference_ld_mats,
@@ -153,12 +154,13 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=1000, l
     return {'betas':avg_betas, 'inf_betas':start_betas}
 
 
-def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_prefix=None, ps=None,
-               n=None, h2=None, num_iter=None, verbose=False, zero_jump_prob=0.05, burn_in=5):
+def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_prefix=None, 
+                      summary_dict=None, ps=None,
+                      n=None, h2=None, num_iter=None, 
+                      verbose=False, zero_jump_prob=0.05, burn_in=5):
     """
     Calculate LDpred for a genome
     """    
-    
     df = h5py.File(data_file, 'r')
     has_phenotypes = False
     if 'y' in df:
@@ -177,7 +179,7 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
     cord_data_g = df['cord_data']
 
     #Calculating genome-wide heritability using LD score regression, and partition heritability by chromsomes
-    herit_dict = ld.get_chromosome_herits(cord_data_g, ld_scores_dict, n, h2=h2)
+    herit_dict = ld.get_chromosome_herits(cord_data_g, ld_scores_dict, n, h2=h2, debug=verbose,summary_dict=summary_dict)
 
     LDpred_inf_chrom_dict = {}
     print('Calculating LDpred-inf weights')
@@ -198,11 +200,13 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
             LDpred_inf_chrom_dict[chrom_str] = start_betas
     
     
+    convergence_report = {}
     for p in ps:
-        print('Starting LDpred gibbs with p=%0.4f' % p)
+        convergence_report[p] = False
+        print('Starting LDpred gibbs with f=%0.4f' % p)
         p_str = '%0.4f' % p
         results_dict[p_str] = {}
-    
+        
         if out_file_prefix:
             # Preparing output files
             raw_effect_sizes = []
@@ -271,6 +275,7 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
                 if sum_sqr_effects > herit_dict['gw_h2_ld_score_est']:
                     print('Sum of squared updated effects estimates seems too large: %0.4f'% sum_sqr_effects)
                     print('This suggests that the Gibbs sampler did not convergence.')
+                    convergence_report[p] = True
                 
                 if verbose:
                     print('Calculating SNP weights for Chromosome %s' % ((chrom_str.split('_'))[1]))
@@ -328,15 +333,32 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
             nt1, nt2 = nt[0], nt[1]
             f.write('%s    %d    %s    %s    %s    %0.4e    %0.4e\n' % (chrom, pos, sid, nt1, nt2, raw_beta, ldpred_inf_beta))
 
+    summary_dict[2.0]={'name':'Gibbs sampler fractions used','value':str(ps)}
+    ['Yes' if convergence_report[p] else 'No' for p in ps]
+    summary_dict[2.1]={'name':'Convergence issues (for each fraction)','value':str(['Yes' if convergence_report[p] else 'No' for p in ps])}
 
 
 def main(p_dict):
+    summary_dict = {}
+    summary_dict[0]={'name':'Coordinated data filename','value':p_dict['cf']}
+    summary_dict[0.1]={'name':'SNP weights output file (prefix)', 'value':p_dict['out']}
+    summary_dict[0.2]={'name':'LD data filename (prefix)', 'value':p_dict['ldf']}
+    summary_dict[1]={'name':'LD radius used','value':str(p_dict['ldr'])}
+    t0 = time.time()
     ld_dict = ld.get_ld_dict(p_dict['cf'], p_dict['ldf'], p_dict['ldr'], verbose=p_dict['debug'],
-                              compressed=not p_dict['no_ld_compression'], use_hickle=p_dict['hickle_ld'])    
+                              compressed=not p_dict['no_ld_compression'], use_hickle=p_dict['hickle_ld'], summary_dict=summary_dict)    
+    t1 = time.time()
+    t = (t1 - t0)
+    summary_dict[1.2]={'name':'Running time for calculating LD information:','value':'%d min and %0.2f secs'% (t / 60, t % 60)}
+    t0 = time.time()
     ldpred_genomewide(data_file=p_dict['cf'], out_file_prefix=p_dict['out'], ps=p_dict['f'], ld_radius=p_dict['ldr'],
                       ld_dict=ld_dict, n=p_dict['N'], num_iter=p_dict['n_iter'], burn_in=p_dict['n_burn_in'], 
-                      h2=p_dict['h2'], verbose=p_dict['debug'])
-            
+                      h2=p_dict['h2'], verbose=p_dict['debug'], summary_dict=summary_dict)
+    t1 = time.time()
+    t = (t1 - t0)
+    summary_dict[2.2]={'name':'Running time for Gibbs sampler(s):','value':'%d min and %0.2f secs'% (t / 60, t % 60)}
+    reporting.print_summary(summary_dict, 'Summary of LDpred Gibbs')
+
         
 
         

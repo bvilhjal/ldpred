@@ -58,15 +58,16 @@ parser_coord.add_argument('--out', type=str, required=True,
                     help='Output Prefix')
 parser_coord.add_argument('--vbim', type=str, default=None,
                     help='Validation SNP file. '
-                         'This is a PLINK BIM file which can be used to filter the set of SNPs down '
+                         'This is a PLINK BIM file (with .bim) which can be used to filter the set of SNPs down '
                          'to the set of validation SNPs. To maximize accuracy, we recommend calculating LDpred '
                          'weights for the subset of SNPs that are used to calculate the risk scores in the '
                          'target (validation) sample.')
 parser_coord.add_argument('--vgf', type=str, default=None,
                     help='Validation genotype file. '
                          'This is a PLINK BIM file which can be used to filter the set of SNPs down to the '
-                         'set of validation SNPs.  To maximize accuracy, we recommend calculating LDpred '
-                         'weights for the subset of SNPs that are used to calculate the risk scores in the '
+                         'set of validation SNPs. This is a filename prefix (without .bed). To maximize '
+                         'accuracy, we recommend calculating LDpred weights for the subset of SNPs that are '
+                         'used to calculate the risk scores in the '
                          'target (validation) sample.')
 parser_coord.add_argument('--only-hm3', default=False, action='store_true',
                     help='Restrict analysis to 1.2M HapMap 3 SNPs.')

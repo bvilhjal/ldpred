@@ -5,6 +5,7 @@ import scipy as sp
 import gzip
 import h5py
 from ldpred import sum_stats_parsers
+from ldpred import reporting
 from ldpred import util
 from ldpred import plinkfiles
 from plinkio import plinkfile
@@ -58,21 +59,6 @@ def write_coord_data(cord_data_g, coord_dict):
     if coord_dict['genetic_map'] is not None:
         ofg.create_dataset('genetic_map', data=coord_dict['genetic_map'])
 
-
-def print_summary(summary_dict, log_file=None):
-    print('')
-    print( ('-' *25)  + ' Summary of Coordination Step '+ ('-' *25))
-    for k in sorted(summary_dict.keys()):
-        sd = summary_dict[k]
-        val_str= str(sd['value'])
-        if len(val_str)>28:
-            print ('{:<50}:'.format(sd['name']))
-            print ('{:>80}'.format(val_str))
-        else:
-            print ('{:<50}:{:>29}'.format(sd['name'],str(sd['value'])))
-    print ('-' * 80)
-    print('')
-        
                    
 def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
                         validation_genotype_file=None,
@@ -574,6 +560,6 @@ def main(p_dict):
                         min_maf=p_dict['maf'], 
                         skip_coordination=p_dict['skip_coordination'], 
                         debug=p_dict['debug'])
-    print_summary(summary_dict)
+    reporting.print_summary(summary_dict, 'Summary of coordination step')
     
     h5f.close()
