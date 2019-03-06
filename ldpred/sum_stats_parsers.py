@@ -183,6 +183,11 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
                 else:
                     pos_read = snps_pos_map[sid]['pos']
 
+                pval_read = float(l[header_dict[pval]])
+                if isinf(stats.norm.ppf(pval_read)):
+                    invalid_p += 1
+                    continue
+
                 if not chrom in chrom_dict:
                     chrom_dict[chrom] = {'ps':[], 'log_odds':[], 'infos':[], 'freqs':[],
                              'betas':[], 'nts': [], 'sids': [], 'positions': []}
@@ -218,12 +223,7 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
                 if info is not None and info in header_dict:
                     info_sc = float(l[header_dict[info]])
                 chrom_dict[chrom]['infos'].append(info_sc)
-                pval_read = float(l[header_dict[pval]])
                 chrom_dict[chrom]['ps'].append(pval_read)
-                if isinf(stats.norm.ppf(pval_read)):
-                    invalid_p += 1
-                    continue
-
                 nt = [l[header_dict[A1]].upper(), l[header_dict[A2]].upper()]
                 chrom_dict[chrom]['nts'].append(nt)
                 raw_beta = float(l[header_dict[eff]])
@@ -305,10 +305,10 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
         g.create_dataset('positions', data=positions)
         hdf5_file.flush()
     if debug:
-        print('%d SNPs excluded due to invalid chromosome ID.' % chr_filter)
+        print('%d SNPs excluded due to invalid chromosome ID' % chr_filter)
         print('%d SNPs excluded due to invalid chromosome position' % pos_filter)
-        print('%d SNPs excluded due to invalid P value' % invalid_p)
-        print('%d SNPs parsed from summary statistics file.' % num_snps)
+        print('%d SNPs excluded due to invalid P-value' % invalid_p)
+        print('%d SNPs parsed from summary statistics file' % num_snps)
     summary_dict[3.1]={'name':'Num SNPs parsed from sum stats file','value':num_snps}
     summary_dict[3.2]={'name':'Num invalid P-values in sum stats','value':invalid_p}
 
