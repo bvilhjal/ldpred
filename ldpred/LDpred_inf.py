@@ -158,7 +158,7 @@ def ldpred_inf_genomewide(data_file=None, ld_radius = None, ld_dict=None, out_fi
 
 def main(p_dict):
     ld_dict = ld.get_ld_dict(p_dict['cf'], p_dict['ldf'], p_dict['ldr'], verbose=p_dict['debug'], 
-                             compressed=not p_dict['no_ld_compression'], use_hickle=p_dict['hickle_ld'])
+                             compressed=not p_dict['no_ld_compression'], use_hickle=p_dict['hickle_ld'], summary_dict={})
     
     ldpred_inf_genomewide(data_file=p_dict['cf'], out_file_prefix=p_dict['out'], ld_radius=p_dict['ldr'], 
                           ld_dict = ld_dict, n=p_dict['N'], h2=p_dict['h2'], verbose=p_dict['debug'])

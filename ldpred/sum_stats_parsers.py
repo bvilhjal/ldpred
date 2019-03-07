@@ -69,7 +69,7 @@ def parse_sum_stats(h5f, p_dict, bimfile, summary_dict):
         raise Exception('Unknown Summary Statistics Format.')
     t1 = time.time()
     t = (t1 - t0)
-    summary_dict[14]={'name':'Run time for parsing summary stats','value': '%d min and %0.2f sec'%(t / 60, t % 60)}
+    summary_dict[14]={'name':'Run time for parsing summary stats:','value': '%d min and %0.2f sec'%(t / 60, t % 60)}
 
 
 def is_gz(name):
@@ -256,6 +256,7 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
     for chrom in chrom_dict:
         if debug:
             print ('%d SNPs on chromosome %s' % (len(chrom_dict[chrom]['positions']), chrom))
+        assert len(chrom_dict[chrom]['positions'])==len(chrom_dict[chrom]['betas'])==len(chrom_dict[chrom]['ps'])==len(chrom_dict[chrom]['nts']), 'Problems with parsing summary stats'
         sl = list(zip(chrom_dict[chrom]['positions'], chrom_dict[chrom]['sids'], chrom_dict[chrom]['nts'],
                  chrom_dict[chrom]['betas'], chrom_dict[chrom]['log_odds'], chrom_dict[chrom]['infos'],
                  chrom_dict[chrom]['freqs'], chrom_dict[chrom]['ps']))

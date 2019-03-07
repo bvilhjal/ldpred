@@ -81,8 +81,8 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
         print('Parsing plinkf_dict_val reference genotypes')
     loci = plinkf.get_loci()
     plinkf.close()
-    summary_dict[4]={'name':'Num individuals in LD Reference data','value':plinkfiles.get_num_indivs(reference_genotype_file)}
-    summary_dict[4.1]={'name':'Num SNPs in LD Reference data','value':len(loci)}
+    summary_dict[4]={'name':'Num individuals in LD Reference data:','value':plinkfiles.get_num_indivs(reference_genotype_file)}
+    summary_dict[4.1]={'name':'SNPs in LD Reference data:','value':len(loci)}
     gf_chromosomes = [l.chromosome for l in loci]
     
     chromosomes = sp.unique(gf_chromosomes)
@@ -100,7 +100,7 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
         
         loci_val = plinkf_val.get_loci()
         plinkf_val.close()
-        summary_dict[5]={'name':'Num SNPs in Validation data','value':len(loci_val)}
+        summary_dict[5]={'name':'SNPs in Validation data:','value':len(loci_val)}
 
         chr_dict_val = plinkfiles.get_chrom_dict(loci_val, chromosomes)
 
@@ -108,7 +108,7 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
         assert not 'iids' in hdf5_file, 'Something is wrong with the HDF5 file, no individuals IDs were found.'
         if plinkf_dict_val['has_phenotype']:
             hdf5_file.create_dataset('y', data=plinkf_dict_val['phenotypes'])
-            summary_dict[6]={'name':'Num validation phenotypes','value':plinkf_dict_val['num_individs']}
+            summary_dict[6]={'name':'Num validation phenotypes:','value':plinkf_dict_val['num_individs']}
    
         hdf5_file.create_dataset('fids', data=sp.array(plinkf_dict_val['fids'], dtype=util.fids_dtype))
         hdf5_file.create_dataset('iids', data=sp.array(plinkf_dict_val['iids'], dtype=util.iids_dtype))
@@ -509,19 +509,19 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
         if debug:
             print('Overall nucleotide concordance counts, rg_ss: %d' % (tot_g_ss_nt_concord_count))        
     
-    summary_dict[7]={'name':'Num chromosomes used','value':len(chromosomes_found)}
-    summary_dict[8]={'name':'SNPs common across datasets','value':num_snps_common_before_filtering}
-    summary_dict[9]={'name':'SNPs retained after filtering','value':num_snps_common_after_filtering}
-    summary_dict[10]={'name':'SNPs w ambiguous nucleotides filtered','value':tot_num_ambig_nts}
-    summary_dict[11]={'name':'SNPs w other nucleotide discrepancies filtered','value':tot_num_non_matching_nts}
+    summary_dict[7]={'name':'Num chromosomes used:','value':len(chromosomes_found)}
+    summary_dict[8]={'name':'SNPs common across datasets:','value':num_snps_common_before_filtering}
+    summary_dict[9]={'name':'SNPs retained after filtering:','value':num_snps_common_after_filtering}
+    summary_dict[10]={'name':'SNPs w ambiguous nucleotides filtered:','value':tot_num_ambig_nts}
+    summary_dict[11]={'name':'SNPs w other nucleotide discrepancies filtered:','value':tot_num_non_matching_nts}
     if min_maf>0:
-        summary_dict[12]={'name':'SNPs w MAF<%0.3f filtered'%min_maf,'value':tot_num_maf_filtered_snps}
+        summary_dict[12]={'name':'SNPs w MAF<%0.3f filtered:'%min_maf,'value':tot_num_maf_filtered_snps}
     if max_freq_discrep<0.5:
-        summary_dict[13]={'name':'SNPs w allele freq discrepancy > %0.3f filtered'%max_freq_discrep,'value':tot_num_freq_discrep_filtered_snps}
+        summary_dict[13]={'name':'SNPs w allele freq discrepancy > %0.3f filtered:'%max_freq_discrep,'value':tot_num_freq_discrep_filtered_snps}
 
     t1 = time.time()
     t = (t1 - t0)
-    summary_dict[15]={'name':'Run time for coordinating datasets','value': '%d min and %0.2f sec'%(t / 60, t % 60)}
+    summary_dict[15]={'name':'Run time for coordinating datasets:','value': '%d min and %0.2f sec'%(t / 60, t % 60)}
 
 
 
@@ -548,11 +548,11 @@ def main(p_dict):
     h5f = h5py.File(p_dict['out'], 'w')
     
     summary_dict = {}
-    summary_dict[0]={'name':'Summary statistics filename','value':p_dict['ssf']}
-    summary_dict[1]={'name':'LD reference genotypes filename','value':p_dict['gf']}
-    summary_dict[3]={'name':'Coordinated data output filename','value':p_dict['out']}
+    summary_dict[0]={'name':'Summary statistics filename:','value':p_dict['ssf']}
+    summary_dict[1]={'name':'LD reference genotypes filename:','value':p_dict['gf']}
+    summary_dict[3]={'name':'Coordinated data output filename:','value':p_dict['out']}
     if p_dict['vgf'] is not None:
-        summary_dict[2]={'name':'Validation genotypes filename','value':p_dict['vgf']}
+        summary_dict[2]={'name':'Validation genotypes filename:','value':p_dict['vgf']}
 
     sum_stats_parsers.parse_sum_stats(h5f, p_dict, bimfile, summary_dict)
     coordinate_datasets(p_dict['gf'], h5f,summary_dict,
