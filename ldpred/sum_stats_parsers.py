@@ -107,9 +107,7 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
         if debug:
             print('Parsing bim file: %s' % bimfile)
         with open(bimfile) as f:
-            i = 0
             for line in f:
-                i += 1
                 l = line.split()
                 # Bim file format is CHR SNP BP
                 sid = l[1]
@@ -120,8 +118,6 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
                 else:
                     valid_sids.add(sid)
                     snps_pos_map[sid] = {'pos':int(l[3]), 'chrom':l[0]}
-                if i%10000==0:
-                    print ('Chrom: %s'%l[0])
 
         if len(valid_sids)==0:
             raise Exception('Unable to parse BIM file')
@@ -159,9 +155,7 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
                                                      'file and N not provided'
         # header_dict now contains the header column name for each corresponding input
         bad_chromosomes = set()
-        line_i = 0
         for line in f:
-            line_i +=1
             if is_gz(filename):
                 line = line.decode('utf-8')
             l = (line.strip()).split()
@@ -189,8 +183,6 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
                 if not pos is None and pos in header_dict:
                     pos_read = int(l[header_dict[pos]])
                     if not pos_read == snps_pos_map[sid]['pos']:
-                        if line_i%10000==0:
-                            print('c,p 1: %s,%d, c,p 2: %s,%d'%(chrom,pos_read,snps_pos_map[sid]['chrom'],snps_pos_map[sid]['pos']))
                         pos_filter += 1
                         if match_genomic_pos:
                             continue
