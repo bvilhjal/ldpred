@@ -156,7 +156,9 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
                                                      'file and N not provided'
         # header_dict now contains the header column name for each corresponding input
         bad_chromosomes = set()
+        line_i = 0
         for line in f:
+            line_i +=1
             if is_gz(filename):
                 line = line.decode('utf-8')
             l = (line.strip()).split()
@@ -170,6 +172,8 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
                     chrom = l[header_dict[ch]]
                     chrom = re.sub("chr", "", chrom)
                     if not chrom == snps_pos_map[sid]['chrom']:
+                        if line_i%10000==0:
+                            print('chrom1: %s, chrom2: %s'%(chrom,snps_pos_map[sid]['chrom'])
                         chr_filter += 1
                 else:
                     chrom = snps_pos_map[sid]['chrom']
