@@ -12,7 +12,7 @@ def parse_sum_stats(h5f, p_dict, bimfile, summary_dict):
     ss_args = {'filename':p_dict['ssf'], 'bimfile':bimfile, 'hdf5_file':h5f, 
                'only_hm3':p_dict['only_hm3'], 'n':p_dict['N'], 
                'debug':p_dict['debug'], 'summary_dict':summary_dict, 
-               'match_genomic_pos':p['match_genomic_pos']}
+               'match_genomic_pos':p_dict['match_genomic_pos']}
     if p_dict['ssf_format'] == 'STANDARD':
         if p_dict['N'] is None: 
             raise Exception('This summary statistics format requires summary statistics sample size to be given, i.e. set --N flag.')        
