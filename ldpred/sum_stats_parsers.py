@@ -104,7 +104,9 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
         if debug:
             print('Parsing bim file: %s' % bimfile)
         with open(bimfile) as f:
+            i = 0
             for line in f:
+                i += 1
                 l = line.split()
                 # Bim file format is CHR SNP BP
                 sid = l[1]
@@ -115,6 +117,8 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
                 else:
                     valid_sids.add(sid)
                     snps_pos_map[sid] = {'pos':int(l[3]), 'chrom':l[0]}
+                if i%10000==0:
+                    print ('Chrom: %s'%l[0])
 
         if len(valid_sids)==0:
             raise Exception('Unable to parse BIM file')
