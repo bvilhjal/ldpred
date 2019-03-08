@@ -79,7 +79,7 @@ def is_gz(name):
 def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_file=None, n=None, ch=None, pos=None,
                     A1=None, A2=None, reffreq=None, case_freq=None, control_freq=None, case_n=None,
                     control_n=None, info=None, rs=None, pval=None, eff=None, ncol=None,
-                    input_is_beta=False, debug=False, summary_dict = None):
+                    input_is_beta=False, match_chrom_pos=False, debug=False, summary_dict = None):
     # Check required fields are here
     assert not A2 is None, 'Require header for non-effective allele'
     assert not A1 is None, 'Require header for effective allele'
@@ -172,9 +172,9 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
                     chrom = l[header_dict[ch]]
                     chrom = re.sub("chr", "", chrom)
                     if not chrom == snps_pos_map[sid]['chrom']:
-                        if line_i%10000==0:
-                            print('chrom1: %s, chrom2: %s'%(chrom,snps_pos_map[sid]['chrom']))
                         chr_filter += 1
+                        if match_chrom_pos:
+                            continue
                 else:
                     chrom = snps_pos_map[sid]['chrom']
                 if not chrom in util.ok_chromosomes:
@@ -186,8 +186,11 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
                 if not pos is None and pos in header_dict:
                     pos_read = int(l[header_dict[pos]])
                     if not pos_read == snps_pos_map[sid]['pos']:
+                        if line_i%10000==0:
+                            print('c,p 1: %s,%d, c,p 2: %s,%d'%(chrom,pos_read,snps_pos_map[sid]['chrom'],snps_pos_map[sid]['pos']))
                         pos_filter += 1
-                        continue
+                        if match_chrom_pos:
+                            continue
                 else:
                     pos_read = snps_pos_map[sid]['pos']
 
@@ -323,4 +326,6 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
         print('%d SNPs parsed from summary statistics file' % num_snps)
     summary_dict[3.1]={'name':'Num SNPs parsed from sum stats file','value':num_snps}
     summary_dict[3.2]={'name':'Num invalid P-values in sum stats','value':invalid_p}
+    summary_dict[3.3]={'name':'Num invalid positions in sum stats','value':pos_filter}
+    summary_dict[3.4]={'name':'Num invalid chromosomes in sum stats','value':chr_filter}
 
