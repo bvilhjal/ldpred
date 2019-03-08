@@ -58,6 +58,13 @@ try:
     assert os.system(cmd_str) == 0, 'Problems with the P+T validation step!'
     print('Test finished successfully!')
 
+    prs_file_prefix3 = tmp_file_prefix + 'prs_3'
+    print('Validating results with output file prefix: %s' % tmp_file_prefix)
+    cmd_str = 'python LDpred.py score --gf=./test_data/LDpred_data_p0.001_test_0  --only-score --rf=%s  --rf-format=P+T --out=%s' % (tmp_file_prefix, prs_file_prefix3)
+    print(cmd_str + '\n')
+    assert os.system(cmd_str) == 0, 'Problems with the P+T validation step!'
+    print('Test finished successfully!')
+
 
 except Exception as e:
     print("Test failed: ",e)
@@ -67,8 +74,8 @@ except Exception as e:
     assert os.system(cmd_str) == 0, 'Problems cleaning up test files!  Testing stopped'
     raise Exception('Test failed.')
 
-print('Cleaning up files.')
-cmd_str = 'rm %s*' % tmp_file_prefix
-print(cmd_str + '\n')
-assert os.system(cmd_str) == 0, 'Problems cleaning up test files!  Testing stopped'
+# print('Cleaning up files.')
+# cmd_str = 'rm %s*' % tmp_file_prefix
+# print(cmd_str + '\n')
+# assert os.system(cmd_str) == 0, 'Problems cleaning up test files!  Testing stopped'
 

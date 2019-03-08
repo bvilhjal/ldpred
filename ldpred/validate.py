@@ -7,59 +7,61 @@ from ldpred import util
 import time
 from ldpred import reporting
 
-def get_prs(genotype_file, rs_id_map, phen_map=None, verbose=False):
+def get_prs(genotype_file, rs_id_map, phen_map=None, only_score = False, verbose=False):
     plinkf = plinkfiles.plinkfile.PlinkFile(genotype_file)
     samples = plinkf.get_samples()
 
-    # 1. Figure out indiv filter and get true phenotypes
-    indiv_filter = sp.zeros(len(samples), dtype='bool8')
-    true_phens = []
-    iids = []
-    if phen_map is not None:
-        pcs = []
-        sex = []
-        covariates = []
-        phen_iids = set(phen_map.keys())
-        for samp_i, sample in enumerate(samples):
-            if sample.iid in phen_iids:
-                indiv_filter[samp_i] = True
-                true_phens.append(phen_map[sample.iid]['phen'])
-                iids.append(sample.iid)
-                if 'pcs' in list(phen_map[sample.iid].keys()):
-                    pcs.append(phen_map[sample.iid]['pcs'])
-                if 'sex' in list(phen_map[sample.iid].keys()):
-                    sex.append(phen_map[sample.iid]['sex'])
-                if 'covariates' in list(phen_map[sample.iid].keys()):
-                    covariates.append(phen_map[sample.iid]['covariates'])
-        if len(pcs) > 0:
-            assert len(pcs) == len(
-                true_phens), 'PC information missing for some individuals with phenotypes'
-        if len(sex) > 0:
-            assert len(sex) == len(
-                true_phens), 'Sex information missing for some individuals with phenotypes'
-        if len(covariates) > 0:
-            assert len(covariates) == len(
-                true_phens), 'Covariates missing for some individuals with phenotypes'
+    if not only_score:
+        # 1. Figure out indiv filter and get true phenotypes
+        indiv_filter = sp.zeros(len(samples), dtype='bool8')
+        true_phens = []
+        iids = []
+        if phen_map is not None:
+            pcs = []
+            sex = []
+            covariates = []
+            phen_iids = set(phen_map.keys())
+            for samp_i, sample in enumerate(samples):
+                if sample.iid in phen_iids:
+                    indiv_filter[samp_i] = True
+                    true_phens.append(phen_map[sample.iid]['phen'])
+                    iids.append(sample.iid)
+                    if 'pcs' in list(phen_map[sample.iid].keys()):
+                        pcs.append(phen_map[sample.iid]['pcs'])
+                    if 'sex' in list(phen_map[sample.iid].keys()):
+                        sex.append(phen_map[sample.iid]['sex'])
+                    if 'covariates' in list(phen_map[sample.iid].keys()):
+                        covariates.append(phen_map[sample.iid]['covariates'])
+            if len(pcs) > 0:
+                assert len(pcs) == len(
+                    true_phens), 'PC information missing for some individuals with phenotypes'
+            if len(sex) > 0:
+                assert len(sex) == len(
+                    true_phens), 'Sex information missing for some individuals with phenotypes'
+            if len(covariates) > 0:
+                assert len(covariates) == len(
+                    true_phens), 'Covariates missing for some individuals with phenotypes'
+        else:
+            for samp_i, sample in enumerate(samples):
+                if sample.affection != 2:
+                    indiv_filter[samp_i] = True
+                    true_phens.append(sample.affection)
+                    iids.append(sample.iid)
+    
+        num_individs = sp.sum(indiv_filter)
+        assert num_individs > 0, 'Issues in parsing the phenotypes and/or PCs?'
+    
+        assert not sp.any(sp.isnan(
+            true_phens)), 'Phenotypes appear to have some NaNs, or parsing failed.'
+    
+        if verbose:
+            print('%d individuals have phenotype and genotype information.' % num_individs)
     else:
-        for samp_i, sample in enumerate(samples):
-            if sample.affection != 2:
-                indiv_filter[samp_i] = True
-                true_phens.append(sample.affection)
-                iids.append(sample.iid)
-
-    num_individs = sp.sum(indiv_filter)
-    assert num_individs > 0, 'Issues in parsing the phenotypes and/or PCs?'
-
-    assert not sp.any(sp.isnan(
-        true_phens)), 'Phenotypes appear to have some NaNs, or parsing failed.'
-
-    if verbose:
-        print('%d individuals have phenotype and genotype information.' % num_individs)
-
+        iids = [sample.iid for sample in samples]
+        num_individs = len(samples)
     num_non_matching_nts = 0
     num_flipped_nts = 0
 
-    raw_effects_prs = sp.zeros(num_individs)
     pval_derived_effects_prs = sp.zeros(num_individs)
     # If these indices are not in order then we place them in the right place
     # while parsing SNPs.
@@ -91,18 +93,19 @@ def get_prs(genotype_file, rs_id_map, phen_map=None, verbose=False):
             flip_nts = (g_nt[1] == ss_nt[0] and g_nt[0] == ss_nt[1]) or (
                 os_g_nt[1] == ss_nt[0] and os_g_nt[0] == ss_nt[1])
             if flip_nts:
-                raw_beta = -rs_info['raw_beta']
                 upd_pval_beta = -rs_info['upd_pval_beta']
                 num_flipped_nts += 1
             else:
                 num_non_matching_nts += 1
                 continue
         else:
-            raw_beta = rs_info['raw_beta']
             upd_pval_beta = rs_info['upd_pval_beta']
 
         # Parse SNP, and fill in the blanks if necessary.
-        snp = sp.array(row, dtype='int8')[indiv_filter]
+        if only_score:
+            snp = sp.array(row, dtype='int8')
+        else:
+            snp = sp.array(row, dtype='int8')[indiv_filter]
         bin_counts = row.allele_counts()
         if bin_counts[-1] > 0:
             mode_v = sp.argmax(bin_counts[:2])
@@ -110,9 +113,6 @@ def get_prs(genotype_file, rs_id_map, phen_map=None, verbose=False):
 
 
         # Update scores and move on.
-        raw_effects_prs += snp * raw_beta
-        assert not sp.any(sp.isnan(raw_effects_prs)
-                          ), 'Some individual raw effects risk scores are NANs (not a number).  They are corrupted.'
         pval_derived_effects_prs += snp * upd_pval_beta
         assert not sp.any(sp.isnan(pval_derived_effects_prs)
                           ), 'Some individual weighted effects risk scores are NANs (not a number).  They are corrupted.'
@@ -121,10 +121,11 @@ def get_prs(genotype_file, rs_id_map, phen_map=None, verbose=False):
             if verbose:
                 print('%d SNPs parsed'%snp_i)
                 print('Number of non-matching NTs: %d' % num_non_matching_nts)
-            pval_eff_r2 = (sp.corrcoef(
-                pval_derived_effects_prs, true_phens)[0, 1]) ** 2
-            if verbose:
-                print('Current PRS r2: %0.4f' % pval_eff_r2)
+            if not only_score:
+                pval_eff_r2 = (sp.corrcoef(
+                    pval_derived_effects_prs, true_phens)[0, 1]) ** 2
+                if verbose:
+                    print('Current PRS r2: %0.4f' % pval_eff_r2)
 
         snp_i += 1
 
@@ -134,23 +135,28 @@ def get_prs(genotype_file, rs_id_map, phen_map=None, verbose=False):
         print("DONE!")
         print('Number of non-matching NTs: %d' % num_non_matching_nts)
         print('Number of flipped NTs: %d' % num_flipped_nts)
-    pval_eff_corr = sp.corrcoef(pval_derived_effects_prs, true_phens)[0, 1]
-    pval_eff_r2 = pval_eff_corr ** 2
+    if not only_score:
+        pval_eff_corr = sp.corrcoef(pval_derived_effects_prs, true_phens)[0, 1]
+        pval_eff_r2 = pval_eff_corr ** 2
 
-    if verbose:
-        print('Current PRS correlation: %0.4f' % pval_eff_corr)
-        print('Current PRS r2: %0.4f' % pval_eff_r2)
+        if verbose:
+            print('Current PRS correlation: %0.4f' % pval_eff_corr)
+            print('Current PRS r2: %0.4f' % pval_eff_r2)
+    
+        ret_dict = {'pval_derived_effects_prs': pval_derived_effects_prs,
+                    'true_phens': true_phens[:], 'iids': iids, 'prs_r2':pval_eff_r2, 'prs_corr':pval_eff_corr}
+    
+        if len(pcs) > 0:
+            ret_dict['pcs'] = pcs
+        if len(sex) > 0:
+            ret_dict['sex'] = sex
+        if len(covariates) > 0:
+            ret_dict['covariates'] = covariates
 
-    ret_dict = {'raw_effects_prs': raw_effects_prs.copy(), 'pval_derived_effects_prs': pval_derived_effects_prs.copy(),
-                'true_phens': true_phens[:], 'iids': iids, 'prs_r2':pval_eff_r2, 'prs_corr':pval_eff_corr}
+    else:    
+        ret_dict = {'pval_derived_effects_prs': pval_derived_effects_prs,'iids': iids}
 
-    if len(pcs) > 0:
-        ret_dict['pcs'] = pcs
-    if len(sex) > 0:
-        ret_dict['sex'] = sex
-    if len(covariates) > 0:
-        ret_dict['covariates'] = covariates
-
+    
     return ret_dict
 
 
@@ -295,12 +301,12 @@ def parse_pt_res(file_name):
 
     return rs_id_map, non_zero_chromosomes
 
-def write_scores_file(out_file, prs_dict, raw_effects_prs, pval_derived_effects_prs, adj_pred_dict, 
+def write_scores_file(out_file, prs_dict, pval_derived_effects_prs, adj_pred_dict, 
                       output_regression_betas=False, weights_dict=None):
     num_individs = len(prs_dict['iids'])
     with open(out_file, 'w') as f:
         print ('Writing polygenic scores to file %s'%out_file)
-        out_str = 'IID, true_phens, raw_effects_prs, pval_derived_effects_prs'
+        out_str = 'IID, true_phens, PRS'
         if 'sex' in prs_dict:
             out_str = out_str + ', sex'
         if 'pcs' in prs_dict:
@@ -310,7 +316,7 @@ def write_scores_file(out_file, prs_dict, raw_effects_prs, pval_derived_effects_
         out_str += '\n'
         f.write(out_str)
         for i in range(num_individs):
-            out_str = '%s, %0.6e, %0.6e, %0.6e' % (prs_dict['iids'][i], prs_dict['true_phens'][i], raw_effects_prs[i],
+            out_str = '%s, %0.6e, %0.6e' % (prs_dict['iids'][i], prs_dict['true_phens'][i],
                                                      pval_derived_effects_prs[i])
             if 'sex' in prs_dict:
                 out_str = out_str + ', %d' % prs_dict['sex'][i]
@@ -323,12 +329,12 @@ def write_scores_file(out_file, prs_dict, raw_effects_prs, pval_derived_effects_
     if len(list(adj_pred_dict.keys())) > 0:
         with open(out_file + '.adj', 'w') as f:
             adj_prs_labels = list(adj_pred_dict.keys())
-            out_str = 'IID, true_phens, raw_effects_prs, pval_derived_effects_prs, ' + \
+            out_str = 'IID, true_phens, PRS, ' + \
                 ', '.join(adj_prs_labels)
             out_str += '\n'
             f.write(out_str)
             for i in range(num_individs):
-                out_str = '%s, %0.6e, %0.6e, %0.6e' % (prs_dict['iids'][i], prs_dict['true_phens'][i], raw_effects_prs[i],
+                out_str = '%s, %0.6e, %0.6e' % (prs_dict['iids'][i], prs_dict['true_phens'][i],
                                                        pval_derived_effects_prs[i])
                 for adj_prs in adj_prs_labels:
                     out_str += ', %0.4f' % adj_pred_dict[adj_prs][i]
@@ -345,17 +351,28 @@ def write_scores_file(out_file, prs_dict, raw_effects_prs, pval_derived_effects_
         oh5f.close()
 
 
+def write_only_scores_file(out_file, prs_dict, pval_derived_effects_prs):
+    num_individs = len(prs_dict['iids'])
+    with open(out_file, 'w') as f:
+        print ('Writing polygenic scores to file %s'%out_file)
+        out_str = 'IID, PRS \n'
+        f.write(out_str)
+        for i in range(num_individs):
+            out_str = '%s, %0.6e\n' % (prs_dict['iids'][i],
+                                                     pval_derived_effects_prs[i])
+            f.write(out_str)
+
+
 def calc_risk_scores(bed_file, rs_id_map, phen_map, out_file=None, 
                      split_by_chrom=False, adjust_for_sex=False,
                      adjust_for_covariates=False, adjust_for_pcs=False, 
-                     non_zero_chromosomes=None, verbose=False, 
-                     summary_dict=None):
+                     non_zero_chromosomes=None, only_score = False, 
+                     verbose=False, summary_dict=None):
     print('Parsing PLINK bed file: %s' % bed_file)
-    num_individs = len(phen_map)
-    assert num_individs > 0, 'No individuals found.  Problems parsing the phenotype file?'
 
     if split_by_chrom:
-        raw_effects_prs = sp.zeros(num_individs)
+        num_individs = len(phen_map)
+        assert num_individs > 0, 'No individuals found.  Problems parsing the phenotype file?'
         pval_derived_effects_prs = sp.zeros(num_individs)
 
         for i in range(1, 23):
@@ -364,156 +381,161 @@ def calc_risk_scores(bed_file, rs_id_map, phen_map, out_file=None,
                 if os.path.isfile(genotype_file + '.bed'):
                     if verbose:
                         print('Working on chromosome %d' % i)
-                    prs_dict = get_prs(genotype_file, rs_id_map, phen_map, verbose=verbose)
+                    prs_dict = get_prs(genotype_file, rs_id_map, phen_map, only_score=only_score, verbose=verbose)
 
-                    raw_effects_prs += prs_dict['raw_effects_prs']
                     pval_derived_effects_prs += prs_dict['pval_derived_effects_prs']
             elif verbose:
                     print('Skipping chromosome')
 
     else:
-        prs_dict = get_prs(bed_file, rs_id_map, phen_map, verbose=verbose)
-        raw_effects_prs = prs_dict['raw_effects_prs']
+        prs_dict = get_prs(bed_file, rs_id_map, phen_map, only_score=only_score, verbose=verbose)
+        num_individs = len(prs_dict['iids'])
         pval_derived_effects_prs = prs_dict['pval_derived_effects_prs']
-        true_phens = prs_dict['true_phens']
 
-    # Report prediction accuracy
-    pval_eff_corr = sp.corrcoef(pval_derived_effects_prs, prs_dict['true_phens'])[0, 1]
-    pval_eff_r2 = pval_eff_corr ** 2
+    if only_score:
+        write_only_scores_file(out_file, prs_dict, pval_derived_effects_prs)
+        res_dict = {}
+    else:
+        # Report prediction accuracy
+        assert len(phen_map) > 0, 'No individuals found.  Problems parsing the phenotype file?'
 
-
-    res_dict = {'pred_r2': pval_eff_r2}
-
-    pval_derived_effects_prs.shape = (len(pval_derived_effects_prs), 1)
-    true_phens = sp.array(true_phens)
-    true_phens.shape = (len(true_phens), 1)
-
-    # Store covariate weights, slope, etc.
-    weights_dict = {}
-
-    # Store Adjusted predictions
-    adj_pred_dict = {}
-
-    # Direct effect
-    Xs = sp.hstack([pval_derived_effects_prs, sp.ones((len(true_phens), 1))])
-    (betas, rss00, r, s) = linalg.lstsq(
-        sp.ones((len(true_phens), 1)), true_phens)
-    (betas, rss, r, s) = linalg.lstsq(Xs, true_phens)
-    pred_r2 = 1 - rss / rss00
-    weights_dict['unadjusted'] = {
-        'Intercept': betas[1][0], 'ldpred_prs_effect': betas[0][0]}
-
-    if verbose:
-        print('PRS correlation: %0.4f' % pval_eff_corr)
-    print('Variance explained (Pearson R2) by PRS: %0.4f' % pred_r2)
-
-    # Adjust for sex
-    if adjust_for_sex and 'sex' in prs_dict and len(prs_dict['sex']) > 0:
-        sex = sp.array(prs_dict['sex'])
-        sex.shape = (len(sex), 1)
-        (betas, rss0, r, s) = linalg.lstsq(
-            sp.hstack([sex, sp.ones((len(true_phens), 1))]), true_phens)
-        Xs = sp.hstack([pval_derived_effects_prs, sex,
-                        sp.ones((len(true_phens), 1))])
-        (betas, rss_pd, r, s) = linalg.lstsq(Xs, true_phens)
-        weights_dict['sex_adj'] = {
-            'Intercept': betas[2][0], 'ldpred_prs_effect': betas[0][0], 'sex': betas[1][0]}
+        pval_eff_corr = sp.corrcoef(pval_derived_effects_prs, prs_dict['true_phens'])[0, 1]
+        pval_eff_r2 = pval_eff_corr ** 2
+    
+        res_dict = {'pred_r2': pval_eff_r2}
+    
+        pval_derived_effects_prs.shape = (len(pval_derived_effects_prs), 1)
+        true_phens = sp.array(prs_dict['true_phens'])
+        true_phens.shape = (len(true_phens), 1)
+    
+        # Store covariate weights, slope, etc.
+        weights_dict = {}
+    
+        # Store Adjusted predictions
+        adj_pred_dict = {}
+    
+        # Direct effect
+        Xs = sp.hstack([pval_derived_effects_prs, sp.ones((len(true_phens), 1))])
+        (betas, rss00, r, s) = linalg.lstsq(
+            sp.ones((len(true_phens), 1)), true_phens)
+        (betas, rss, r, s) = linalg.lstsq(Xs, true_phens)
+        pred_r2 = 1 - rss / rss00
+        weights_dict['unadjusted'] = {
+            'Intercept': betas[1][0], 'ldpred_prs_effect': betas[0][0]}
+    
         if verbose:
-            print('Fitted effects (betas) for PRS, sex, and intercept on true phenotype:', betas)
-        adj_pred_dict['sex_adj'] = sp.dot(Xs, betas)
-        pred_r2 = 1 - rss_pd / rss0
-        print('Variance explained (Pearson R2) by PRS adjusted for Sex: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
-        res_dict['Sex_adj_pred_r2'] = pred_r2
-        pred_r2 = 1 - rss_pd / rss00
-        print('Variance explained (Pearson R2) by PRS + Sex : %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
-        res_dict['Sex_adj_pred_r2+Sex'] = pred_r2
-
-    # Adjust for PCs
-    if adjust_for_pcs and 'pcs' in prs_dict and len(prs_dict['pcs']) > 0:
-        pcs = prs_dict['pcs']
-        (betas, rss0, r, s) = linalg.lstsq(
-            sp.hstack([pcs, sp.ones((len(true_phens), 1))]), true_phens)
-        Xs = sp.hstack([pval_derived_effects_prs,
-                        sp.ones((len(true_phens), 1)), pcs])
-        (betas, rss_pd, r, s) = linalg.lstsq(Xs, true_phens)
-        weights_dict['pc_adj'] = {
-            'Intercept': betas[1][0], 'ldpred_prs_effect': betas[0][0], 'pcs': betas[2][0]}
-        adj_pred_dict['pc_adj'] = sp.dot(Xs, betas)
-        pred_r2 = 1 - rss_pd / rss0
-        print('Variance explained (Pearson R2) by PRS adjusted for PCs: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
-        res_dict['PC_adj_pred_r2'] = pred_r2
-        pred_r2 = 1 - rss_pd / rss00
-        print('Variance explained (Pearson R2) by PRS + PCs: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
-        res_dict['PC_adj_pred_r2+PC'] = pred_r2
-
-        # Adjust for both PCs and Sex
+            print('PRS correlation: %0.4f' % pval_eff_corr)
+        print('Variance explained (Pearson R2) by PRS: %0.4f' % pred_r2)
+    
+        # Adjust for sex
         if adjust_for_sex and 'sex' in prs_dict and len(prs_dict['sex']) > 0:
             sex = sp.array(prs_dict['sex'])
             sex.shape = (len(sex), 1)
             (betas, rss0, r, s) = linalg.lstsq(
-                sp.hstack([sex, pcs, sp.ones((len(true_phens), 1))]), true_phens)
+                sp.hstack([sex, sp.ones((len(true_phens), 1))]), true_phens)
             Xs = sp.hstack([pval_derived_effects_prs, sex,
+                            sp.ones((len(true_phens), 1))])
+            (betas, rss_pd, r, s) = linalg.lstsq(Xs, true_phens)
+            weights_dict['sex_adj'] = {
+                'Intercept': betas[2][0], 'ldpred_prs_effect': betas[0][0], 'sex': betas[1][0]}
+            if verbose:
+                print('Fitted effects (betas) for PRS, sex, and intercept on true phenotype:', betas)
+            adj_pred_dict['sex_adj'] = sp.dot(Xs, betas)
+            pred_r2 = 1 - rss_pd / rss0
+            print('Variance explained (Pearson R2) by PRS adjusted for Sex: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
+            res_dict['Sex_adj_pred_r2'] = pred_r2
+            pred_r2 = 1 - rss_pd / rss00
+            print('Variance explained (Pearson R2) by PRS + Sex : %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
+            res_dict['Sex_adj_pred_r2+Sex'] = pred_r2
+    
+        # Adjust for PCs
+        if adjust_for_pcs and 'pcs' in prs_dict and len(prs_dict['pcs']) > 0:
+            pcs = prs_dict['pcs']
+            (betas, rss0, r, s) = linalg.lstsq(
+                sp.hstack([pcs, sp.ones((len(true_phens), 1))]), true_phens)
+            Xs = sp.hstack([pval_derived_effects_prs,
                             sp.ones((len(true_phens), 1)), pcs])
             (betas, rss_pd, r, s) = linalg.lstsq(Xs, true_phens)
-            weights_dict['sex_pc_adj'] = {
-                'Intercept': betas[2][0], 'ldpred_prs_effect': betas[0][0], 'sex': betas[1][0], 'pcs': betas[3][0]}
-            adj_pred_dict['sex_pc_adj'] = sp.dot(Xs, betas)
+            weights_dict['pc_adj'] = {
+                'Intercept': betas[1][0], 'ldpred_prs_effect': betas[0][0], 'pcs': betas[2][0]}
+            adj_pred_dict['pc_adj'] = sp.dot(Xs, betas)
             pred_r2 = 1 - rss_pd / rss0
-            print('Variance explained (Pearson R2) by PRS adjusted for PCs and Sex: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
-            res_dict['PC_Sex_adj_pred_r2'] = pred_r2
+            print('Variance explained (Pearson R2) by PRS adjusted for PCs: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
+            res_dict['PC_adj_pred_r2'] = pred_r2
             pred_r2 = 1 - rss_pd / rss00
-            print('Variance explained (Pearson R2) by PRS+PCs+Sex: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
-            res_dict['PC_Sex_adj_pred_r2+PC_Sex'] = pred_r2
-
-    # Adjust for covariates
-    if adjust_for_covariates and 'covariates' in prs_dict and len(prs_dict['covariates']) > 0:
-        covariates = prs_dict['covariates']
-        (betas, rss0, r, s) = linalg.lstsq(
-            sp.hstack([covariates, sp.ones((len(true_phens), 1))]), true_phens)
-        Xs = sp.hstack([pval_derived_effects_prs, covariates,
-                        sp.ones((len(true_phens), 1))])
-        (betas, rss_pd, r, s) = linalg.lstsq(Xs, true_phens)
-        adj_pred_dict['cov_adj'] = sp.dot(Xs, betas)
-        pred_r2 = 1 - rss_pd / rss0
-        print('Variance explained (Pearson R2) by PRS adjusted for Covariates: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
-        res_dict['Cov_adj_pred_r2'] = pred_r2
-        pred_r2 = 1 - rss_pd / rss00
-        print('Variance explained (Pearson R2) by PRS + Cov: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
-        res_dict['Cov_adj_pred_r2+Cov'] = pred_r2
-
-        if adjust_for_pcs and 'pcs' in prs_dict and len(prs_dict['pcs']) and 'sex' in prs_dict and len(prs_dict['sex']) > 0:
-            pcs = prs_dict['pcs']
-            sex = sp.array(prs_dict['sex'])
-            sex.shape = (len(sex), 1)
+            print('Variance explained (Pearson R2) by PRS + PCs: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
+            res_dict['PC_adj_pred_r2+PC'] = pred_r2
+    
+            # Adjust for both PCs and Sex
+            if adjust_for_sex and 'sex' in prs_dict and len(prs_dict['sex']) > 0:
+                sex = sp.array(prs_dict['sex'])
+                sex.shape = (len(sex), 1)
+                (betas, rss0, r, s) = linalg.lstsq(
+                    sp.hstack([sex, pcs, sp.ones((len(true_phens), 1))]), true_phens)
+                Xs = sp.hstack([pval_derived_effects_prs, sex,
+                                sp.ones((len(true_phens), 1)), pcs])
+                (betas, rss_pd, r, s) = linalg.lstsq(Xs, true_phens)
+                weights_dict['sex_pc_adj'] = {
+                    'Intercept': betas[2][0], 'ldpred_prs_effect': betas[0][0], 'sex': betas[1][0], 'pcs': betas[3][0]}
+                adj_pred_dict['sex_pc_adj'] = sp.dot(Xs, betas)
+                pred_r2 = 1 - rss_pd / rss0
+                print('Variance explained (Pearson R2) by PRS adjusted for PCs and Sex: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
+                res_dict['PC_Sex_adj_pred_r2'] = pred_r2
+                pred_r2 = 1 - rss_pd / rss00
+                print('Variance explained (Pearson R2) by PRS+PCs+Sex: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
+                res_dict['PC_Sex_adj_pred_r2+PC_Sex'] = pred_r2
+    
+        # Adjust for covariates
+        if adjust_for_covariates and 'covariates' in prs_dict and len(prs_dict['covariates']) > 0:
+            covariates = prs_dict['covariates']
             (betas, rss0, r, s) = linalg.lstsq(
-                sp.hstack([covariates, sex, pcs, sp.ones((len(true_phens), 1))]), true_phens)
+                sp.hstack([covariates, sp.ones((len(true_phens), 1))]), true_phens)
             Xs = sp.hstack([pval_derived_effects_prs, covariates,
-                            sex, pcs, sp.ones((len(true_phens), 1))])
+                            sp.ones((len(true_phens), 1))])
             (betas, rss_pd, r, s) = linalg.lstsq(Xs, true_phens)
-            adj_pred_dict['cov_sex_pc_adj'] = sp.dot(Xs, betas)
+            adj_pred_dict['cov_adj'] = sp.dot(Xs, betas)
             pred_r2 = 1 - rss_pd / rss0
-            print('Variance explained (Pearson R2) by PRS adjusted for Cov+PCs+Sex: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
-            res_dict['Cov_PC_Sex_adj_pred_r2'] = pred_r2
+            print('Variance explained (Pearson R2) by PRS adjusted for Covariates: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
+            res_dict['Cov_adj_pred_r2'] = pred_r2
             pred_r2 = 1 - rss_pd / rss00
-            print('Variance explained (Pearson R2) by PRS+Cov+PCs+Sex: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
-            res_dict['Cov_PC_Sex_adj_pred_r2+Cov_PC_Sex'] = pred_r2
+            print('Variance explained (Pearson R2) by PRS + Cov: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
+            res_dict['Cov_adj_pred_r2+Cov'] = pred_r2
+    
+            if adjust_for_pcs and 'pcs' in prs_dict and len(prs_dict['pcs']) and 'sex' in prs_dict and len(prs_dict['sex']) > 0:
+                pcs = prs_dict['pcs']
+                sex = sp.array(prs_dict['sex'])
+                sex.shape = (len(sex), 1)
+                (betas, rss0, r, s) = linalg.lstsq(
+                    sp.hstack([covariates, sex, pcs, sp.ones((len(true_phens), 1))]), true_phens)
+                Xs = sp.hstack([pval_derived_effects_prs, covariates,
+                                sex, pcs, sp.ones((len(true_phens), 1))])
+                (betas, rss_pd, r, s) = linalg.lstsq(Xs, true_phens)
+                adj_pred_dict['cov_sex_pc_adj'] = sp.dot(Xs, betas)
+                pred_r2 = 1 - rss_pd / rss0
+                print('Variance explained (Pearson R2) by PRS adjusted for Cov+PCs+Sex: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
+                res_dict['Cov_PC_Sex_adj_pred_r2'] = pred_r2
+                pred_r2 = 1 - rss_pd / rss00
+                print('Variance explained (Pearson R2) by PRS+Cov+PCs+Sex: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
+                res_dict['Cov_PC_Sex_adj_pred_r2+Cov_PC_Sex'] = pred_r2
+    
+    
+        # Now calibration
+        y_norm = (true_phens - sp.mean(true_phens)) / sp.std(true_phens)
+        denominator = sp.dot(pval_derived_effects_prs.T, pval_derived_effects_prs)
+        numerator = sp.dot(pval_derived_effects_prs.T, y_norm)
+        regression_slope = (numerator / denominator)[0][0]
+        if verbose:
+            print('The slope for predictions with weighted effects is: %0.4f'% regression_slope)
+    
+    
+        num_individs = len(prs_dict['pval_derived_effects_prs'])
 
+        # Write PRS out to file.
+        if out_file != None:
+            write_scores_file(out_file, prs_dict, pval_derived_effects_prs, adj_pred_dict, weights_dict=weights_dict)
 
-    # Now calibration
-    y_norm = (true_phens - sp.mean(true_phens)) / sp.std(true_phens)
-    denominator = sp.dot(pval_derived_effects_prs.T, pval_derived_effects_prs)
-    numerator = sp.dot(pval_derived_effects_prs.T, y_norm)
-    regression_slope = (numerator / denominator)[0][0]
-    if verbose:
-        print('The slope for predictions with weighted effects is: %0.4f'% regression_slope)
-
-
-    num_individs = len(prs_dict['pval_derived_effects_prs'])
-
-    # Write PRS out to file.
-    if out_file != None:
-        write_scores_file(out_file, prs_dict, raw_effects_prs, pval_derived_effects_prs, adj_pred_dict, weights_dict=weights_dict)
     return res_dict
+
 
 
 def main(p_dict):
@@ -526,63 +548,69 @@ def main(p_dict):
     summary_dict[0]={'name':'Validation genotype file (prefix):','value':p_dict['gf']}
     summary_dict[0.1]={'name':'Output scores file(s) (prefix):','value':p_dict['out']}
 
-    print('Parsing phenotypes')
-    if p_dict['pf'] is None:
-        if p_dict['gf'] is not None:
-            phen_map = parse_phen_file(p_dict['gf'] + '.fam', 'FAM', verbose=verbose, summary_dict=summary_dict)
-        else:
-            raise Exception('Validation phenotypes were not found.')
-    else:
-        phen_map = parse_phen_file(p_dict['pf'], p_dict['pf_format'], verbose=verbose, summary_dict=summary_dict)
-    t1 = time.time()
-    t = (t1 - t0)
-    summary_dict[1.1]={'name':'Individuals with phenotype information:','value':len(phen_map)}
-    summary_dict[1.2]={'name':'Running time for parsing phenotypes:','value':'%d min and %0.2f secs'% (t / 60, t % 60)}
-
-    adjust_for_covs=False
-    if p_dict['cov_file'] != None:
-        adjust_for_covs=True
-        print('Parsing additional covariates')
-
-        with open(p_dict['cov_file'], 'r') as f:
-            num_missing = 0
-            for line in f:
-                l = line.split()
-                iid = l[0]
-                if iid in phen_map:
-                    covariates = list(map(float, l[1:]))
-                    phen_map[iid]['covariates'] = covariates
-                else:
-                    num_missing += 1
-            if num_missing > 0:
-                summary_dict[2.1]={'name':'Individuals w missing covariate information:','value':num_missing}
-                if verbose:
-                    print('Unable to find %d iids in phen file!' % num_missing)
-        summary_dict[2]={'name':'Parsed covariates file:','value':p_dict['cov_file']}
-
     adjust_for_pcs=False
-    if p_dict['pcs_file']:
-        adjust_for_pcs=True
-        print('Parsing PCs')
+    adjust_for_covs=False
 
-        with open(p_dict['pcs_file'], 'r') as f:
-            num_missing = 0
-            for line in f:
-                l = line.split()
-                iid = l[1]
-                if iid in phen_map:
-                    pcs = list(map(float, l[2:]))
-                    phen_map[iid]['pcs'] = pcs
-                else:
-                    num_missing += 1
-            if num_missing > 0:
-                summary_dict[3.1]={'name':'Individuals w missing PCs:','value':num_missing}
-                if verbose:
-                    print('Unable to find %d iids in phen file!' % num_missing)
-        summary_dict[3]={'name':'Parsed PCs file:','value':p_dict['pcs_file']}
-
-    num_individs = len(phen_map)
-    assert num_individs > 0, 'No phenotypes were found!'
+    if not p_dict['only_score']:
+        print('Parsing phenotypes')
+        if p_dict['pf'] is None:
+            if p_dict['gf'] is not None:
+                phen_map = parse_phen_file(p_dict['gf'] + '.fam', 'FAM', verbose=verbose, summary_dict=summary_dict)
+            else:
+                raise Exception('Validation phenotypes were not found.')
+        else:
+            phen_map = parse_phen_file(p_dict['pf'], p_dict['pf_format'], verbose=verbose, summary_dict=summary_dict)
+        t1 = time.time()
+        t = (t1 - t0)
+        summary_dict[1.1]={'name':'Individuals with phenotype information:','value':len(phen_map)}
+        summary_dict[1.2]={'name':'Running time for parsing phenotypes:','value':'%d min and %0.2f secs'% (t / 60, t % 60)}
+    
+        if p_dict['cov_file'] != None:
+            adjust_for_covs=True
+            if verbose:
+                print('Parsing additional covariates')
+    
+            with open(p_dict['cov_file'], 'r') as f:
+                num_missing = 0
+                for line in f:
+                    l = line.split()
+                    iid = l[0]
+                    if iid in phen_map:
+                        covariates = list(map(float, l[1:]))
+                        phen_map[iid]['covariates'] = covariates
+                    else:
+                        num_missing += 1
+                if num_missing > 0:
+                    summary_dict[2.1]={'name':'Individuals w missing covariate information:','value':num_missing}
+                    if verbose:
+                        print('Unable to find %d iids in phen file!' % num_missing)
+            summary_dict[2]={'name':'Parsed covariates file:','value':p_dict['cov_file']}
+    
+        if p_dict['pcs_file']:
+            adjust_for_pcs=True
+            if verbose:
+                print('Parsing PCs')
+    
+            with open(p_dict['pcs_file'], 'r') as f:
+                num_missing = 0
+                for line in f:
+                    l = line.split()
+                    iid = l[1]
+                    if iid in phen_map:
+                        pcs = list(map(float, l[2:]))
+                        phen_map[iid]['pcs'] = pcs
+                    else:
+                        num_missing += 1
+                if num_missing > 0:
+                    summary_dict[3.1]={'name':'Individuals w missing PCs:','value':num_missing}
+                    if verbose:
+                        print('Unable to find %d iids in phen file!' % num_missing)
+            summary_dict[3]={'name':'Parsed PCs file:','value':p_dict['pcs_file']}
+    
+        num_individs = len(phen_map)
+        assert num_individs > 0, 'No phenotypes were found!'
+    else:
+        phen_map = None
 
     t0 = time.time()
     prs_file_is_missing = True
@@ -599,6 +627,7 @@ def main(p_dict):
                              split_by_chrom=p_dict['split_by_chrom'],
                              adjust_for_pcs=adjust_for_pcs,
                              adjust_for_covariates=adjust_for_covs,
+                             only_score=p_dict['only_score'],
                              verbose=verbose, summary_dict=summary_dict)
             prs_file_is_missing = False
         
@@ -616,6 +645,7 @@ def main(p_dict):
                                                         split_by_chrom=p_dict['split_by_chrom'],
                                                         adjust_for_pcs=adjust_for_pcs,
                                                         adjust_for_covariates=adjust_for_covs,
+                                                        only_score=p_dict['only_score'],
                                                         verbose=verbose, summary_dict=summary_dict)
                 prs_file_is_missing=False
 
@@ -637,6 +667,7 @@ def main(p_dict):
                                                             non_zero_chromosomes=non_zero_chromosomes, 
                                                             adjust_for_pcs=adjust_for_pcs,
                                                             adjust_for_covariates=adjust_for_covs,
+                                                            only_score=p_dict['only_score'],
                                                             verbose=verbose, summary_dict=summary_dict)
                     prs_file_is_missing=False
 
@@ -649,7 +680,7 @@ def main(p_dict):
     best_pred_r2 = 0
     best_method_str = None
     for method_str in res_dict:
-        if (res_dict[method_str]['pred_r2']) >best_pred_r2:
+        if len(res_dict[method_str]) and (res_dict[method_str]['pred_r2']) >best_pred_r2:
             best_pred_r2 = res_dict[method_str]['pred_r2']
             best_method_str = method_str
     if best_method_str is not None:
@@ -661,6 +692,6 @@ def main(p_dict):
     summary_dict[4]={'name':'Running time for calculating scores:','value':'%d min and %0.2f secs'% (t / 60, t % 60)}
 
     if prs_file_is_missing:
-        print('PRS weights files were not found.  This could be due to a mis-specified --rf flag, or other issues.')
+        print('SNP weights files were not found.  This could be due to a mis-specified --rf flag, or other issues.')
     
     reporting.print_summary(summary_dict,'Scoring Summary')

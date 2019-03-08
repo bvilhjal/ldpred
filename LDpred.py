@@ -226,7 +226,10 @@ parser_score.add_argument('--cov-file', type=str, default=None,
 parser_score.add_argument('--pcs-file', type=str, default=None,
                     help='PCs file, format is whitespace-delimted file with columns FID, IID, PC1, PC2, etc.')
 parser_score.add_argument('--split-by-chrom', default=False, action='store_true',
-                    help='')
+                    help='Split analysis by chromosome')
+parser_score.add_argument('--only-score', default=False, action='store_true',
+                    help='Only output scores, and do not validate predictions. No phenotypes or covariates '
+                    'will be parsed.')
 parser_score.add_argument('--f', default=[1,0.3,0.1,0.03,0.01,0.003,0.001], nargs='+', type=float,
                     help="Fraction of causal variants used in the Gibbs sampler")
 parser_score.add_argument('--p', default=[1,0.3,0.1,0.03,0.01,0.003,0.001,3*1E-4,
