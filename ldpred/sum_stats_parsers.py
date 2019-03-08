@@ -86,7 +86,7 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
     assert not rs is None, 'Require header for RS ID'
     assert not eff is None, 'Require header for Statistics'
     assert not pval is None, 'Require header for pval'
-    assert not ncol is None or not n is None, 'Require either N or NCOL information'
+    assert not ncol is None or not n is None or (control_n is not None and case_n is not None), 'Require either N or NCOL information'
 
     if ch is None:
         assert not bimfile is None, 'Require bimfile when chromosome header not provided'
