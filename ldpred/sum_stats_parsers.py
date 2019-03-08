@@ -43,9 +43,9 @@ def parse_sum_stats(h5f, p_dict, bimfile, summary_dict):
         ...    
         """
         parse_sum_stats_custom(ch='CHR', pos='BP', A1='A1', A2='A2', reffreq='Freq.Hapmap.Ceu',
-                    case_freq='FRQ_A_30232', control_freq='FRQ_U_40578', case_n='FRQ_A_30232',
-                    control_n='FRQ_U_40578', info='INFO', rs='SNP', pval='P', eff='OR',
-                    ncol='ngt', input_is_beta=False, **ss_args)
+                    case_freq='FRQ_A_30232', control_freq='FRQ_U_40578', case_n='Nca',
+                    control_n='Nco', info='INFO', rs='SNP', pval='P', eff='OR', 
+                    input_is_beta=False, **ss_args)
     elif p_dict['ssf_format'] == 'GIANT':
         """
         MarkerName Allele1 Allele2 Freq.Allele1.HapMapCEU p N
