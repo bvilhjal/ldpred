@@ -74,8 +74,8 @@ except Exception as e:
     assert os.system(cmd_str) == 0, 'Problems cleaning up test files!  Testing stopped'
     raise Exception('Test failed.')
 
-# print('Cleaning up files.')
-# cmd_str = 'rm %s*' % tmp_file_prefix
-# print(cmd_str + '\n')
-# assert os.system(cmd_str) == 0, 'Problems cleaning up test files!  Testing stopped'
+print('Cleaning up files.')
+cmd_str = 'rm %s*' % tmp_file_prefix
+print(cmd_str + '\n')
+assert os.system(cmd_str) == 0, 'Problems cleaning up test files!  Testing stopped'
 
