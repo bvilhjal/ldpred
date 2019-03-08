@@ -345,8 +345,8 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
                         if flip_nts:
                             betas[ss_i] = -betas[ss_i]
                             log_odds[ss_i] = -log_odds[ss_i]
-                            if 'freqs' in ssg:
-                                ss_freqs[ss_i] = 1 - ss_freqs[ss_i]
+                            if 'freqs' in ssg and ss_freqs[ss_i]>0:
+                                ss_freqs[ss_i] = 1.0 - ss_freqs[ss_i]
                         else:
                             if debug:
                                 print("Nucleotides don't match after all?: g_sid=%s, ss_sid=%s, g_i=%d, ss_i=%d, g_nt=%s, ss_nt=%s" % \
@@ -401,7 +401,7 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
         if max_freq_discrep<1 and 'freqs' in ssg:
             ss_freqs = ss_freqs[ok_indices['ss']]
             ok_freq_snps = sp.logical_or(sp.absolute(ss_freqs - freqs) < max_freq_discrep,sp.absolute(ss_freqs + freqs-1) < max_freq_discrep) #Array of np.bool values
-            ok_freq_snps = sp.logical_or(ok_freq_snps,ss_freqs==0) #Only consider SNPs that actually have frequencies
+            ok_freq_snps = sp.logical_or(ok_freq_snps,ss_freqs<=0) #Only consider SNPs that actually have frequencies
             print(ss_freqs)
             print(freqs)
             print(ok_freq_snps)
