@@ -173,7 +173,7 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
                     chrom = re.sub("chr", "", chrom)
                     if not chrom == snps_pos_map[sid]['chrom']:
                         if line_i%10000==0:
-                            print('chrom1: %s, chrom2: %s'%(chrom,snps_pos_map[sid]['chrom'])
+                            print('chrom1: %s, chrom2: %s'%(chrom,snps_pos_map[sid]['chrom']))
                         chr_filter += 1
                 else:
                     chrom = snps_pos_map[sid]['chrom']
