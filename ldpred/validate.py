@@ -4,7 +4,8 @@ from scipy import linalg
 import h5py
 from ldpred import plinkfiles
 from ldpred import util
-
+import time
+from ldpred import reporting
 
 def get_prs(genotype_file, rs_id_map, phen_map=None, verbose=False):
     plinkf = plinkfiles.plinkfile.PlinkFile(genotype_file)
@@ -153,7 +154,7 @@ def get_prs(genotype_file, rs_id_map, phen_map=None, verbose=False):
     return ret_dict
 
 
-def parse_phen_file(pf, pf_format, verbose=False):
+def parse_phen_file(pf, pf_format, verbose=False, summary_dict=None):
     print(pf)
     phen_map = {}
     num_phens_found = 0
@@ -179,6 +180,8 @@ def parse_phen_file(pf, pf_format, verbose=False):
                         phen_map[iid] = {'phen': phen, 'sex': sex}
                         num_phens_found +=1
 
+            summary_dict[1]={'name':'Phenotype file (plink format):','value':pf}
+            
         if pf_format == 'STANDARD':
             """
             IID   PHE
@@ -190,6 +193,9 @@ def parse_phen_file(pf, pf_format, verbose=False):
                     phen = float(l[1])
                     phen_map[iid] = {'phen': phen}
                     num_phens_found +=1
+
+            summary_dict[1]={'name':'Phenotype file (STANDARD format):','value':pf}
+
         if pf_format == 'LSTANDARD':
             """
             FID IID PHE
@@ -212,6 +218,8 @@ def parse_phen_file(pf, pf_format, verbose=False):
                     phen=float(l[2])
                     phen_map[iid] = {'phen':phen}
                     num_phens_found+=1
+            summary_dict[1]={'name':'Phenotype file (LSTANDARD format):','value':pf}
+ 
         elif pf_format == 'S2':
             """
             IID Age Sex Height_Inches
@@ -230,6 +238,7 @@ def parse_phen_file(pf, pf_format, verbose=False):
                     phen = float(l[3])
                     phen_map[iid] = {'phen': phen, 'age': age, 'sex': sex}
                     num_phens_found +=1
+            summary_dict[1]={'name':'Phenotype file (S2 format):','value':pf}
 
     print("Parsed %d phenotypes successfully"%num_phens_found)
     return phen_map
@@ -336,8 +345,11 @@ def write_scores_file(out_file, prs_dict, raw_effects_prs, pval_derived_effects_
         oh5f.close()
 
 
-def calc_risk_scores(bed_file, rs_id_map, phen_map, out_file=None, split_by_chrom=False, adjust_for_sex=False,
-                     adjust_for_covariates=False, adjust_for_pcs=False, non_zero_chromosomes=None, verbose=False):
+def calc_risk_scores(bed_file, rs_id_map, phen_map, out_file=None, 
+                     split_by_chrom=False, adjust_for_sex=False,
+                     adjust_for_covariates=False, adjust_for_pcs=False, 
+                     non_zero_chromosomes=None, verbose=False, 
+                     summary_dict=None):
     print('Parsing PLINK bed file: %s' % bed_file)
     num_individs = len(phen_map)
     assert num_individs > 0, 'No individuals found.  Problems parsing the phenotype file?'
@@ -505,18 +517,27 @@ def calc_risk_scores(bed_file, rs_id_map, phen_map, out_file=None, split_by_chro
 
 
 def main(p_dict):
+    summary_dict = {}
     non_zero_chromosomes = set()
     verbose = p_dict['debug']
 
+    t0 = time.time()
+
+    summary_dict[0]={'name':'Validation genotype file (prefix):','value':p_dict['gf']}
+    summary_dict[0.1]={'name':'Output scores file(s) (prefix):','value':p_dict['out']}
+
+    print('Parsing phenotypes')
     if p_dict['pf'] is None:
         if p_dict['gf'] is not None:
-            print('Parsing phenotypes')
-            phen_map = parse_phen_file(p_dict['gf'] + '.fam', 'FAM', verbose=verbose)
+            phen_map = parse_phen_file(p_dict['gf'] + '.fam', 'FAM', verbose=verbose, summary_dict=summary_dict)
         else:
             raise Exception('Validation phenotypes were not found.')
     else:
-        print('Parsing phenotypes')
-        phen_map = parse_phen_file(p_dict['pf'], p_dict['pf_format'], verbose=verbose)
+        phen_map = parse_phen_file(p_dict['pf'], p_dict['pf_format'], verbose=verbose, summary_dict=summary_dict)
+    t1 = time.time()
+    t = (t1 - t0)
+    summary_dict[1.1]={'name':'Individuals with phenotype information:','value':len(phen_map)}
+    summary_dict[1.2]={'name':'Running time for parsing phenotypes:','value':'%d min and %0.2f secs'% (t / 60, t % 60)}
 
     adjust_for_covs=False
     if p_dict['cov_file'] != None:
@@ -534,7 +555,10 @@ def main(p_dict):
                 else:
                     num_missing += 1
             if num_missing > 0:
-                print('Unable to find %d iids in phen file!' % num_missing)
+                summary_dict[2.1]={'name':'Individuals w missing covariate information:','value':num_missing}
+                if verbose:
+                    print('Unable to find %d iids in phen file!' % num_missing)
+        summary_dict[2]={'name':'Parsed covariates file:','value':p_dict['cov_file']}
 
     adjust_for_pcs=False
     if p_dict['pcs_file']:
@@ -552,11 +576,15 @@ def main(p_dict):
                 else:
                     num_missing += 1
             if num_missing > 0:
-                print('Unable to find %d iids in phen file!' % num_missing)
+                summary_dict[3.1]={'name':'Individuals w missing PCs:','value':num_missing}
+                if verbose:
+                    print('Unable to find %d iids in phen file!' % num_missing)
+        summary_dict[3]={'name':'Parsed PCs file:','value':p_dict['pcs_file']}
 
     num_individs = len(phen_map)
     assert num_individs > 0, 'No phenotypes were found!'
 
+    t0 = time.time()
     prs_file_is_missing = True
     res_dict = {}
     if p_dict['rf_format'] == 'LDPRED' or p_dict['rf_format']=='ANY':
@@ -567,11 +595,14 @@ def main(p_dict):
             print('Calculating LDpred-inf risk scores')
             rs_id_map = parse_ldpred_res(weights_file)
             out_file = '%s_LDpred-inf.txt' % (p_dict['out'])
-            calc_risk_scores(p_dict['gf'], rs_id_map, phen_map, out_file=out_file, 
+            res_dict['LDpred_inf'] = calc_risk_scores(p_dict['gf'], rs_id_map, phen_map, out_file=out_file, 
                              split_by_chrom=p_dict['split_by_chrom'],
                              adjust_for_pcs=adjust_for_pcs,
-                             adjust_for_covariates=adjust_for_covs,verbose=verbose)
+                             adjust_for_covariates=adjust_for_covs,
+                             verbose=verbose, summary_dict=summary_dict)
             prs_file_is_missing = False
+        
+
 
         for p in p_dict['f']:
             weights_file = '%s_LDpred_p%0.4e.txt' % (p_dict['rf'], p)
@@ -584,7 +615,8 @@ def main(p_dict):
                 res_dict[method_str] = calc_risk_scores(p_dict['gf'], rs_id_map, phen_map, out_file=out_file,
                                                         split_by_chrom=p_dict['split_by_chrom'],
                                                         adjust_for_pcs=adjust_for_pcs,
-                                                        adjust_for_covariates=adjust_for_covs,verbose=verbose)
+                                                        adjust_for_covariates=adjust_for_covs,
+                                                        verbose=verbose, summary_dict=summary_dict)
                 prs_file_is_missing=False
 
         # Plot results?
@@ -604,7 +636,8 @@ def main(p_dict):
                                                             split_by_chrom=p_dict['split_by_chrom'],
                                                             non_zero_chromosomes=non_zero_chromosomes, 
                                                             adjust_for_pcs=adjust_for_pcs,
-                                                            adjust_for_covariates=adjust_for_covs,verbose=verbose)
+                                                            adjust_for_covariates=adjust_for_covs,
+                                                            verbose=verbose, summary_dict=summary_dict)
                     prs_file_is_missing=False
 
         # Plot results?
@@ -612,6 +645,22 @@ def main(p_dict):
         raise NotImplementedError(
             'Results file format missing or unknown: %s' % p_dict['rf_format'])
     
+    #Identifying the best prediction
+    best_pred_r2 = 0
+    best_method_str = None
+    for method_str in res_dict:
+        if (res_dict[method_str]['pred_r2']) >best_pred_r2:
+            best_pred_r2 = res_dict[method_str]['pred_r2']
+            best_method_str = method_str
+    if best_method_str is not None:
+        print('The highest (unadjusted) Pearson R2 was %0.4f, and provided by %s'%(best_pred_r2,best_method_str))
+        summary_dict[5]={'name':'Method with highest (unadjusted) Pearson R2:','value':best_method_str}
+        summary_dict[5.1]={'name':'Best (unadjusted) Pearson R2:','value':'%0.4f'%best_pred_r2}
+    t1 = time.time()
+    t = (t1 - t0)
+    summary_dict[4]={'name':'Running time for calculating scores:','value':'%d min and %0.2f secs'% (t / 60, t % 60)}
+
     if prs_file_is_missing:
         print('PRS weights files were not found.  This could be due to a mis-specified --rf flag, or other issues.')
-
+    
+    reporting.print_summary(summary_dict,'Scoring Summary')

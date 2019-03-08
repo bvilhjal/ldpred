@@ -52,7 +52,6 @@ try:
     assert os.system(cmd_str) == 0, 'Problems with the validation step!'
     print('Test finished successfully!')
 
-    prs_file_prefix = tmp_file_prefix + 'prs_P+T'
     print('Validating results with output file prefix: %s' % tmp_file_prefix)
     cmd_str = 'python LDpred.py score --gf=./test_data/LDpred_data_p0.001_test_0  --rf=%s  --rf-format=P+T --out=%s' % (tmp_file_prefix, prs_file_prefix)
     print(cmd_str + '\n')
