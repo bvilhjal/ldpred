@@ -211,9 +211,9 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
                     else:
                         case_N = float(l[header_dict[case_n]])
                         control_N = float(l[header_dict[control_n]])
-                        N = case_N + control_N
-                        a_scalar = case_N / N
-                        u_scalar = control_N / N
+                        n = case_N + control_N
+                        a_scalar = case_N / n
+                        u_scalar = control_N / n
                         freq = float(l[header_dict[case_freq]]) * a_scalar + float(l[header_dict[control_freq]]) * u_scalar
                         chrom_dict[chrom]['freqs'].append(freq)
                 else:  
