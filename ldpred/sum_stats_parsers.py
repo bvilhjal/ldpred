@@ -9,7 +9,10 @@ import time
 def parse_sum_stats(h5f, p_dict, bimfile, summary_dict):
     t0 = time.time()
    
-    ss_args = {'filename':p_dict['ssf'], 'bimfile':bimfile, 'hdf5_file':h5f, 'only_hm3':p_dict['only_hm3'], 'n':p_dict['N'], 'debug':p_dict['debug'], 'summary_dict':summary_dict}
+    ss_args = {'filename':p_dict['ssf'], 'bimfile':bimfile, 'hdf5_file':h5f, 
+               'only_hm3':p_dict['only_hm3'], 'n':p_dict['N'], 
+               'debug':p_dict['debug'], 'summary_dict':summary_dict, 
+               'match_genomic_pos':p['match_genomic_pos']}
     if p_dict['ssf_format'] == 'STANDARD':
         if p_dict['N'] is None: 
             raise Exception('This summary statistics format requires summary statistics sample size to be given, i.e. set --N flag.')        
@@ -79,7 +82,7 @@ def is_gz(name):
 def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_file=None, n=None, ch=None, pos=None,
                     A1=None, A2=None, reffreq=None, case_freq=None, control_freq=None, case_n=None,
                     control_n=None, info=None, rs=None, pval=None, eff=None, ncol=None,
-                    input_is_beta=False, match_chrom_pos=False, debug=False, summary_dict = None):
+                    input_is_beta=False, match_genomic_pos=False, debug=False, summary_dict = None):
     # Check required fields are here
     assert not A2 is None, 'Require header for non-effective allele'
     assert not A1 is None, 'Require header for effective allele'
@@ -173,7 +176,7 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
                     chrom = re.sub("chr", "", chrom)
                     if not chrom == snps_pos_map[sid]['chrom']:
                         chr_filter += 1
-                        if match_chrom_pos:
+                        if match_genomic_pos:
                             continue
                 else:
                     chrom = snps_pos_map[sid]['chrom']
@@ -189,7 +192,7 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
                         if line_i%10000==0:
                             print('c,p 1: %s,%d, c,p 2: %s,%d'%(chrom,pos_read,snps_pos_map[sid]['chrom'],snps_pos_map[sid]['pos']))
                         pos_filter += 1
-                        if match_chrom_pos:
+                        if match_genomic_pos:
                             continue
                 else:
                     pos_read = snps_pos_map[sid]['pos']
