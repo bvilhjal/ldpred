@@ -10,9 +10,8 @@ described in Vilhjalmsson et al. (AJHG 2015) [http://www.cell.com/ajhg/abstract/
 
 ## Getting Started ##
 ### News ###
-Mar 9th, 2019: Version 1.0.2 released.
 
-Mar 1st, 2019: Version 1.0 is finally available on pip using 
+Mar 9th, 2019: Version 1.0.2 released and is available on pip using 
 
 `pip install ldpred`
 
