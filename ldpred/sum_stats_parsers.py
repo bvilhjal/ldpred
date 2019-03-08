@@ -223,7 +223,6 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
                         u_scalar = control_N / float(tot_N)
                         freq = float(l[header_dict[case_freq]]) * a_scalar + float(l[header_dict[control_freq]]) * u_scalar
                         chrom_dict[chrom]['freqs'].append(freq)
-                        print(freq)
                 else:  
                     chrom_dict[chrom]['freqs'].append(-1)
                 # Get the INFO score
