@@ -149,8 +149,9 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=1000, l
     avg_betas = avg_betas / float(num_iter - burn_in)
     t1 = time.time()
     t = (t1 - t0)
+    print('\n')
     if verbose:
-        print('\nTook %d minutes and %0.2f seconds' % (t / 60, t % 60))
+        print('Took %d minutes and %0.2f seconds' % (t / 60, t % 60))
     return {'betas':avg_betas, 'inf_betas':start_betas}
 
 

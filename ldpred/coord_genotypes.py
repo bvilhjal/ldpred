@@ -400,13 +400,12 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
         # Check SNP frequencies, screen for possible problems..
         if max_freq_discrep<1 and 'freqs' in ssg:
             ss_freqs = ss_freqs[ok_indices['ss']]
-            freq_discrepancy_snp = sp.absolute(ss_freqs - freqs) > max_freq_discrep #Array of np.bool values
-            freq_discrepancy_snp = sp.logical_and(freq_discrepancy_snp,ss_freqs>0) #Only consider SNPs that actually have frequencies
-            num_freq_discrep_filtered_snps = sp.sum(freq_discrepancy_snp)
+            ok_freq_snps = sp.logical_or(sp.absolute(ss_freqs - freqs) < max_freq_discrep,sp.absolute(ss_freqs + freqs-1) < max_freq_discrep) #Array of np.bool values
+            ok_freq_snps = sp.logical_or(ok_freq_snps,ss_freqs=0) #Only consider SNPs that actually have frequencies
+            num_freq_discrep_filtered_snps = len(ok_freq_snps)- sp.sum(ok_freq_snps)
             assert num_freq_discrep_filtered_snps>=0, "Problems when filtering SNPs with frequency discrepencies"
             if num_freq_discrep_filtered_snps>0:
                 # Filter freq_discrepancy_snps
-                ok_freq_snps = sp.logical_not(freq_discrepancy_snp)
                 raw_snps = raw_snps[ok_freq_snps]
                 snp_stds = snp_stds[ok_freq_snps]
                 snp_means = snp_means[ok_freq_snps]
