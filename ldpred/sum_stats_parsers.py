@@ -211,9 +211,9 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
                     else:
                         case_N = float(l[header_dict[case_n]])
                         control_N = float(l[header_dict[control_n]])
-                        n = case_N + control_N
-                        a_scalar = case_N / n
-                        u_scalar = control_N / n
+                        tot_N = case_N + control_N
+                        a_scalar = case_N / tot_N
+                        u_scalar = control_N / tot_N
                         freq = float(l[header_dict[case_freq]]) * a_scalar + float(l[header_dict[control_freq]]) * u_scalar
                         chrom_dict[chrom]['freqs'].append(freq)
                 else:  
@@ -227,22 +227,25 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
                 nt = [l[header_dict[A1]].upper(), l[header_dict[A2]].upper()]
                 chrom_dict[chrom]['nts'].append(nt)
                 raw_beta = float(l[header_dict[eff]])
+                
+                if n is None:
+                    if ncol not in header_dict:
+                        case_N = float(l[header_dict[case_n]])
+                        control_N = float(l[header_dict[control_n]])
+                        N = case_N + control_N
+                    else:
+                        N = int(header_dict[ncol])
+                else:
+                    N = n
                 if not input_is_beta:
                     raw_beta = sp.log(raw_beta)
                     chrom_dict[chrom]['log_odds'].append(raw_beta)
                     beta = sp.sign(raw_beta) * stats.norm.ppf(pval_read / 2.0)
-                    if n is None:
-                        chrom_dict[chrom]['betas'].append(beta / sp.sqrt(int(header_dict[ncol])))
-                    else:
-                        chrom_dict[chrom]['betas'].append(beta / sp.sqrt(n))
+                    chrom_dict[chrom]['betas'].append(beta / sp.sqrt(N))
                 else:
                     beta = sp.sign(raw_beta) * stats.norm.ppf(pval_read / 2.0)
-                    if n is None:
-                        chrom_dict[chrom]['log_odds'].append(beta / sp.sqrt(int(header_dict[ncol])))
-                        chrom_dict[chrom]['betas'].append(beta / sp.sqrt(int(header_dict[ncol])))
-                    else:
-                        chrom_dict[chrom]['log_odds'].append(beta / sp.sqrt(n))
-                        chrom_dict[chrom]['betas'].append(beta / sp.sqrt(n))
+                    chrom_dict[chrom]['log_odds'].append(beta / sp.sqrt(N))
+                    chrom_dict[chrom]['betas'].append(beta / sp.sqrt(N))
 
         if len(bad_chromosomes) > 0:
             print('Ignored chromosomes: %s' % (','.join(list(bad_chromosomes))))
