@@ -162,7 +162,7 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
             if sid in valid_sids:
                 # Get the chromosome information
                 chrom = 0
-                if not chr is None and chr in header_dict:
+                if not ch is None and ch in header_dict:
                     chrom = l[header_dict[ch]]
                     chrom = re.sub("chr", "", chrom)
                     if not chrom == snps_pos_map[sid]['chrom']:
