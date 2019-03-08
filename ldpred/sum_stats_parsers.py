@@ -148,7 +148,7 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
         assert rs in header_dict, 'SNP ID column not found in summary statistic file'
         assert pos is None or pos in header_dict, 'Position column not found in summary statistic file'
         assert pval in header_dict, 'P Value column not found in summary statistic file'
-        assert not n is None or ncol in header_dict, 'Sample size column not found in summary statistic ' \
+        assert not n is None or ncol in header_dict or (control_n in header_dict and case_n in header_dict), 'Sample size column not found in summary statistic ' \
                                                      'file and N not provided'
         # header_dict now contains the header column name for each corresponding input
         bad_chromosomes = set()
