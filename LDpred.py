@@ -84,7 +84,7 @@ parser_coord.add_argument('--match-genomic-pos', default=False, action='store_tr
                     'data.  These will also differ if reference genome differ, e.g. hg19 vs hg38.')
 parser_coord.add_argument('--maf', type=float, default=0.01,
                     help='MAF filtering threshold.  Set to 0 to disable MAF filtering.')
-parser_coord.add_argument('--max-freq-discrep', type=float, default=0.15,
+parser_coord.add_argument('--max-freq-discrep', type=float, default=0.1,
                     help='Max frequency discrepancy allowed between reported sum stats frequency and frequency '
                     'in the LD reference data.  To disable check, set to 1.')
 parser_coord.add_argument('--ssf-format', type=str, default="CUSTOM", choices={'CUSTOM','STANDARD','GIANT', 'PGC'},
