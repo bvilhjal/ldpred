@@ -282,9 +282,6 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
                 
                 if verbose:
                     print('Calculating SNP weights for Chromosome %s' % ((chrom_str.split('_'))[1]))
-                elif verbose:
-                    print('Pprogress: %0.2f%%' % (100.0 * (min(1, float(chrom_i + 1) / num_chrom))))
-                    sys.stdout.flush()
                 else:
                     sys.stdout.write('\b\b\b\b\b\b\b%0.2f%%' % (100.0 * (min(1, float(chrom_i + 1) / num_chrom))))
                     sys.stdout.flush()
@@ -300,7 +297,8 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
                     r2 = corr ** 2
                     print('The R2 prediction accuracy of PRS using %s was: %0.4f' % (chrom_str, r2))
         
-                    
+        if not verbose:
+            print ('')
         if verbose and has_phenotypes:
             num_indivs = len(y)
             results_dict[p_str]['y'] = y
