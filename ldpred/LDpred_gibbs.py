@@ -15,7 +15,8 @@ from ldpred import reporting
         
 def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=1000, ld_radius=100,
                  num_iter=60, burn_in=10, p=None, zero_jump_prob=0.05, tight_sampling=False,
-                 ld_dict=None, reference_ld_mats=None, ld_boundaries=None, verbose=False):
+                 ld_dict=None, reference_ld_mats=None, ld_boundaries=None, verbose=False,
+                 print_progress=True):
     """
     LDpred (Gibbs Sampler) 
     """
@@ -139,7 +140,7 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=1000, l
                     proposed_beta = 0.0
     
                 curr_betas[snp_i] = proposed_beta  # UPDATE BETA                
-        if verbose:
+        if verbose and print_progress:
             sys.stdout.write('\b\b\b\b\b\b\b%0.2f%%' % (100.0 * (min(1, float(k + 1) / num_iter))))
             sys.stdout.flush()
 
@@ -149,7 +150,6 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=1000, l
     avg_betas = avg_betas / float(num_iter - burn_in)
     t1 = time.time()
     t = (t1 - t0)
-    print('\n')
     if verbose:
         print('Took %d minutes and %0.2f seconds' % (t / 60, t % 60))
     return {'betas':avg_betas, 'inf_betas':start_betas}
@@ -199,7 +199,7 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
             start_betas = LDpred_inf.ldpred_inf(pval_derived_betas, genotypes=None, reference_ld_mats=chrom_ref_ld_mats[chrom_str],
                                                 h2=h2_chrom, n=n, ld_window_size=2 * ld_radius, verbose=False)
             LDpred_inf_chrom_dict[chrom_str] = start_betas
-    
+
     
     convergence_report = {}
     for p in ps:
@@ -264,11 +264,13 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
                     res_dict = ldpred_gibbs(pval_derived_betas, h2=h2_chrom, n=n, p=p, ld_radius=ld_radius,
                                             verbose=verbose, num_iter=num_iter, burn_in=burn_in, ld_dict=chrom_ld_dict[chrom_str],
                                             start_betas=LDpred_inf_chrom_dict[chrom_str], ld_boundaries=ld_boundaries,
-                                            zero_jump_prob=zero_jump_prob)
+                                            zero_jump_prob=zero_jump_prob,
+                                            print_progress=False)
                 else:
                     res_dict = ldpred_gibbs(pval_derived_betas, h2=h2_chrom, n=n, p=p, ld_radius=ld_radius,
                                             verbose=verbose, num_iter=num_iter, burn_in=burn_in, ld_dict=chrom_ld_dict[chrom_str],
-                                            start_betas=LDpred_inf_chrom_dict[chrom_str], zero_jump_prob=zero_jump_prob)
+                                            start_betas=LDpred_inf_chrom_dict[chrom_str], zero_jump_prob=zero_jump_prob,
+                                            print_progress=False)
                 
                 updated_betas = res_dict['betas']
                 updated_inf_betas = res_dict['inf_betas']
@@ -280,6 +282,9 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
                 
                 if verbose:
                     print('Calculating SNP weights for Chromosome %s' % ((chrom_str.split('_'))[1]))
+                elif verbose:
+                    print('Pprogress: %0.2f%%' % (100.0 * (min(1, float(chrom_i + 1) / num_chrom))))
+                    sys.stdout.flush()
                 else:
                     sys.stdout.write('\b\b\b\b\b\b\b%0.2f%%' % (100.0 * (min(1, float(chrom_i + 1) / num_chrom))))
                     sys.stdout.flush()

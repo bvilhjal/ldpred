@@ -651,7 +651,7 @@ def main(p_dict):
 
         # Plot results?
 
-    elif p_dict['rf_format'] == 'P+T' or p_dict['rf_format']=='ANY':
+    if p_dict['rf_format'] == 'P+T' or p_dict['rf_format']=='ANY':
 
         for max_r2 in p_dict['r2']:
             for p_thres in p_dict['p']:
