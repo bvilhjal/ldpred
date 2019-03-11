@@ -637,7 +637,7 @@ def main(p_dict):
             weights_file = '%s_LDpred_p%0.4e.txt' % (p_dict['rf'], p)
             if os.path.isfile(weights_file):
                 print('')
-                print('Calculating LDpred risk scores using p=%0.3e' % p)
+                print('Calculating LDpred risk scores using f=%0.3e' % p)
                 rs_id_map = parse_ldpred_res(weights_file)
                 out_file = '%s_LDpred_p%0.4e.txt' % (p_dict['out'], p)
                 method_str = 'LDpred_p%0.4e' % (p)
