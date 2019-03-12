@@ -9,7 +9,7 @@ from ldpred import validate
 import sys
 import textwrap
 
-__version__ = '1.0.2'
+__version__ = '1.0.3'
  
 
 parser = argparse.ArgumentParser(prog='LDpred',
