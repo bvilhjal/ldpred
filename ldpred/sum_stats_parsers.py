@@ -5,11 +5,15 @@ import re
 import gzip
 from ldpred import util
 import time
+import sys
 
 def parse_sum_stats(h5f, p_dict, bimfile, summary_dict):
     t0 = time.time()
    
-    ss_args = {'filename':p_dict['ssf'], 'bimfile':bimfile, 'hdf5_file':h5f, 'only_hm3':p_dict['only_hm3'], 'n':p_dict['N'], 'debug':p_dict['debug'], 'summary_dict':summary_dict}
+    ss_args = {'filename':p_dict['ssf'], 'bimfile':bimfile, 'hdf5_file':h5f, 
+               'only_hm3':p_dict['only_hm3'], 'n':p_dict['N'], 
+               'debug':p_dict['debug'], 'summary_dict':summary_dict, 
+               'match_genomic_pos':p_dict['match_genomic_pos']}
     if p_dict['ssf_format'] == 'STANDARD':
         if p_dict['N'] is None: 
             raise Exception('This summary statistics format requires summary statistics sample size to be given, i.e. set --N flag.')        
@@ -43,9 +47,9 @@ def parse_sum_stats(h5f, p_dict, bimfile, summary_dict):
         ...    
         """
         parse_sum_stats_custom(ch='CHR', pos='BP', A1='A1', A2='A2', reffreq='Freq.Hapmap.Ceu',
-                    case_freq='FRQ_A_30232', control_freq='FRQ_U_40578', case_n='FRQ_A_30232',
-                    control_n='FRQ_U_40578', info='INFO', rs='SNP', pval='P', eff='OR',
-                    ncol='ngt', input_is_beta=False, **ss_args)
+                    case_freq='FRQ_A_34129', control_freq='FRQ_U_45512', case_n='Nca',
+                    control_n='Nco', info='INFO', rs='SNP', pval='P', eff='OR', 
+                    input_is_beta=False, **ss_args)
     elif p_dict['ssf_format'] == 'GIANT':
         """
         MarkerName Allele1 Allele2 Freq.Allele1.HapMapCEU p N
@@ -79,14 +83,14 @@ def is_gz(name):
 def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_file=None, n=None, ch=None, pos=None,
                     A1=None, A2=None, reffreq=None, case_freq=None, control_freq=None, case_n=None,
                     control_n=None, info=None, rs=None, pval=None, eff=None, ncol=None,
-                    input_is_beta=False, debug=False, summary_dict = None):
+                    input_is_beta=False, match_genomic_pos=False, debug=False, summary_dict = None):
     # Check required fields are here
     assert not A2 is None, 'Require header for non-effective allele'
     assert not A1 is None, 'Require header for effective allele'
     assert not rs is None, 'Require header for RS ID'
     assert not eff is None, 'Require header for Statistics'
     assert not pval is None, 'Require header for pval'
-    assert not ncol is None or not n is None, 'Require either N or NCOL information'
+    assert not ncol is None or not n is None or (control_n is not None and case_n is not None), 'Require either N or NCOL information'
 
     if ch is None:
         assert not bimfile is None, 'Require bimfile when chromosome header not provided'
@@ -95,6 +99,8 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
         assert not bimfile is None, 'Require bimfile when position header not provided'
         print("Position Header not provided, will use info from bim file")
 
+    num_lines = util.count_lines(filename)
+    
     snps_pos_map = {}
     if only_hm3:
         hm3_sids = util.load_hapmap_SNPs()
@@ -148,11 +154,16 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
         assert rs in header_dict, 'SNP ID column not found in summary statistic file'
         assert pos is None or pos in header_dict, 'Position column not found in summary statistic file'
         assert pval in header_dict, 'P Value column not found in summary statistic file'
-        assert not n is None or ncol in header_dict, 'Sample size column not found in summary statistic ' \
+        assert not n is None or ncol in header_dict or (control_n in header_dict and case_n in header_dict), 'Sample size column not found in summary statistic ' \
                                                      'file and N not provided'
         # header_dict now contains the header column name for each corresponding input
         bad_chromosomes = set()
+        line_i = 1
         for line in f:
+            line_i +=1
+            if line_i%1000==0:
+                sys.stdout.write('\b\b\b\b\b\b\b%0.2f%%' % (100.0 * (min(1, float(line_i) / (num_lines-1.0)))))
+                sys.stdout.flush()            
             if is_gz(filename):
                 line = line.decode('utf-8')
             l = (line.strip()).split()
@@ -167,6 +178,8 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
                     chrom = re.sub("chr", "", chrom)
                     if not chrom == snps_pos_map[sid]['chrom']:
                         chr_filter += 1
+                        if match_genomic_pos:
+                            continue
                 else:
                     chrom = snps_pos_map[sid]['chrom']
                 if not chrom in util.ok_chromosomes:
@@ -179,7 +192,8 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
                     pos_read = int(l[header_dict[pos]])
                     if not pos_read == snps_pos_map[sid]['pos']:
                         pos_filter += 1
-                        continue
+                        if match_genomic_pos:
+                            continue
                 else:
                     pos_read = snps_pos_map[sid]['pos']
 
@@ -187,6 +201,7 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
                 if isinf(stats.norm.ppf(pval_read)):
                     invalid_p += 1
                     continue
+
 
                 if not chrom in chrom_dict:
                     chrom_dict[chrom] = {'ps':[], 'log_odds':[], 'infos':[], 'freqs':[],
@@ -211,9 +226,9 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
                     else:
                         case_N = float(l[header_dict[case_n]])
                         control_N = float(l[header_dict[control_n]])
-                        N = case_N + control_N
-                        a_scalar = case_N / N
-                        u_scalar = control_N / N
+                        tot_N = case_N + control_N
+                        a_scalar = case_N / float(tot_N)
+                        u_scalar = control_N / float(tot_N)
                         freq = float(l[header_dict[case_freq]]) * a_scalar + float(l[header_dict[control_freq]]) * u_scalar
                         chrom_dict[chrom]['freqs'].append(freq)
                 else:  
@@ -227,27 +242,32 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
                 nt = [l[header_dict[A1]].upper(), l[header_dict[A2]].upper()]
                 chrom_dict[chrom]['nts'].append(nt)
                 raw_beta = float(l[header_dict[eff]])
+                
+                if n is None:
+                    if ncol not in header_dict:
+                        case_N = float(l[header_dict[case_n]])
+                        control_N = float(l[header_dict[control_n]])
+                        N = case_N + control_N
+                    else:
+                        N = float(header_dict[ncol])
+                else:
+                    N = n
                 if not input_is_beta:
                     raw_beta = sp.log(raw_beta)
                     chrom_dict[chrom]['log_odds'].append(raw_beta)
                     beta = sp.sign(raw_beta) * stats.norm.ppf(pval_read / 2.0)
-                    if n is None:
-                        chrom_dict[chrom]['betas'].append(beta / sp.sqrt(int(header_dict[ncol])))
-                    else:
-                        chrom_dict[chrom]['betas'].append(beta / sp.sqrt(n))
+                    chrom_dict[chrom]['betas'].append(beta / sp.sqrt(N))
                 else:
                     beta = sp.sign(raw_beta) * stats.norm.ppf(pval_read / 2.0)
-                    if n is None:
-                        chrom_dict[chrom]['log_odds'].append(beta / sp.sqrt(int(header_dict[ncol])))
-                        chrom_dict[chrom]['betas'].append(beta / sp.sqrt(int(header_dict[ncol])))
-                    else:
-                        chrom_dict[chrom]['log_odds'].append(beta / sp.sqrt(n))
-                        chrom_dict[chrom]['betas'].append(beta / sp.sqrt(n))
+                    chrom_dict[chrom]['log_odds'].append(beta / sp.sqrt(N))
+                    chrom_dict[chrom]['betas'].append(beta / sp.sqrt(N))
 
         if len(bad_chromosomes) > 0:
             print('Ignored chromosomes: %s' % (','.join(list(bad_chromosomes))))
             print('Please note that only data on chromosomes 1-23, and X are parsed.')
 
+    sys.stdout.write('\b\b\b\b\b\b\b%0.2f%%\n' % (100.0))
+    sys.stdout.flush()            
     print('SS file loaded, now sorting and storing in HDF5 file.')
     assert not 'sum_stats' in hdf5_file, 'Something is wrong with HDF5 file?'
     ssg = hdf5_file.create_group('sum_stats')
@@ -310,6 +330,9 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
         print('%d SNPs excluded due to invalid chromosome position' % pos_filter)
         print('%d SNPs excluded due to invalid P-value' % invalid_p)
         print('%d SNPs parsed from summary statistics file' % num_snps)
+    summary_dict[3.09]={'name':'dash', 'value':'Summary statistics'}
     summary_dict[3.1]={'name':'Num SNPs parsed from sum stats file','value':num_snps}
     summary_dict[3.2]={'name':'Num invalid P-values in sum stats','value':invalid_p}
+    summary_dict[3.3]={'name':'Num invalid positions in sum stats','value':pos_filter}
+    summary_dict[3.4]={'name':'Num invalid chromosomes in sum stats','value':chr_filter}
 

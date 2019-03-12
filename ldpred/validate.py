@@ -546,12 +546,14 @@ def main(p_dict):
     t0 = time.time()
 
     summary_dict[0]={'name':'Validation genotype file (prefix):','value':p_dict['gf']}
-    summary_dict[0.1]={'name':'Output scores file(s) (prefix):','value':p_dict['out']}
+    summary_dict[0.1]={'name':'Input weight file(s) (prefix):','value':p_dict['rf']}
+    summary_dict[0.2]={'name':'Output scores file(s) (prefix):','value':p_dict['out']}
 
     adjust_for_pcs=False
     adjust_for_covs=False
 
     if not p_dict['only_score']:
+        summary_dict[0.9]={'name':'dash', 'value':'Phenotypes'}
         print('Parsing phenotypes')
         if p_dict['pf'] is None:
             if p_dict['gf'] is not None:
@@ -629,15 +631,17 @@ def main(p_dict):
                              adjust_for_covariates=adjust_for_covs,
                              only_score=p_dict['only_score'],
                              verbose=verbose, summary_dict=summary_dict)
+            summary_dict[5.2]={'name':'LDpred_inf (unadjusted) Pearson R2:','value':'%0.4f'%res_dict['LDpred_inf']['pred_r2']}
             prs_file_is_missing = False
         
-
-
+       
+        best_ldpred_pred_r2 = 0
+        best_p = None
         for p in p_dict['f']:
             weights_file = '%s_LDpred_p%0.4e.txt' % (p_dict['rf'], p)
             if os.path.isfile(weights_file):
                 print('')
-                print('Calculating LDpred risk scores using p=%0.3e' % p)
+                print('Calculating LDpred risk scores using f=%0.3e' % p)
                 rs_id_map = parse_ldpred_res(weights_file)
                 out_file = '%s_LDpred_p%0.4e.txt' % (p_dict['out'], p)
                 method_str = 'LDpred_p%0.4e' % (p)
@@ -647,12 +651,20 @@ def main(p_dict):
                                                         adjust_for_covariates=adjust_for_covs,
                                                         only_score=p_dict['only_score'],
                                                         verbose=verbose, summary_dict=summary_dict)
-                prs_file_is_missing=False
+                if len(res_dict[method_str]) and (res_dict[method_str]['pred_r2']) >best_ldpred_pred_r2:
+                    best_ldpred_pred_r2 = res_dict[method_str]['pred_r2']
+                    best_p = p
+            prs_file_is_missing=False
+        if best_ldpred_pred_r2>0:                
+            summary_dict[5.3]={'name':'Best LDpred (f=%0.2e) (unadjusted) R2:'%(best_p),'value':'%0.4f'%best_ldpred_pred_r2}
 
         # Plot results?
 
-    elif p_dict['rf_format'] == 'P+T' or p_dict['rf_format']=='ANY':
+    if p_dict['rf_format'] == 'P+T' or p_dict['rf_format']=='ANY':
 
+        best_pt_pred_r2 = 0
+        best_t = None
+        best_r2 = None
         for max_r2 in p_dict['r2']:
             for p_thres in p_dict['p']:
                 weights_file = '%s_P+T_r%0.2f_p%0.4e.txt' % (p_dict['rf'], max_r2, p_thres)
@@ -669,7 +681,13 @@ def main(p_dict):
                                                             adjust_for_covariates=adjust_for_covs,
                                                             only_score=p_dict['only_score'],
                                                             verbose=verbose, summary_dict=summary_dict)
+                    if len(res_dict[method_str]) and (res_dict[method_str]['pred_r2']) >best_pt_pred_r2:
+                        best_pt_pred_r2 = res_dict[method_str]['pred_r2']
+                        best_t = p_thres
+                        best_r2 = max_r2
                     prs_file_is_missing=False
+        if best_pt_pred_r2>0:                
+            summary_dict[5.4]={'name':'Best P+T (r2=%0.2f, p=%0.2e) (unadjusted) R2:'%(best_r2, best_t),'value':'%0.4f'%best_pt_pred_r2}
 
         # Plot results?
     else:
@@ -685,11 +703,13 @@ def main(p_dict):
             best_method_str = method_str
     if best_method_str is not None:
         print('The highest (unadjusted) Pearson R2 was %0.4f, and provided by %s'%(best_pred_r2,best_method_str))
-        summary_dict[5]={'name':'Method with highest (unadjusted) Pearson R2:','value':best_method_str}
-        summary_dict[5.1]={'name':'Best (unadjusted) Pearson R2:','value':'%0.4f'%best_pred_r2}
+        summary_dict[5.99]={'name':'dash', 'value':'Optimal polygenic score'}
+        summary_dict[6]={'name':'Method with highest (unadjusted) Pearson R2:','value':best_method_str}
+        summary_dict[6.1]={'name':'Best (unadjusted) Pearson R2:','value':'%0.4f'%best_pred_r2}
     t1 = time.time()
     t = (t1 - t0)
-    summary_dict[4]={'name':'Running time for calculating scores:','value':'%d min and %0.2f secs'% (t / 60, t % 60)}
+    summary_dict[4.9]={'name':'dash', 'value':'Scoring'}
+    summary_dict[5.9]={'name':'Running time for calculating scores:','value':'%d min and %0.2f secs'% (t / 60, t % 60)}
 
     if prs_file_is_missing:
         print('SNP weights files were not found.  This could be due to a mis-specified --rf flag, or other issues.')

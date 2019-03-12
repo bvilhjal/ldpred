@@ -7,6 +7,8 @@ from scipy import stats
 import pickle
 import gzip
 import os
+from itertools import takewhile
+from itertools import repeat
 
 # LDpred currently ignores the Y and MT chromosomes.
 ok_chromosomes = ['%d' % (x) for x in range(1, 23)]
@@ -141,3 +143,13 @@ def load_hapmap_SNPs():
     hm3_sids = pickle.load(f)
     f.close()
     return hm3_sids
+
+
+def count_lines(filename):
+    try:
+        with open(filename, 'rb') as f:
+            bufgen = takewhile(lambda x: x, (f.raw.read(1024*1024) for _ in repeat(None)))
+            num_lines = sum( buf.count(b'\n') for buf in bufgen)
+    except Exception:
+        num_lines=-1
+    return num_lines

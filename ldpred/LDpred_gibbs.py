@@ -15,7 +15,8 @@ from ldpred import reporting
         
 def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=1000, ld_radius=100,
                  num_iter=60, burn_in=10, p=None, zero_jump_prob=0.05, tight_sampling=False,
-                 ld_dict=None, reference_ld_mats=None, ld_boundaries=None, verbose=False):
+                 ld_dict=None, reference_ld_mats=None, ld_boundaries=None, verbose=False,
+                 print_progress=True):
     """
     LDpred (Gibbs Sampler) 
     """
@@ -139,18 +140,21 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=1000, l
                     proposed_beta = 0.0
     
                 curr_betas[snp_i] = proposed_beta  # UPDATE BETA                
-        if verbose:
+        if verbose and print_progress:
             sys.stdout.write('\b\b\b\b\b\b\b%0.2f%%' % (100.0 * (min(1, float(k + 1) / num_iter))))
             sys.stdout.flush()
 
         if k >= burn_in:
             avg_betas += curr_post_means  # Averaging over the posterior means instead of samples.
+    if verbose and print_progress:
+        sys.stdout.write('\b\b\b\b\b\b\b%0.2f%%\n' % (100.0))
+        sys.stdout.flush()
 
     avg_betas = avg_betas / float(num_iter - burn_in)
     t1 = time.time()
     t = (t1 - t0)
     if verbose:
-        print('\nTook %d minutes and %0.2f seconds' % (t / 60, t % 60))
+        print('Took %d minutes and %0.2f seconds' % (t / 60, t % 60))
     return {'betas':avg_betas, 'inf_betas':start_betas}
 
 
@@ -198,7 +202,7 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
             start_betas = LDpred_inf.ldpred_inf(pval_derived_betas, genotypes=None, reference_ld_mats=chrom_ref_ld_mats[chrom_str],
                                                 h2=h2_chrom, n=n, ld_window_size=2 * ld_radius, verbose=False)
             LDpred_inf_chrom_dict[chrom_str] = start_betas
-    
+
     
     convergence_report = {}
     for p in ps:
@@ -263,11 +267,13 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
                     res_dict = ldpred_gibbs(pval_derived_betas, h2=h2_chrom, n=n, p=p, ld_radius=ld_radius,
                                             verbose=verbose, num_iter=num_iter, burn_in=burn_in, ld_dict=chrom_ld_dict[chrom_str],
                                             start_betas=LDpred_inf_chrom_dict[chrom_str], ld_boundaries=ld_boundaries,
-                                            zero_jump_prob=zero_jump_prob)
+                                            zero_jump_prob=zero_jump_prob,
+                                            print_progress=False)
                 else:
                     res_dict = ldpred_gibbs(pval_derived_betas, h2=h2_chrom, n=n, p=p, ld_radius=ld_radius,
                                             verbose=verbose, num_iter=num_iter, burn_in=burn_in, ld_dict=chrom_ld_dict[chrom_str],
-                                            start_betas=LDpred_inf_chrom_dict[chrom_str], zero_jump_prob=zero_jump_prob)
+                                            start_betas=LDpred_inf_chrom_dict[chrom_str], zero_jump_prob=zero_jump_prob,
+                                            print_progress=False)
                 
                 updated_betas = res_dict['betas']
                 updated_inf_betas = res_dict['inf_betas']
@@ -294,7 +300,9 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
                     r2 = corr ** 2
                     print('The R2 prediction accuracy of PRS using %s was: %0.4f' % (chrom_str, r2))
         
-                    
+        if not verbose:
+            sys.stdout.write('\b\b\b\b\b\b\b%0.2f%%\n' % (100.0))
+            sys.stdout.flush()
         if verbose and has_phenotypes:
             num_indivs = len(y)
             results_dict[p_str]['y'] = y
@@ -345,12 +353,14 @@ def main(p_dict):
     summary_dict[0.2]={'name':'LD data filename (prefix)', 'value':p_dict['ldf']}
     summary_dict[1]={'name':'LD radius used','value':str(p_dict['ldr'])}
     t0 = time.time()
+    summary_dict[1.09]={'name':'dash', 'value':'LD information'}
     ld_dict = ld.get_ld_dict(p_dict['cf'], p_dict['ldf'], p_dict['ldr'], verbose=p_dict['debug'],
                               compressed=not p_dict['no_ld_compression'], use_hickle=p_dict['hickle_ld'], summary_dict=summary_dict)    
     t1 = time.time()
     t = (t1 - t0)
     summary_dict[1.2]={'name':'Running time for calculating LD information:','value':'%d min and %0.2f secs'% (t / 60, t % 60)}
     t0 = time.time()
+    summary_dict[1.9]={'name':'dash', 'value':'LDpred Gibbs sampler'}
     ldpred_genomewide(data_file=p_dict['cf'], out_file_prefix=p_dict['out'], ps=p_dict['f'], ld_radius=p_dict['ldr'],
                       ld_dict=ld_dict, n=p_dict['N'], num_iter=p_dict['n_iter'], burn_in=p_dict['n_burn_in'], 
                       h2=p_dict['h2'], verbose=p_dict['debug'], summary_dict=summary_dict)
