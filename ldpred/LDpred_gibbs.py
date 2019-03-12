@@ -353,12 +353,14 @@ def main(p_dict):
     summary_dict[0.2]={'name':'LD data filename (prefix)', 'value':p_dict['ldf']}
     summary_dict[1]={'name':'LD radius used','value':str(p_dict['ldr'])}
     t0 = time.time()
+    summary_dict[1.09]={'name':'dash', 'value':'LD information'}
     ld_dict = ld.get_ld_dict(p_dict['cf'], p_dict['ldf'], p_dict['ldr'], verbose=p_dict['debug'],
                               compressed=not p_dict['no_ld_compression'], use_hickle=p_dict['hickle_ld'], summary_dict=summary_dict)    
     t1 = time.time()
     t = (t1 - t0)
     summary_dict[1.2]={'name':'Running time for calculating LD information:','value':'%d min and %0.2f secs'% (t / 60, t % 60)}
     t0 = time.time()
+    summary_dict[1.9]={'name':'dash', 'value':'LDpred Gibbs sampler'}
     ldpred_genomewide(data_file=p_dict['cf'], out_file_prefix=p_dict['out'], ps=p_dict['f'], ld_radius=p_dict['ldr'],
                       ld_dict=ld_dict, n=p_dict['N'], num_iter=p_dict['n_iter'], burn_in=p_dict['n_burn_in'], 
                       h2=p_dict['h2'], verbose=p_dict['debug'], summary_dict=summary_dict)

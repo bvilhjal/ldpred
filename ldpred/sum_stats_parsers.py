@@ -330,6 +330,7 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
         print('%d SNPs excluded due to invalid chromosome position' % pos_filter)
         print('%d SNPs excluded due to invalid P-value' % invalid_p)
         print('%d SNPs parsed from summary statistics file' % num_snps)
+    summary_dict[3.09]={'name':'dash', 'value':'Summary statistics'}
     summary_dict[3.1]={'name':'Num SNPs parsed from sum stats file','value':num_snps}
     summary_dict[3.2]={'name':'Num invalid P-values in sum stats','value':invalid_p}
     summary_dict[3.3]={'name':'Num invalid positions in sum stats','value':pos_filter}

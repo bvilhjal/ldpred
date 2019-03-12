@@ -68,6 +68,7 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
                         max_freq_discrep = 0.15,
                         debug=False):
     
+    summary_dict[3.9]={'name':'dash', 'value':'Coordination'}
     t0 = time.time()
     if validation_genotype_file is not None:
         print('Coordinating datasets (Summary statistics, LD reference genotypes, and Validation genotypes).')
@@ -505,7 +506,6 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
         if debug:
             print('Overall nucleotide concordance counts, rg_ss: %d' % (tot_g_ss_nt_concord_count))        
     
-    summary_dict[6.9]={'name':'dash'}
     summary_dict[7]={'name':'Num chromosomes used:','value':len(chromosomes_found)}
     summary_dict[8]={'name':'SNPs common across datasets:','value':num_snps_common_before_filtering}
     summary_dict[9]={'name':'SNPs retained after filtering:','value':num_snps_common_after_filtering}
@@ -519,6 +519,7 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
 
     t1 = time.time()
     t = (t1 - t0)
+    summary_dict[13.9]={'name':'dash', 'value':'Running times'}
     summary_dict[15]={'name':'Run time for coordinating datasets:','value': '%d min and %0.2f sec'%(t / 60, t % 60)}
 
 
