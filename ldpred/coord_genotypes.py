@@ -129,6 +129,7 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
     num_snps_common_before_filtering =0
     num_snps_common_after_filtering =0
     tot_num_non_matching_nts = 0
+    tot_num_non_supported_nts = 0
     tot_num_ambig_nts = 0
     tot_num_freq_discrep_filtered_snps = 0
     tot_num_maf_filtered_snps = 0
@@ -236,6 +237,7 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
             print('Nucleotide concordance counts out of %d genotypes, rg-ss: %d' % (len(g_snp_map), g_ss_nt_concord_count))
 
         num_non_matching_nts = 0
+        num_non_supported_nts = 0
         num_ambig_nts = 0
 
         # Identifying which SNPs have nucleotides that are ok..
@@ -261,13 +263,11 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
                     g_nt = [g_nts[g_i][0], g_nts[g_i][1]]
                     if tuple(g_nt) in util.ambig_nts:
                         num_ambig_nts += 1
-                        tot_num_non_matching_nts += 1
                         continue
     
                     # First check if nucleotide is sane?
                     if (not g_nt[0] in util.valid_nts) or (not g_nt[1] in util.valid_nts):
-                        num_non_matching_nts += 1
-                        tot_num_non_matching_nts += 1
+                        num_non_supported_nts += 1
                         continue
     
                     os_g_nt = sp.array(
@@ -292,12 +292,10 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
                                           (g_sids[g_i], ss_sids[ss_i], g_i,
                                            ss_i, str(g_nt), str(ss_nt)))
                                 num_non_matching_nts += 1
-                                tot_num_non_matching_nts += 1
                                 continue
     
                         else:
                             num_non_matching_nts += 1
-                            tot_num_non_matching_nts += 1
                             continue
                             # Opposite strand nucleotides
     
@@ -322,13 +320,11 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
                     g_nt = [g_nts[g_i][0], g_nts[g_i][1]]
                     if tuple(g_nt) in util.ambig_nts:
                         num_ambig_nts += 1
-                        tot_num_non_matching_nts += 1
                         continue
     
                     # First check if nucleotide is sane?
                     if (not g_nt[0] in util.valid_nts) or (not g_nt[1] in util.valid_nts):
                         num_non_matching_nts += 1
-                        tot_num_non_matching_nts += 1
                         continue
     
                     os_g_nt = sp.array(
@@ -353,7 +349,6 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
                                       (g_sids[g_i], ss_sids[ss_i], g_i,
                                        ss_i, str(g_nt), str(ss_nt)))
                             num_non_matching_nts += 1
-                            tot_num_non_matching_nts += 1
                             continue
                    
                 # everything seems ok.
@@ -402,9 +397,6 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
             ss_freqs = ss_freqs[ok_indices['ss']]
             ok_freq_snps = sp.logical_or(sp.absolute(ss_freqs - freqs) < max_freq_discrep,sp.absolute(ss_freqs + freqs-1) < max_freq_discrep) #Array of np.bool values
             ok_freq_snps = sp.logical_or(ok_freq_snps,ss_freqs<=0) #Only consider SNPs that actually have frequencies
-            print(ss_freqs)
-            print(freqs)
-            print(ok_freq_snps)
             num_freq_discrep_filtered_snps = len(ok_freq_snps)- sp.sum(ok_freq_snps)
             assert num_freq_discrep_filtered_snps>=0, "Problems when filtering SNPs with frequency discrepencies"
             if num_freq_discrep_filtered_snps>0:
@@ -495,6 +487,8 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
         num_snps_common_before_filtering += len(common_sids)
         num_snps_common_after_filtering += len(sids)
         tot_num_ambig_nts += num_ambig_nts
+        tot_num_non_supported_nts += num_non_supported_nts
+        tot_num_non_matching_nts += num_non_matching_nts
         tot_num_freq_discrep_filtered_snps += num_freq_discrep_filtered_snps
         tot_num_maf_filtered_snps += num_maf_filtered_snps
 
@@ -511,10 +505,12 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
         if debug:
             print('Overall nucleotide concordance counts, rg_ss: %d' % (tot_g_ss_nt_concord_count))        
     
+    summary_dict[6.9]={'name':'dash'}
     summary_dict[7]={'name':'Num chromosomes used:','value':len(chromosomes_found)}
     summary_dict[8]={'name':'SNPs common across datasets:','value':num_snps_common_before_filtering}
     summary_dict[9]={'name':'SNPs retained after filtering:','value':num_snps_common_after_filtering}
     summary_dict[10]={'name':'SNPs w ambiguous nucleotides filtered:','value':tot_num_ambig_nts}
+    summary_dict[10.1]={'name':'SNPs w unknown/unsupported nucleotides filtered:','value':tot_num_non_supported_nts}
     summary_dict[11]={'name':'SNPs w other nucleotide discrepancies filtered:','value':tot_num_non_matching_nts}
     if min_maf>0:
         summary_dict[12]={'name':'SNPs w MAF<%0.3f filtered:'%min_maf,'value':tot_num_maf_filtered_snps}
@@ -529,10 +525,7 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
 
 def main(p_dict):
 
-    
     bimfile = None
-    if p_dict['N'] is None:
-        print('Please specify an integer value for the sample size used to calculate the GWAS summary statistics.')
     if p_dict['vbim'] is not None:
         bimfile = p_dict['vbim']
     elif p_dict['vgf'] is not None:

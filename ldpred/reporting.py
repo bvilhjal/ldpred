@@ -12,12 +12,15 @@ def print_summary(summary_dict, title, log_file=None):
     print( left_dashes  + ' '+title+' '+right_dashes)
     for k in sorted(summary_dict.keys()):
         sd = summary_dict[k]
-        val_str= str(sd['value'])
-        if len(val_str)>29:
-            print ('{:<50}'.format(sd['name']))
-            print ('{:>80}'.format(val_str))
+        if sd['name']=='dash':
+            print ('-' * 80)
         else:
-            print ('{:<50}{:>30}'.format(sd['name'],str(sd['value'])))
+            val_str= str(sd['value'])
+            if len(val_str)>29:
+                print ('{:<50}'.format(sd['name']))
+                print ('{:>80}'.format(val_str))
+            else:
+                print ('{:<50}{:>30}'.format(sd['name'],str(sd['value'])))
     print ('-' * 80)
     print('')
         

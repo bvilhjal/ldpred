@@ -146,6 +146,9 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=1000, l
 
         if k >= burn_in:
             avg_betas += curr_post_means  # Averaging over the posterior means instead of samples.
+    if verbose and print_progress:
+        sys.stdout.write('\b\b\b\b\b\b\b%0.2f%%\n' % (100.0))
+        sys.stdout.flush()
 
     avg_betas = avg_betas / float(num_iter - burn_in)
     t1 = time.time()
@@ -298,7 +301,8 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
                     print('The R2 prediction accuracy of PRS using %s was: %0.4f' % (chrom_str, r2))
         
         if not verbose:
-            print ('')
+            sys.stdout.write('\b\b\b\b\b\b\b%0.2f%%\n' % (100.0))
+            sys.stdout.flush()
         if verbose and has_phenotypes:
             num_indivs = len(y)
             results_dict[p_str]['y'] = y
