@@ -79,13 +79,11 @@ def get_prs(genotype_file, rs_id_map, phen_map=None, only_score = False, verbose
             sys.stdout.write('\b\b\b\b\b\b\b%0.2f%%' % (100.0 * (float(loci_i) / (num_loci-1.0))))
             sys.stdout.flush()            
         upd_pval_beta = 0
-        try:
-            # Check rs-ID
-            sid = locus.name
-            rs_info = rs_id_map[sid]
-        except Exception:  # Move on if rsID not found.
+        sid = locus.name
+        if locus.name not in rs_id_map:
             continue
 
+        rs_info = rs_id_map[sid]
         if rs_info['upd_pval_beta'] == 0:
             continue
 
@@ -701,9 +699,6 @@ def main(p_dict):
             summary_dict[5.4]={'name':'Best P+T (r2=%0.2f, p=%0.2e) (unadjusted) R2:'%(best_r2, best_t),'value':'%0.4f'%best_pt_pred_r2}
 
         # Plot results?
-    else:
-        raise NotImplementedError(
-            'Results file format missing or unknown: %s' % p_dict['rf_format'])
     
     #Identifying the best prediction
     best_pred_r2 = 0
