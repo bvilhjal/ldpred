@@ -31,4 +31,4 @@ def print_summary(summary_dict, title, log_file=None):
                 print ('{:<50}{:>30}'.format(sd['name'],str(sd['value'])))
     print ('=' * 80)
     print('')
-        
+    

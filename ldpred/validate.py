@@ -76,7 +76,7 @@ def get_prs(genotype_file, rs_id_map, phen_map=None, only_score = False, verbose
     for locus, row in zip(locus_list, plinkf):
         loci_i += 1
         if snp_i%1000==0 and not verbose:
-            sys.stdout.write('\b\b\b\b\b\b\b%0.2f%%' % (100.0 * (min(float(loci_i) / (num_loci-1.0)))))
+            sys.stdout.write('\b\b\b\b\b\b\b%0.2f%%' % (100.0 * (float(loci_i) / (num_loci-1.0))))
             sys.stdout.flush()            
         upd_pval_beta = 0
         try:

@@ -9,6 +9,7 @@ import gzip
 import os
 from itertools import takewhile
 from itertools import repeat
+import sys
 
 # LDpred currently ignores the Y and MT chromosomes.
 ok_chromosomes = ['%d' % (x) for x in range(1, 23)]
@@ -146,10 +147,27 @@ def load_hapmap_SNPs():
 
 
 def count_lines(filename):
+    if sys.version_info >= (3,0):
+        return count_lines_fast(filename)
+    else:
+        return count_lines_slow(filename)
+
+
+def count_lines_fast(filename):
     try:
         with open(filename, 'rb') as f:
             bufgen = takewhile(lambda x: x, (f.raw.read(1024*1024) for _ in repeat(None)))
-            num_lines = sum( buf.count(b'\n') for buf in bufgen)
+            num_lines =sum( buf.count(b'\n') for buf in bufgen )
+    except Exception:
+        num_lines = -1
+    return num_lines 
+            
+
+def count_lines_slow(filename):
+    
+    try:
+        with open(filename, 'rb') as f:
+            num_lines = sum(1 for line in f)
     except Exception:
         num_lines=-1
     return num_lines
