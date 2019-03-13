@@ -237,6 +237,7 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
         if debug:
             print('Nucleotide concordance counts out of %d genotypes, rg-ss: %d' % (len(g_snp_map), g_ss_nt_concord_count))
 
+        num_freq_discrep_filtered_snps = 0
         num_non_matching_nts = 0
         num_non_supported_nts = 0
         num_ambig_nts = 0

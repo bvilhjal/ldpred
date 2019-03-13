@@ -6,6 +6,7 @@ from ldpred import plinkfiles
 from ldpred import util
 import time
 from ldpred import reporting
+import sys
 
 def get_prs(genotype_file, rs_id_map, phen_map=None, only_score = False, verbose=False):
     plinkf = plinkfiles.plinkfile.PlinkFile(genotype_file)
@@ -68,9 +69,15 @@ def get_prs(genotype_file, rs_id_map, phen_map=None, only_score = False, verbose
     if verbose:
         print('Iterating over BED file to calculate risk scores.')
     locus_list = plinkf.get_loci()
+    num_loci = len(locus_list)
+    loci_i = 0
     snp_i = 0
 
     for locus, row in zip(locus_list, plinkf):
+        loci_i += 1
+        if snp_i%1000==0 and not verbose:
+            sys.stdout.write('\b\b\b\b\b\b\b%0.2f%%' % (100.0 * (min(float(loci_i) / (num_loci-1.0)))))
+            sys.stdout.flush()            
         upd_pval_beta = 0
         try:
             # Check rs-ID
@@ -119,6 +126,7 @@ def get_prs(genotype_file, rs_id_map, phen_map=None, only_score = False, verbose
 
         if snp_i > 0 and snp_i % 100000 == 0:
             if verbose:
+                print('%0.2f%% of genotype file read' % (100.0 * (min(float(loci_i) / (num_loci-1.0)))))
                 print('%d SNPs parsed'%snp_i)
                 print('Number of non-matching NTs: %d' % num_non_matching_nts)
             if not only_score:
@@ -130,6 +138,9 @@ def get_prs(genotype_file, rs_id_map, phen_map=None, only_score = False, verbose
         snp_i += 1
 
     plinkf.close()
+    if not verbose:
+        sys.stdout.write('\b\b\b\b\b\b\b%0.2f%%\n' % (100.0))
+        sys.stdout.flush()            
 
     if verbose:
         print("DONE!")
