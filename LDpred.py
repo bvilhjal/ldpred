@@ -9,7 +9,7 @@ from ldpred import validate
 import sys
 import textwrap
 
-__version__ = '1.0.3'
+__version__ = '1.0.4'
  
 
 parser = argparse.ArgumentParser(prog='LDpred',
@@ -213,7 +213,9 @@ parser_score.add_argument('--gf', type=str, default=None,
                     help='Validation genotype file. '
                          'PLINK formatted genotypes for which we want to calculate risk scores.')
 parser_score.add_argument('--rf', type=str, required=True,
-                    help='SNP weights file (prefix used for output in preceding step), e.g. LDpred SNP weights.')
+                    help='SNP weights file (prefix used for output in preceding step), e.g. LDpred SNP weights. '
+                    'Note that the prefix is the same as given as output in the previous ste, and should exclude '
+                    'the _LDpred_.. extension that are added to the file.')
 parser_score.add_argument('--out', type=str, required=True,
                     help='The prefix of risk score output file.')
 parser_score.add_argument('--pf', type=str, default=None,

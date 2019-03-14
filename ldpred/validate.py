@@ -640,7 +640,8 @@ def main(p_dict):
                              adjust_for_covariates=adjust_for_covs,
                              only_score=p_dict['only_score'],
                              verbose=verbose, summary_dict=summary_dict)
-            summary_dict[5.2]={'name':'LDpred_inf (unadjusted) Pearson R2:','value':'%0.4f'%res_dict['LDpred_inf']['pred_r2']}
+            if not p_dict['only_score']:
+                summary_dict[5.2]={'name':'LDpred_inf (unadjusted) Pearson R2:','value':'%0.4f'%res_dict['LDpred_inf']['pred_r2']}
             prs_file_is_missing = False
         
        
@@ -663,8 +664,9 @@ def main(p_dict):
                 if len(res_dict[method_str]) and (res_dict[method_str]['pred_r2']) >best_ldpred_pred_r2:
                     best_ldpred_pred_r2 = res_dict[method_str]['pred_r2']
                     best_p = p
-            prs_file_is_missing=False
-        if best_ldpred_pred_r2>0:                
+        
+                prs_file_is_missing=False
+        if best_ldpred_pred_r2>0 and not p_dict['only_score']:         
             summary_dict[5.3]={'name':'Best LDpred (f=%0.2e) (unadjusted) R2:'%(best_p),'value':'%0.4f'%best_ldpred_pred_r2}
 
         # Plot results?
@@ -695,23 +697,26 @@ def main(p_dict):
                         best_t = p_thres
                         best_r2 = max_r2
                     prs_file_is_missing=False
-        if best_pt_pred_r2>0:                
+        if best_pt_pred_r2>0 and not p_dict['only_score']:                
             summary_dict[5.4]={'name':'Best P+T (r2=%0.2f, p=%0.2e) (unadjusted) R2:'%(best_r2, best_t),'value':'%0.4f'%best_pt_pred_r2}
 
-        # Plot results?
+    # Plot results?
+    assert not prs_file_is_missing, 'No SNP weights file was found.  A prefix to these should be provided via the --rf flag. Note that the prefix should exclude the _LDpred_.. extension or file ending. '
+
     
     #Identifying the best prediction
-    best_pred_r2 = 0
-    best_method_str = None
-    for method_str in res_dict:
-        if len(res_dict[method_str]) and (res_dict[method_str]['pred_r2']) >best_pred_r2:
-            best_pred_r2 = res_dict[method_str]['pred_r2']
-            best_method_str = method_str
-    if best_method_str is not None:
-        print('The highest (unadjusted) Pearson R2 was %0.4f, and provided by %s'%(best_pred_r2,best_method_str))
-        summary_dict[5.99]={'name':'dash', 'value':'Optimal polygenic score'}
-        summary_dict[6]={'name':'Method with highest (unadjusted) Pearson R2:','value':best_method_str}
-        summary_dict[6.1]={'name':'Best (unadjusted) Pearson R2:','value':'%0.4f'%best_pred_r2}
+    if not p_dict['only_score']:
+        best_pred_r2 = 0
+        best_method_str = None
+        for method_str in res_dict:
+            if len(res_dict[method_str]) and (res_dict[method_str]['pred_r2']) >best_pred_r2:
+                best_pred_r2 = res_dict[method_str]['pred_r2']
+                best_method_str = method_str
+        if best_method_str is not None:
+            print('The highest (unadjusted) Pearson R2 was %0.4f, and provided by %s'%(best_pred_r2,best_method_str))
+            summary_dict[5.99]={'name':'dash', 'value':'Optimal polygenic score'}
+            summary_dict[6]={'name':'Method with highest (unadjusted) Pearson R2:','value':best_method_str}
+            summary_dict[6.1]={'name':'Best (unadjusted) Pearson R2:','value':'%0.4f'%best_pred_r2}
     t1 = time.time()
     t = (t1 - t0)
     summary_dict[4.9]={'name':'dash', 'value':'Scoring'}

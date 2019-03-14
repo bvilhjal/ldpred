@@ -100,7 +100,6 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
         print("Position Header not provided, will use info from bim file")
 
     num_lines = util.count_lines(filename)
-    
     snps_pos_map = {}
     if only_hm3:
         hm3_sids = util.load_hapmap_SNPs()
@@ -140,6 +139,7 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
         if is_gz(filename):
             header = header.decode('utf-8')
         if debug:
+            print('File header:')
             print(header)
         header_dict = {}
         columns = (header.strip()).split()
@@ -161,8 +161,8 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
         line_i = 1
         for line in f:
             line_i +=1
-            if line_i%1000==0:
-                sys.stdout.write('\b\b\b\b\b\b\b%0.2f%%' % (100.0 * (min(1, float(line_i) / (num_lines-1.0)))))
+            if line_i%1000==0 and num_lines>0:
+                sys.stdout.write('\b\b\b\b\b\b\b%0.2f%%' % (100.0 * (float(line_i) / (num_lines-1.0))))
                 sys.stdout.flush()            
             if is_gz(filename):
                 line = line.decode('utf-8')
@@ -266,8 +266,9 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
             print('Ignored chromosomes: %s' % (','.join(list(bad_chromosomes))))
             print('Please note that only data on chromosomes 1-23, and X are parsed.')
 
-    sys.stdout.write('\b\b\b\b\b\b\b%0.2f%%\n' % (100.0))
-    sys.stdout.flush()            
+    if num_lines>0:
+        sys.stdout.write('\b\b\b\b\b\b\b%0.2f%%\n' % (100.0))
+        sys.stdout.flush()            
     print('SS file loaded, now sorting and storing in HDF5 file.')
     assert not 'sum_stats' in hdf5_file, 'Something is wrong with HDF5 file?'
     ssg = hdf5_file.create_group('sum_stats')
