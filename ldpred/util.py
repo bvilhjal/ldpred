@@ -140,7 +140,6 @@ def obs_r2_to_liab(R2_osb,K=0.01,P=0.5):
     return R2_liab_cc
     
 def load_hapmap_SNPs():
-    my_path = os.path.abspath(os.path.dirname(__file__))
     f = gzip.open(hm3_file, 'r')
     hm3_sids = pickle.load(f)
     f.close()
