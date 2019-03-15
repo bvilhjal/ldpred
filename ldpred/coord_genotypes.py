@@ -34,9 +34,10 @@ def _verify_coord_data_(data_dict):
     
 
 
-def write_coord_data(cord_data_g, coord_dict):
+def write_coord_data(cord_data_g, coord_dict, debug=False):
     _verify_coord_data_(coord_dict)
-    print('Storing coordinated data to HDF5 file.')
+    if debug:
+        print('Storing coordinated data to HDF5 file.')
     ofg = cord_data_g.create_group(coord_dict['chrom'])
     ofg.create_dataset('raw_snps_ref', data=coord_dict['raw_snps_ref'], compression='lzf')
     ofg.create_dataset('snp_stds_ref', data=coord_dict['snp_stds_ref'])
@@ -469,8 +470,7 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
         if validation_genotype_file is not None:
             maf_adj_prs = sp.dot(log_odds, raw_snps_val)
             if debug and plinkf_dict_val['has_phenotype']:
-                maf_adj_corr = sp.corrcoef(
-                    plinkf_dict_val['phenotypes'], maf_adj_prs)[0, 1]
+                maf_adj_corr = sp.corrcoef(plinkf_dict_val['phenotypes'], maf_adj_prs)[0, 1]
                 print('Log odds, per genotype PRS correlation w phenotypes for chromosome %d was %0.4f' % (chrom, maf_adj_corr))
             coord_data_dict['raw_snps_val']=raw_snps_val
             coord_data_dict['snp_stds_val']=snp_stds_val
@@ -480,7 +480,7 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
             maf_adj_risk_scores += maf_adj_prs
          
          
-        write_coord_data(cord_data_g, coord_data_dict)
+        write_coord_data(cord_data_g, coord_data_dict, debug=debug)
         num_common_snps += len(betas)
         
         if debug:
