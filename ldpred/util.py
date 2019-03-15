@@ -15,9 +15,11 @@ import re
 # LDpred currently ignores the Y and MT chromosomes.
 ok_chromosomes = set(range(1, 24))
 chromosomes_list = ['chrom_%d' % (chrom) for chrom in ok_chromosomes]
-chrom_name_map = {'X':'23'}
-for chrom in range(1, 24):
-    chrom_name_map['%d'%chrom]=chrom
+chrom_name_map = {'X':'23','chr_X':'23','chrom_X':'23'}
+for chrom in ok_chromosomes:
+    chrom_name_map['%d' % (chrom)]=chrom
+    chrom_name_map['chrom_%d' % (chrom)]=chrom
+    chrom_name_map['chr_%d' % (chrom)]=chrom
     
 def get_chrom_num(chrom):
     return chrom_name_map.get(re.sub("chr", "", chrom),0)
