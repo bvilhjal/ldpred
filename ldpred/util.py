@@ -10,11 +10,17 @@ import os
 from itertools import takewhile
 from itertools import repeat
 import sys
+import re
 
 # LDpred currently ignores the Y and MT chromosomes.
-ok_chromosomes = ['%d' % (x) for x in range(1, 23)]
-ok_chromosomes.append('X')
-chromosomes_list = ['chrom_%s' % (chrom) for chrom in ok_chromosomes]
+ok_chromosomes = set(range(1, 23))
+chromosomes_list = ['chrom_%d' % (chrom) for chrom in ok_chromosomes]
+chrom_name_map = {'X':'23'}
+for chrom in range(1, 23):
+    chrom_name_map['%d'%chrom]=chrom
+    
+def get_chrom_num(chrom):
+    return chrom_name_map[re.sub("chr", "", chrom)]
 
 #Various auxiliary variables
 ambig_nts = set([('A', 'T'), ('T', 'A'), ('G', 'C'), ('C', 'G')])

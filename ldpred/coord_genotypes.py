@@ -142,18 +142,19 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
         
     # Now iterate over chromosomes
     for chrom in chromosomes:
-        chr_str = 'chrom_%d' % chrom
+        try:
+            chr_str = 'chrom_%d' % chrom
+            ssg = ssf[chr_str]
+                    
+        except Exception as err_str:
+                print(err_str)
+                print('Did not find chromosome %d in SS dataset.'%chrom)
+                print('Continuing.')
+                continue
+        
         if debug:
             print('Coordinating data for chromosome %s' % chr_str)
 
-        try:
-            ssg = ssf['chrom_%d' % chrom]
-        except Exception as err_str:
-            print(err_str)
-            print('Did not find chromosome in SS dataset.')
-            print('Continuing.')
-            continue
-        
         chromosomes_found.add(chrom)
         
         #Get summary statistics chromosome group

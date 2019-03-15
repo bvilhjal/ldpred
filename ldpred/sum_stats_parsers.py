@@ -2,7 +2,6 @@ import scipy as sp
 from scipy import stats
 from scipy import isinf
 from scipy import isfinite
-import re
 import gzip
 from ldpred import util
 import time
@@ -115,14 +114,17 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
         with open(bimfile) as f:
             for line in f:
                 l = line.split()
+                chrom = util.get_chrom_num(l[0])
+                if chrom not in util.ok_chromosomes:
+                    continue
                 sid = l[1]
                 if only_hm3:
                     if sid in hm3_sids:
                         valid_sids.add(sid)
-                        snps_pos_map[sid] = {'pos':int(l[3]), 'chrom':l[0]}
+                        snps_pos_map[sid] = {'pos':int(l[3]), 'chrom':chrom}
                 else:
                     valid_sids.add(sid)
-                    snps_pos_map[sid] = {'pos':int(l[3]), 'chrom':l[0]}
+                    snps_pos_map[sid] = {'pos':int(l[3]), 'chrom':chrom}
 
         if len(valid_sids)==0:
             raise Exception('Unable to parse BIM file')
@@ -178,18 +180,15 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
                 # Get the chromosome information
                 chrom = 0
                 if not ch is None and ch in header_dict:
-                    chrom = l[header_dict[ch]]
-                    chrom = re.sub("chr", "", chrom)
+                    chrom = util.get_chrom_num(l[header_dict[ch]])
+                    # Check if the chromosome of the SNP is correct
                     if not chrom == snps_pos_map[sid]['chrom']:
                         invalid_chr += 1
                         if match_genomic_pos:
                             continue
                 else:
                     chrom = snps_pos_map[sid]['chrom']
-                if not chrom in util.ok_chromosomes:
-                    bad_chromosomes.add(chrom)
-                    continue
-                # Check if the chromosome of the SNP is correct
+                
     
                 pos_read = 0
                 if not pos is None and pos in header_dict:
@@ -349,7 +348,10 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
     if invalid_beta>0:
         summary_dict[3.21]={'name':'Num invalid P-values in sum stats','value':invalid_p}
     if invalid_chr>0:
-        summary_dict[3.4]={'name':'Num invalid chromosomes in sum stats','value':invalid_chr}
+        if match_genomic_pos:
+            summary_dict[3.4]={'name':'SNPs excluded due to non-matching chromosomes','value':invalid_chr}
+        else:
+            summary_dict[3.4]={'name':'SNPs w non-matching chromosomes (not excluded)','value':invalid_chr}
     if invalid_pos>0:
         if match_genomic_pos:
             summary_dict[3.3]={'name':'SNPs excluded due to non-matching positions','value':invalid_pos}
