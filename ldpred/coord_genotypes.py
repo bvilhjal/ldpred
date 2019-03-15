@@ -4,6 +4,7 @@ import os
 import scipy as sp
 import gzip
 import h5py
+import sys
 from ldpred import sum_stats_parsers
 from ldpred import reporting
 from ldpred import util
@@ -141,7 +142,12 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
         tot_vg_ss_nt_concord_count = 0
         
     # Now iterate over chromosomes
+    chrom_i = 0
     for chrom in chromosomes:
+        chrom_i +=1
+        if not debug:
+            sys.stdout.write('\b\b\b\b\b\b\b%0.2f%%' % (100.0 * (float(chrom_i) / (len(chromosomes)+1))))
+            sys.stdout.flush()            
         try:
             chr_str = 'chrom_%d' % chrom
             ssg = ssf[chr_str]
@@ -482,10 +488,12 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
          
          
         write_coord_data(cord_data_g, coord_data_dict, debug=debug)
-        num_common_snps += len(betas)
-        
         if debug:
             print('%d SNPs were retained on chromosome %d.' % (len(sids), chrom))
+        else:
+            sys.stdout.write('\b\b\b\b\b\b\b%0.2f%%\n' % (100.0))
+            sys.stdout.flush()                        
+        
         
         num_snps_common_before_filtering += len(common_sids)
         num_snps_common_after_filtering += len(sids)

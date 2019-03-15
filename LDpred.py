@@ -20,6 +20,7 @@ num_dashes = reporting.window_length-title_len-2
 left_dashes = '='*int(num_dashes/2)
 right_dashes = '='*int(num_dashes/2+num_dashes%2)
 title_string = '\n'+left_dashes  + ' '+title+' '+right_dashes +'\n'
+
 description_string = """
 Typicial workflow:
     1. Use\033[1m LDpred coord\033[0m to parse summary statistics and genotypes 
