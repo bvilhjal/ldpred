@@ -39,8 +39,9 @@ nts_dtype = "|S1"
 sids_u_dtype = '<U30'
 nts_u_dtype = '<U1'
 
-my_path = os.path.abspath(os.path.dirname(__file__))
-hm3_file = os.path.join(my_path, "../reference/hm3_sids.txt.gz")
+
+my_path = os.path.dirname(os.path.abspath(__file__))
+hm3_file = os.path.join(my_path, '..','reference','hm3_sids.txt.gz')
 
 def check_chromosomes(missing_chromosomes):
         if len(missing_chromosomes) > 0:
