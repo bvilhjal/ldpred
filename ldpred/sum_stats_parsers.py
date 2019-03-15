@@ -184,8 +184,7 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
                     # Check if the chromosome of the SNP is correct
                     if not chrom == snps_pos_map[sid]['chrom']:
                         invalid_chr += 1
-                        if match_genomic_pos:
-                            continue
+                        continue
                 else:
                     chrom = snps_pos_map[sid]['chrom']
                 
@@ -348,13 +347,10 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
     if invalid_beta>0:
         summary_dict[3.21]={'name':'Num invalid P-values in sum stats','value':invalid_p}
     if invalid_chr>0:
-        if match_genomic_pos:
-            summary_dict[3.4]={'name':'SNPs excluded due to non-matching chromosomes','value':invalid_chr}
-        else:
-            summary_dict[3.4]={'name':'SNPs w non-matching chromosomes (not excluded)','value':invalid_chr}
+            summary_dict[3.4]={'name':'SNPs w non-matching chromosomes excluded','value':invalid_chr}
     if invalid_pos>0:
         if match_genomic_pos:
-            summary_dict[3.3]={'name':'SNPs excluded due to non-matching positions','value':invalid_pos}
+            summary_dict[3.3]={'name':'SNPs w non-matching positions excluded','value':invalid_pos}
         else:
-            summary_dict[3.3]={'name':'SNPs w non-matching genomic positions (not excluded)','value':invalid_pos}
+            summary_dict[3.3]={'name':'SNPs w non-matching positions (not excluded)','value':invalid_pos}
 
