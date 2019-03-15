@@ -510,9 +510,12 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
     summary_dict[7]={'name':'Num chromosomes used:','value':len(chromosomes_found)}
     summary_dict[8]={'name':'SNPs common across datasets:','value':num_snps_common_before_filtering}
     summary_dict[9]={'name':'SNPs retained after filtering:','value':num_snps_common_after_filtering}
-    summary_dict[10]={'name':'SNPs w ambiguous nucleotides filtered:','value':tot_num_ambig_nts}
-    summary_dict[10.1]={'name':'SNPs w unknown/unsupported nucleotides filtered:','value':tot_num_non_supported_nts}
-    summary_dict[11]={'name':'SNPs w other nucleotide discrepancies filtered:','value':tot_num_non_matching_nts}
+    if tot_num_ambig_nts>0:
+        summary_dict[10]={'name':'SNPs w ambiguous nucleotides filtered:','value':tot_num_ambig_nts}
+    if tot_num_non_supported_nts>0:
+        summary_dict[10.1]={'name':'SNPs w unknown/unsupported nucleotides filtered:','value':tot_num_non_supported_nts}
+    if tot_num_non_matching_nts>0:
+        summary_dict[11]={'name':'SNPs w other nucleotide discrepancies filtered:','value':tot_num_non_matching_nts}
     if min_maf>0:
         summary_dict[12]={'name':'SNPs w MAF<%0.3f filtered:'%min_maf,'value':tot_num_maf_filtered_snps}
     if max_freq_discrep<0.5:
@@ -558,6 +561,6 @@ def main(p_dict):
                         min_maf=p_dict['maf'], 
                         skip_coordination=p_dict['skip_coordination'], 
                         debug=p_dict['debug'])
+    h5f.close()
     reporting.print_summary(summary_dict, 'Summary of coordination step')
     
-    h5f.close()

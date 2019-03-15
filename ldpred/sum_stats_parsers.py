@@ -1,6 +1,7 @@
 import scipy as sp
 from scipy import stats
 from scipy import isinf
+from scipy import isfinite
 import re
 import gzip
 from ldpred import util
@@ -126,9 +127,10 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
     else:
         raise Exception('Unable to load LD reference or validation genotypes bim file')
         
-    chr_filter = 0
-    pos_filter = 0
+    invalid_chr = 0
+    invalid_pos = 0
     invalid_p = 0
+    invalid_beta = 0
     chrom_dict = {}
     opener = open
     if is_gz(filename):
@@ -177,7 +179,7 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
                     chrom = l[header_dict[ch]]
                     chrom = re.sub("chr", "", chrom)
                     if not chrom == snps_pos_map[sid]['chrom']:
-                        chr_filter += 1
+                        invalid_chr += 1
                         if match_genomic_pos:
                             continue
                 else:
@@ -191,17 +193,20 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
                 if not pos is None and pos in header_dict:
                     pos_read = int(l[header_dict[pos]])
                     if not pos_read == snps_pos_map[sid]['pos']:
-                        pos_filter += 1
+                        invalid_pos += 1
                         if match_genomic_pos:
                             continue
                 else:
                     pos_read = snps_pos_map[sid]['pos']
 
                 pval_read = float(l[header_dict[pval]])
-                if isinf(stats.norm.ppf(pval_read)):
+                if not isfinite(stats.norm.ppf(pval_read)):
                     invalid_p += 1
                     continue
 
+                if not isfinite(float(l[header_dict[eff]])):
+                    invalid_beta += 1
+                    continue
 
                 if not chrom in chrom_dict:
                     chrom_dict[chrom] = {'ps':[], 'log_odds':[], 'infos':[], 'freqs':[],
@@ -327,13 +332,19 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
         g.create_dataset('positions', data=positions)
         hdf5_file.flush()
     if debug:
-        print('%d SNPs excluded due to invalid chromosome ID' % chr_filter)
-        print('%d SNPs excluded due to invalid chromosome position' % pos_filter)
+        print('%d SNPs excluded due to invalid chromosome' % invalid_chr)
+        print('%d SNPs excluded due to invalid chromosome position' % invalid_pos)
         print('%d SNPs excluded due to invalid P-value' % invalid_p)
+        print('%d SNPs excluded due to invalid effect sizes' % invalid_p)
         print('%d SNPs parsed from summary statistics file' % num_snps)
     summary_dict[3.09]={'name':'dash', 'value':'Summary statistics'}
     summary_dict[3.1]={'name':'Num SNPs parsed from sum stats file','value':num_snps}
-    summary_dict[3.2]={'name':'Num invalid P-values in sum stats','value':invalid_p}
-    summary_dict[3.3]={'name':'Num invalid positions in sum stats','value':pos_filter}
-    summary_dict[3.4]={'name':'Num invalid chromosomes in sum stats','value':chr_filter}
+    if invalid_p>0:
+        summary_dict[3.2]={'name':'Num invalid P-values in sum stats','value':invalid_p}
+    if invalid_beta>0:
+        summary_dict[3.21]={'name':'Num invalid P-values in sum stats','value':invalid_p}
+    if invalid_pos>0:
+        summary_dict[3.3]={'name':'Num invalid positions in sum stats','value':invalid_pos}
+    if invalid_chr>0:
+        summary_dict[3.4]={'name':'Num invalid chromosomes in sum stats','value':invalid_chr}
 
