@@ -20,7 +20,7 @@ for chrom in range(1, 24):
     chrom_name_map['%d'%chrom]=chrom
     
 def get_chrom_num(chrom):
-    return chrom_name_map[re.sub("chr", "", chrom)]
+    return chrom_name_map.get(re.sub("chr", "", chrom),0)
 
 #Various auxiliary variables
 ambig_nts = set([('A', 'T'), ('T', 'A'), ('G', 'C'), ('C', 'G')])
