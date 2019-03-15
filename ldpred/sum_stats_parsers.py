@@ -103,7 +103,7 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
     snps_pos_map = {}
     if only_hm3:
         if debug:
-            print('Loading Hap Map 3 SNPs')
+            print('Loading HapMap3 SNPs')
         hm3_sids = util.load_hapmap_SNPs()
   
     if bimfile is not None:
