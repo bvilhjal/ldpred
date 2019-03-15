@@ -116,7 +116,7 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
                 sid = l[1]
                 if only_hm3:
                     if sid in hm3_sids:
-                        valid_sids.add()
+                        valid_sids.add(sid)
                         snps_pos_map[sid] = {'pos':int(l[3]), 'chrom':l[0]}
                 else:
                     valid_sids.add(sid)
