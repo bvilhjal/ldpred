@@ -6,31 +6,46 @@ from ldpred import LDpred_gibbs
 from ldpred import LDpred_inf
 from ldpred import LD_pruning_thres
 from ldpred import validate
+from ldpred import reporting
+
 import sys
 import textwrap
 
-__version__ = '1.0.4'
+__version__ = '1.0.5'
+__date__ = '15 March 2019'
  
+title = '\033[96mLDpred v. %s\033[0m'%__version__
+title_len= len(title)-9
+num_dashes = reporting.window_length-title_len-2
+left_dashes = '='*int(num_dashes/2)
+right_dashes = '='*int(num_dashes/2+num_dashes%2)
+title_string = '\n'+left_dashes  + ' '+title+' '+right_dashes +'\n'
+description_string = """
+Typicial workflow:
+    1. Use\033[1m LDpred coord\033[0m to parse summary statistics and genotypes 
+       and coordinate data. See LDpred coord --help for further usage 
+       description and options.
+       
+    2. Use\033[1m LDpred gibbs|inf|p+t\033[0m to obtain SNP weights for polygenic
+       scoring using one or more methods. See LDpred gibbs|inf|p+t --help for 
+       further usage description and options.
+    
+    3. Use\033[1m LDpred score\033[0m to calculate polygenic scores using SNP
+       weights from previous step. See LDpred score --help for further usage 
+       description and options.
+         
+Thank you for using\033[1m LDpred\033[0m!
+
+%s 
+(c) Bjarni J Vilhjalmsson: bjarni.vilhjalmsson@gmail.com
+
+"""%(__date__)
+description_string += '='*reporting.window_length
 
 parser = argparse.ArgumentParser(prog='LDpred',
                                  formatter_class=argparse.RawDescriptionHelpFormatter,
-                                 description=textwrap.dedent("""\
-                                    \033[96mLDpred v. 1.0.2\033[0m
---------------------------------------------------------------------------------------
-                            Thank you for using\033[1m LDpred\033[0m!
-
-Typicial workflow:
-    1. Use\033[1m LDpred coord\033[0m to parse summary statistics and genotypes and coordinate data.
-       See LDpred coord --help for further usage description and options.
-       
-    2. Use\033[1m LDpred gibbs|inf|p+t\033[0m to obtain SNP weights for polygenic scoring using one or 
-       more methods. See LDpred gibbs|inf|p+t --help for further usage description and options.
-    
-    3. Use\033[1m LDpred score\033[0m to calculate polygenic scores using SNP weights from previous 
-       step. See LDpred score --help for further usage description and options.
-         
-2019 (c) Bjarni J Vilhjalmsson: bjarni.vilhjalmsson@gmail.com
-"""))
+                                 description=textwrap.dedent(description_string))
+                                                             
 
 subparsers = parser.add_subparsers(help='Select ldpred action among the following options: ', dest='ldpred_action')
 parser_coord = subparsers.add_parser('coord', help='Parse and coordinate summary statistics and genotypes.')
@@ -246,8 +261,8 @@ parser_score.add_argument('--r2', default=[1,0.2], nargs='+', type=float,
 
 
 def main():
+    print(title_string)
     if len(sys.argv)==1:
-        print ('ERROR: No options provided.\n')
         parser.print_help(sys.stderr)
         sys.exit(1)
     parameters = parser.parse_args()
