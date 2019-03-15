@@ -103,16 +103,18 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
     num_lines = util.count_lines(filename)
     snps_pos_map = {}
     if only_hm3:
+        if debug:
+            print('Loading Hap Map 3 SNPs')
         hm3_sids = util.load_hapmap_SNPs()
-    
+  
     if bimfile is not None:
         valid_sids = set()
         if debug:
             print('Parsing bim file: %s' % bimfile)
+        
         with open(bimfile) as f:
             for line in f:
                 l = line.split()
-                # Bim file format is CHR SNP BP
                 sid = l[1]
                 if only_hm3:
                     if sid in hm3_sids:
@@ -125,7 +127,7 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
         if len(valid_sids)==0:
             raise Exception('Unable to parse BIM file')
     else:
-        raise Exception('Unable to load LD reference or validation genotypes bim file')
+        raise Exception('BIM file missing. Please check genotype paths provided.')
         
     invalid_chr = 0
     invalid_pos = 0
@@ -333,7 +335,10 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
         hdf5_file.flush()
     if debug:
         print('%d SNPs excluded due to invalid chromosome' % invalid_chr)
-        print('%d SNPs excluded due to invalid chromosome position' % invalid_pos)
+        if match_genomic_pos:
+            print('%d SNPs excluded due to invalid genomic positions' % invalid_pos)
+        else:
+            print('%d SNPs with non-matching genomic positions (not excluded)' % invalid_pos)
         print('%d SNPs excluded due to invalid P-value' % invalid_p)
         print('%d SNPs excluded due to invalid effect sizes' % invalid_p)
         print('%d SNPs parsed from summary statistics file' % num_snps)
@@ -343,8 +348,11 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
         summary_dict[3.2]={'name':'Num invalid P-values in sum stats','value':invalid_p}
     if invalid_beta>0:
         summary_dict[3.21]={'name':'Num invalid P-values in sum stats','value':invalid_p}
-    if invalid_pos>0:
-        summary_dict[3.3]={'name':'Num invalid positions in sum stats','value':invalid_pos}
     if invalid_chr>0:
         summary_dict[3.4]={'name':'Num invalid chromosomes in sum stats','value':invalid_chr}
+    if invalid_pos>0:
+        if match_genomic_pos:
+            summary_dict[3.3]={'name':'SNPs excluded due to non-matching positions','value':invalid_pos}
+        else:
+            summary_dict[3.3]={'name':'SNPs w non-matching genomic positions (not excluded)','value':invalid_pos}
 
