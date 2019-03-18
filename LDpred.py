@@ -130,6 +130,14 @@ parser_coord.add_argument('--eff', type=str, default="OR",
                     help="Column header containing effect size information")
 parser_coord.add_argument('--ncol', type=str, default="N",
                     help="Column header containing sample size information")
+parser_coord.add_argument('--case-freq', type=str, default=None,
+                    help="Column header containing case frequency information")
+parser_coord.add_argument('--control-freq', type=str, default=None,
+                    help="Column header containing control frequency information")
+parser_coord.add_argument('--case-n', type=str, default=None,
+                    help="Column header containing case sample size information")
+parser_coord.add_argument('--control-n', type=str, default=None,
+                    help="Column header containing control sample size information")
 # parser_coord.add_argument('--gmdir', type=str,
 #                     help='The directory of genetic map.', default=None)
 

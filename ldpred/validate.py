@@ -124,7 +124,7 @@ def get_prs(genotype_file, rs_id_map, phen_map=None, only_score = False, verbose
 
         if snp_i > 0 and snp_i % 100000 == 0:
             if verbose:
-                print('%0.2f%% of genotype file read' % (100.0 * (min(float(loci_i) / (num_loci-1.0)))))
+                print('%0.2f%% of genotype file read' % (100.0 * (float(loci_i) / (num_loci-1.0))))
                 print('%d SNPs parsed'%snp_i)
                 print('Number of non-matching NTs: %d' % num_non_matching_nts)
             if not only_score:

@@ -68,7 +68,9 @@ def parse_sum_stats(h5f, p_dict, bimfile, summary_dict):
         parse_sum_stats_custom(ch=p_dict['chr'],
                     A1=p_dict['A1'], A2=p_dict['A2'], reffreq=p_dict['reffreq'], info=p_dict['info'],
                     rs=p_dict['rs'], pval=p_dict['pval'], eff=p_dict['eff'], ncol=p_dict['ncol'],
-                    pos=p_dict['pos'], input_is_beta=p_dict['beta'], **ss_args)
+                    pos=p_dict['pos'], input_is_beta=p_dict['beta'], case_freq=p_dict['case_freq'], 
+                    control_freq=p_dict['control_freq'], case_n=p_dict['case_n'], 
+                    control_n=p_dict['control_n'], **ss_args)
     else:
         raise Exception('Unknown Summary Statistics Format.')
     t1 = time.time()
@@ -219,23 +221,30 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
                         chrom_dict[chrom]['freqs'].append(-1)
                     else:
                         chrom_dict[chrom]['freqs'].append(float(l[header_dict[reffreq]]))
-                elif (case_n is not None and control_n is not None 
-                      and case_n in header_dict and control_n in header_dict 
-                      and case_freq is not None and control_freq is not None 
-                      and case_freq in header_dict and control_freq in header_dict) :
-                    if (l[header_dict[control_n]] == '.' or l[header_dict[control_n]] == 'NA' 
-                        or l[header_dict[case_n]] == '.' or l[header_dict[case_n]] == 'NA' 
-                        or l[header_dict[control_freq]] == '.' or l[header_dict[control_freq]] == 'NA' 
-                        or l[header_dict[case_freq]] == '.' or l[header_dict[case_freq]] == 'NA'):
-                        chrom_dict[chrom]['freqs'].append(-1)
+                elif (case_freq is not None and control_freq is not None 
+                      and case_freq in header_dict and control_freq in header_dict):
+                    if (case_n is not None and control_n is not None 
+                          and case_n in header_dict and control_n in header_dict) :
+                        if (l[header_dict[control_n]] == '.' or l[header_dict[control_n]] == 'NA' 
+                            or l[header_dict[case_n]] == '.' or l[header_dict[case_n]] == 'NA' 
+                            or l[header_dict[control_freq]] == '.' or l[header_dict[control_freq]] == 'NA' 
+                            or l[header_dict[case_freq]] == '.' or l[header_dict[case_freq]] == 'NA'):
+                            chrom_dict[chrom]['freqs'].append(-1)
+                        else:
+                            case_N = float(l[header_dict[case_n]])
+                            control_N = float(l[header_dict[control_n]])
+                            tot_N = case_N + control_N
+                            a_scalar = case_N / float(tot_N)
+                            u_scalar = control_N / float(tot_N)
+                            freq = float(l[header_dict[case_freq]]) * a_scalar + float(l[header_dict[control_freq]]) * u_scalar
+                            chrom_dict[chrom]['freqs'].append(freq)
                     else:
-                        case_N = float(l[header_dict[case_n]])
-                        control_N = float(l[header_dict[control_n]])
-                        tot_N = case_N + control_N
-                        a_scalar = case_N / float(tot_N)
-                        u_scalar = control_N / float(tot_N)
-                        freq = float(l[header_dict[case_freq]]) * a_scalar + float(l[header_dict[control_freq]]) * u_scalar
-                        chrom_dict[chrom]['freqs'].append(freq)
+                        if (l[header_dict[case_freq]] == '.' or l[header_dict[case_freq]] == 'NA' 
+                            or l[header_dict[control_freq]] == '.' or l[header_dict[control_freq]] == 'NA'):
+                            chrom_dict[chrom]['freqs'].append(-1)
+                        else:
+                            freq = (float(l[header_dict[case_freq]]) + float(l[header_dict[control_freq]]))/2.0
+                            chrom_dict[chrom]['freqs'].append(freq)
                 else:  
                     chrom_dict[chrom]['freqs'].append(-1)
                 # Get the INFO score
