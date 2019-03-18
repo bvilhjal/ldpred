@@ -6,12 +6,12 @@ LDpred is a Python based software package that adjusts GWAS summary statistics
 for the effects of linkage disequilibrium (LD).  The details of the method is
 described in Vilhjalmsson et al. (AJHG 2015) [http://www.cell.com/ajhg/abstract/S0002-9297(15)00365-1]
 
-* The current version is 1.0.5
+* The current version is 1.0.6
 
 ## Getting Started ##
 ### News ###
 
-Mar 15th, 2019: Version 1.0.5 released and is available on pip using 
+Mar 18th, 2019: Version 1.0.6 released and is available on pip using 
 
 `pip install ldpred`
 

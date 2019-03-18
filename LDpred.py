@@ -11,8 +11,8 @@ from ldpred import reporting
 import sys
 import textwrap
 
-__version__ = '1.0.5'
-__date__ = '15 March 2019'
+__version__ = '1.0.6'
+__date__ = '18 March 2019'
  
 title = '\033[96mLDpred v. %s\033[0m'%__version__
 title_len= len(title)-9
