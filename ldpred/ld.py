@@ -220,6 +220,7 @@ def get_ld_dict(cord_data_file, local_ld_file_prefix, ld_radius,
             chrom_ld_boundaries = {}
         ld_score_sum = 0
         num_snps = 0
+        num_raw_snps=0
         print('Calculating LD information w. radius %d' % ld_radius)
 
         df = h5py.File(cord_data_file)
@@ -229,11 +230,10 @@ def get_ld_dict(cord_data_file, local_ld_file_prefix, ld_radius,
             if verbose:
                 print('Calculating LD for chromosome %s' % chrom_str)
             g = cord_data_g[chrom_str]
-            if 'raw_snps_ref' in g:
-                raw_snps = g['raw_snps_ref'][...]
-                snp_stds = g['snp_stds_ref'][...]
-                snp_means = g['snp_means_ref'][...]
-            
+            raw_snps = g['raw_snps_ref'][...]
+            snp_stds = g['snp_stds_ref'][...]
+            snp_means = g['snp_means_ref'][...]
+            num_raw_snps += len(raw_snps)
             
             # Filter monomorphic SNPs
             ok_snps_filter = snp_stds > 0
@@ -264,7 +264,8 @@ def get_ld_dict(cord_data_file, local_ld_file_prefix, ld_radius,
             ld_score_sum += sp.sum(ld_scores)
             num_snps += n_snps
         avg_gw_ld_score = ld_score_sum / float(num_snps)
-        ld_scores_dict = {'avg_gw_ld_score': avg_gw_ld_score, 'chrom_dict':chrom_ld_scores_dict}    
+        ld_scores_dict = {'avg_gw_ld_score': avg_gw_ld_score, 'chrom_dict':chrom_ld_scores_dict, 
+                          'num_snps':num_snps, 'num_raw_snps':num_raw_snps}    
         summary_dict[1.1]={'name':'Average LD score:','value':avg_gw_ld_score}
         
         t1 = time.time()
@@ -282,6 +283,17 @@ def get_ld_dict(cord_data_file, local_ld_file_prefix, ld_radius,
         if verbose:
             print('Loading LD information from file: %s' % local_ld_dict_file)
         ld_dict = _load_ld_info_(local_ld_dict_file, verbose=verbose, compressed=compressed)
+        
+        num_raw_snps=0
+        #Verify LD data
+        df = h5py.File(cord_data_file)
+        cord_data_g = df['cord_data']
+        for chrom_str in cord_data_g:
+            g = cord_data_g[chrom_str]
+            num_raw_snps += len(g['raw_snps_ref'])
+        df.close()
+        assert num_raw_snps == ld_dict['ld_scores_dict']['num_raw_snps'], 'LD reference stored in the provided file, does not seem to match the coordinated SNP data.  Perhaps you want to delete the file and try again.'
+        
     return ld_dict
 
 
