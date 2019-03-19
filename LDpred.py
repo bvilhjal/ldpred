@@ -11,8 +11,8 @@ from ldpred import reporting
 import sys
 import textwrap
 
-__version__ = '1.0.5'
-__date__ = '15 March 2019'
+__version__ = '1.0.6'
+__date__ = '18 March 2019'
  
 title = '\033[96mLDpred v. %s\033[0m'%__version__
 title_len= len(title)-9
@@ -130,6 +130,14 @@ parser_coord.add_argument('--eff', type=str, default="OR",
                     help="Column header containing effect size information")
 parser_coord.add_argument('--ncol', type=str, default="N",
                     help="Column header containing sample size information")
+parser_coord.add_argument('--case-freq', type=str, default=None,
+                    help="Column header containing case frequency information")
+parser_coord.add_argument('--control-freq', type=str, default=None,
+                    help="Column header containing control frequency information")
+parser_coord.add_argument('--case-n', type=str, default=None,
+                    help="Column header containing case sample size information")
+parser_coord.add_argument('--control-n', type=str, default=None,
+                    help="Column header containing control sample size information")
 # parser_coord.add_argument('--gmdir', type=str,
 #                     help='The directory of genetic map.', default=None)
 

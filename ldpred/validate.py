@@ -72,7 +72,8 @@ def get_prs(genotype_file, rs_id_map, phen_map=None, only_score = False, verbose
     num_loci = len(locus_list)
     loci_i = 0
     snp_i = 0
-
+    duplicated_snps =0
+    found_loci = set()
     for locus, row in zip(locus_list, plinkf):
         loci_i += 1
         if loci_i%1000==0 and not verbose:
@@ -80,9 +81,13 @@ def get_prs(genotype_file, rs_id_map, phen_map=None, only_score = False, verbose
             sys.stdout.flush()            
         upd_pval_beta = 0
         sid = locus.name
-        if locus.name not in rs_id_map:
+        if sid not in rs_id_map:
             continue
-
+        if sid in found_loci:
+            duplicated_snps+=1
+            continue
+        
+        found_loci.add(locus.name)
         rs_info = rs_id_map[sid]
         if rs_info['upd_pval_beta'] == 0:
             continue
@@ -124,7 +129,7 @@ def get_prs(genotype_file, rs_id_map, phen_map=None, only_score = False, verbose
 
         if snp_i > 0 and snp_i % 100000 == 0:
             if verbose:
-                print('%0.2f%% of genotype file read' % (100.0 * (min(float(loci_i) / (num_loci-1.0)))))
+                print('%0.2f%% of genotype file read' % (100.0 * (float(loci_i) / (num_loci-1.0))))
                 print('%d SNPs parsed'%snp_i)
                 print('Number of non-matching NTs: %d' % num_non_matching_nts)
             if not only_score:
@@ -134,7 +139,14 @@ def get_prs(genotype_file, rs_id_map, phen_map=None, only_score = False, verbose
                     print('Current PRS r2: %0.4f' % pval_eff_r2)
 
         snp_i += 1
-
+    
+    if len(found_loci)<0.99*len(rs_id_map):
+        perc_missing = 1 - float(len(found_loci))/float(len(rs_id_map))
+        raise Warning('More than 0.2f%% of variants for which weights were calculated were not found in '
+                        'validation data.  This can lead to poor prediction accuracies.  Please consider '
+                        'using the --vbim flag in the coord step to identify overlapping SNPs.'
+                        '\n'%(perc_missing*100)) 
+    
     plinkf.close()
     if not verbose:
         sys.stdout.write('\b\b\b\b\b\b\b%0.2f%%\n' % (100.0))
@@ -401,13 +413,17 @@ def calc_risk_scores(bed_file, rs_id_map, phen_map, out_file=None,
         num_individs = len(prs_dict['iids'])
         pval_derived_effects_prs = prs_dict['pval_derived_effects_prs']
 
+        
     if only_score:
         write_only_scores_file(out_file, prs_dict, pval_derived_effects_prs)
         res_dict = {}
+    elif sp.std(prs_dict['true_phens'])==0:
+        print('No variance left to explain in phenotype.')
+        res_dict = {'pred_r2': 0}
     else:
         # Report prediction accuracy
         assert len(phen_map) > 0, 'No individuals found.  Problems parsing the phenotype file?'
-
+        
         pval_eff_corr = sp.corrcoef(pval_derived_effects_prs, prs_dict['true_phens'])[0, 1]
         pval_eff_r2 = pval_eff_corr ** 2
     

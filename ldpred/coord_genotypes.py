@@ -490,9 +490,6 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
         write_coord_data(cord_data_g, coord_data_dict, debug=debug)
         if debug:
             print('%d SNPs were retained on chromosome %d.' % (len(sids), chrom))
-        else:
-            sys.stdout.write('\b\b\b\b\b\b\b%0.2f%%\n' % (100.0))
-            sys.stdout.flush()                        
         
         
         num_snps_common_before_filtering += len(common_sids)
@@ -503,6 +500,9 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
         tot_num_freq_discrep_filtered_snps += num_freq_discrep_filtered_snps
         tot_num_maf_filtered_snps += num_maf_filtered_snps
 
+    if not debug:
+        sys.stdout.write('\b\b\b\b\b\b\b%0.2f%%\n' % (100.0))
+        sys.stdout.flush()                        
 
 
     # Now calculate the prediction r^2
