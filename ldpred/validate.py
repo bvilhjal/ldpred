@@ -704,19 +704,22 @@ def main(p_dict):
                     print('')
                     print('Calculating P+T risk scores using p-value threshold of %0.3e, and r2 threshold of %0.2f' % (p_thres, max_r2))
                     rs_id_map, non_zero_chromosomes = parse_pt_res(weights_file)
-                    out_file = '%s_P+T_p%0.4e.txt' % (p_dict['out'], p_thres)
-                    method_str = 'P+T_p%0.4e' % (p_thres)
-                    res_dict[method_str] = calc_risk_scores(p_dict['gf'], rs_id_map, phen_map, out_file=out_file,
-                                                            split_by_chrom=p_dict['split_by_chrom'],
-                                                            non_zero_chromosomes=non_zero_chromosomes, 
-                                                            adjust_for_pcs=adjust_for_pcs,
-                                                            adjust_for_covariates=adjust_for_covs,
-                                                            only_score=p_dict['only_score'],
-                                                            verbose=verbose, summary_dict=summary_dict)
-                    if len(res_dict[method_str]) and (res_dict[method_str]['pred_r2']) >best_pt_pred_r2:
-                        best_pt_pred_r2 = res_dict[method_str]['pred_r2']
-                        best_t = p_thres
-                        best_r2 = max_r2
+                    if len(rs_id_map)>0:
+                        out_file = '%s_P+T_p%0.4e.txt' % (p_dict['out'], p_thres)
+                        method_str = 'P+T_p%0.4e' % (p_thres)
+                        res_dict[method_str] = calc_risk_scores(p_dict['gf'], rs_id_map, phen_map, out_file=out_file,
+                                                                split_by_chrom=p_dict['split_by_chrom'],
+                                                                non_zero_chromosomes=non_zero_chromosomes, 
+                                                                adjust_for_pcs=adjust_for_pcs,
+                                                                adjust_for_covariates=adjust_for_covs,
+                                                                only_score=p_dict['only_score'],
+                                                                verbose=verbose, summary_dict=summary_dict)
+                        if len(res_dict[method_str]) and (res_dict[method_str]['pred_r2']) >best_pt_pred_r2:
+                            best_pt_pred_r2 = res_dict[method_str]['pred_r2']
+                            best_t = p_thres
+                            best_r2 = max_r2
+                    else:
+                        print('No SNPs found with p-values below the given threshold.')
                     prs_file_is_missing=False
         if best_pt_pred_r2>0 and not p_dict['only_score']:                
             summary_dict[5.4]={'name':'Best P+T (r2=%0.2f, p=%0.2e) (unadjusted) R2:'%(best_r2, best_t),'value':'%0.4f'%best_pt_pred_r2}
