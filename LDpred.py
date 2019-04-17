@@ -269,12 +269,12 @@ parser_score.add_argument('--r2', default=[1,0.2], nargs='+', type=float,
 
 
 
-def main():
+def main_with_args(args):
     print(title_string)
-    if len(sys.argv)==1:
+    if len(args)==1:
         parser.print_help(sys.stderr)
         sys.exit(1)
-    parameters = parser.parse_args()
+    parameters = parser.parse_args(args)
     p_dict= vars(parameters)
     if p_dict['debug']:
         print ('Parsed parameters:')
@@ -296,5 +296,9 @@ def main():
     
     
     
+def main():
+  main_with_args(sys.argv[1:])
+
+
 if __name__ == '__main__':
     main()
