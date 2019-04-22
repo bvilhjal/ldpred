@@ -8,6 +8,7 @@ import filecmp
 import glob
 import gzip
 import h5py
+from ldpred import sum_stats_parsers
 import numpy as np
 import os
 import tempfile
@@ -137,6 +138,20 @@ def assert_files_equal(file1, file2):
 
 
 class TestLDPred(unittest.TestCase):
+  def test_parse_sum_stats(self):
+    with h5py.File('test_output.hdf5', 'w') as h5f:
+      bimfile = 'test_data/LDpred_cc_data_p0.001_train_0.bim'
+      p_dict = {
+          'ssf': 'test_data/LDpred_cc_data_p0.001_ss_0.txt',
+          'ssf_format': 'STANDARD',
+          'only_hm3': False,
+          'N': 10000,
+          'debug': True,
+          'match_genomic_pos': False,
+         }
+      sum_stats_parsers.parse_sum_stats(h5f, p_dict, bimfile, {})
+      self.assertEqual(len(h5f['sum_stats']['chrom_1']['betas']), 9999)
+
   def test_ldpred(self):
     tf = tempfile.NamedTemporaryFile()
     tmp_file_prefix = next(tempfile._get_candidate_names())
