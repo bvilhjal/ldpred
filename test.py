@@ -8,6 +8,7 @@ import filecmp
 import glob
 import gzip
 import h5py
+from ldpred import coord_genotypes
 from ldpred import sum_stats_parsers
 import numpy as np
 import os
@@ -139,18 +140,44 @@ def assert_files_equal(file1, file2):
 
 class TestLDPred(unittest.TestCase):
   def test_parse_sum_stats(self):
-    with h5py.File('test_output.hdf5', 'w') as h5f:
-      bimfile = 'test_data/LDpred_cc_data_p0.001_train_0.bim'
-      p_dict = {
-          'ssf': 'test_data/LDpred_cc_data_p0.001_ss_0.txt',
-          'ssf_format': 'STANDARD',
-          'only_hm3': False,
-          'N': 10000,
-          'debug': True,
-          'match_genomic_pos': False,
-         }
-      sum_stats_parsers.parse_sum_stats(h5f, p_dict, bimfile, {})
-      self.assertEqual(len(h5f['sum_stats']['chrom_1']['betas']), 9999)
+    p_dict = {
+        'ssf': 'test_data/coord_genotypes_ss.txt',
+        'ssf_format': 'STANDARD',
+        'only_hm3': False,
+        'N': 10000,
+        'debug': True,
+        'match_genomic_pos': False,
+    }
+    bimfile = 'test_data/LDpred_cc_data_p0.001_train_0.bim'
+    summary_dict = {}
+    out = 'test_parse_sum_stats.hdf5'
+    with h5py.File(out, 'w') as h5f:
+      sum_stats_parsers.parse_sum_stats(h5f, p_dict, bimfile, summary_dict)
+      self.assertEqual(len(h5f['sum_stats']['chrom_1']['betas']), 10)
+    # Clean up.
+    os.remove(out)
+
+  def test_coord_genotypes(self):
+    p_dict = vars(LDpred.parser.parse_args([
+        '--debug',
+        'coord',
+        '--gf=./test_data/LDpred_data_p0.001_train_0',
+        #'--vgf=./test_data/LDpred_data_p0.001_test_0',
+        '--ssf=./test_data/coord_genotypes_ss.txt',
+        '--ssf-format=STANDARD',
+        '--N=10000',
+        '--out=./test_coord_genotypes.hdf5',
+    ]))
+    summary_dict = coord_genotypes.main(p_dict)
+    # summary_dict[11]['value'], if present, is the count of non-matching nts.
+    # It should be 0.
+    self.assertEqual(summary_dict.get(11, {}).get('value', 0), 0)
+    out = p_dict['out']
+    with h5py.File(out) as h5f:
+      self.assertEqual(len(h5f['sum_stats']['chrom_1']['betas']), 10)
+    # Clean up.
+    os.remove(out)
+
 
   def test_ldpred(self):
     tf = tempfile.NamedTemporaryFile()
