@@ -137,6 +137,8 @@ def assert_files_equal(file1, file2):
   else:
     assert filecmp.cmp(file1, file2, "Mismatch between: %s and %s" % (file1, file2))
 
+def make_p_dict(*args):
+  return vars(LDpred.parser.parse_args(args))
 
 class TestLDPred(unittest.TestCase):
   def test_parse_sum_stats(self):
@@ -158,7 +160,7 @@ class TestLDPred(unittest.TestCase):
     os.remove(out)
 
   def test_coord_genotypes(self):
-    p_dict = vars(LDpred.parser.parse_args([
+    p_dict = make_p_dict(
         '--debug',
         'coord',
         '--gf=./test_data/LDpred_data_p0.001_train_0',
@@ -167,7 +169,7 @@ class TestLDPred(unittest.TestCase):
         '--ssf-format=STANDARD',
         '--N=10000',
         '--out=./test_coord_genotypes.hdf5',
-    ]))
+    )
     summary_dict = coord_genotypes.main(p_dict)
     # summary_dict[11]['value'], if present, is the count of non-matching nts.
     # It should be 0.
