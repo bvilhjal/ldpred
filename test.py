@@ -9,11 +9,14 @@ import glob
 import gzip
 import h5py
 from ldpred import coord_genotypes
+from ldpred import ld
 from ldpred import sum_stats_parsers
 import numpy as np
 import os
 import tempfile
 import unittest
+
+np.set_printoptions(linewidth=int(os.environ.get('COLUMNS', 100)))
 
 def run_test(mesg, cmd_str, error_mesg, *actual_and_golden_outputs):
   print(mesg)
@@ -180,6 +183,15 @@ class TestLDPred(unittest.TestCase):
     # Clean up.
     os.remove(out)
 
+  def test_ld_calculation(self):
+    df = h5py.File('./test_data/goldens/golden.coord0.hdf5')
+    g = df['cord_data']['chrom_1']
+    snps, n_raw_snps, n_snps = ld.extract_snps_from_cord_data_chrom(g)
+    first_10_snps = snps[:10]
+    self.assertEqual(len(first_10_snps), 10)
+    ld_dict = ld.get_LDpred_ld_tables(first_10_snps)
+    self.assertEqual(len(ld_dict), 2)  # 'ld_dict' and 'ld_scores'
+    golden_ld = np.genfromtxt('test_data/ld_train.ld')
 
   def test_ldpred(self):
     tf = tempfile.NamedTemporaryFile()
