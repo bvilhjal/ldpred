@@ -138,7 +138,7 @@ def assert_files_equal(file1, file2):
   elif file1.endswith('.pkl.gz'):
     assert_deep_equals(pkl_file_walker(file1), pkl_file_walker(file2))
   else:
-    assert filecmp.cmp(file1, file2, "Mismatch between: %s and %s" % (file1, file2))
+    assert filecmp.cmp(file1, file2), "Mismatch between: %s and %s" % (file1, file2)
 
 def make_p_dict(*args):
   return vars(LDpred.parser.parse_args(args))
