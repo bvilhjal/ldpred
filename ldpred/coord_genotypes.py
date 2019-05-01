@@ -380,8 +380,8 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
         snp_indices = snp_indices[ok_indices['g']]
         raw_snps, freqs = plinkfiles.parse_plink_snps(
             reference_genotype_file, snp_indices)
-        snp_stds = sp.sqrt(2 * freqs * (1 - freqs))
-        snp_means = freqs * 2
+        snp_stds = sp.std(raw_snps, axis=1, dtype='float32')
+        snp_means = sp.mean(raw_snps, axis=1, dtype='float32')
 
         betas = betas[ok_indices['ss']]  
         log_odds = log_odds[ok_indices['ss']]  

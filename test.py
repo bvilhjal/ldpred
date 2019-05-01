@@ -150,7 +150,7 @@ class TestLDPred(unittest.TestCase):
 
   def tearDown(self):
     print('Cleaning up files.')
-    cmd_str = 'rm %s*' % self.tmp_file_prefix
+    cmd_str = 'rm -f %s*' % self.tmp_file_prefix
     print(cmd_str + '\n')
     assert os.system(cmd_str) == 0, 'Problems cleaning up test files!  Testing stopped'
 
@@ -194,14 +194,25 @@ class TestLDPred(unittest.TestCase):
     os.remove(out)
 
   def test_ld_calculation(self):
-    df = h5py.File('./test_data/goldens/golden.coord0.hdf5')
+    coord_file = self.tmp_file_prefix + '.coord0.hdf5'
+    run_test(
+        'Coordinating test data into file %s' % coord_file,
+        'coord --gf=./test_data/LDpred_data_p0.001_train_0 --vgf=./test_data/LDpred_data_p0.001_test_0 --ssf=./test_data/LDpred_data_p0.001_ss_0.txt --ssf-format=STANDARD  --N=10000  --out=%s' % coord_file,
+        'Problems when coordinating data!',
+        coord_file,
+        'test_data/goldens/golden.coord0.hdf5'
+    )
+
+    df = h5py.File(coord_file)
     g = df['cord_data']['chrom_1']
     snps, n_raw_snps, n_snps = ld.extract_snps_from_cord_data_chrom(g)
     first_10_snps = snps[:10]
     self.assertEqual(len(first_10_snps), 10)
-    ld_dict = ld.get_LDpred_ld_tables(first_10_snps)
-    self.assertEqual(len(ld_dict), 2)  # 'ld_dict' and 'ld_scores'
-    golden_ld = np.genfromtxt('test_data/ld_train.ld')
+    ld_dict_and_scores = ld.get_LDpred_ld_tables(first_10_snps)
+    ld_dict = ld_dict_and_scores['ld_dict']
+    ld_mat = np.vstack([ld_dict[i] for i in xrange(10)])
+    golden_ld_mat = np.load('test_data/ld_data.npz')['ld']
+    self.assertTrue(np.allclose(ld_mat, golden_ld_mat))
 
   def test_ldpred(self):
     print('Testing LDpred.\n')
