@@ -77,7 +77,7 @@ def h5_file_walker(h5_file):
   Yields:
     (child_key, child_value)
   """
-  with h5py.File(h5_file) as h5_root_node:
+  with h5py.File(h5_file, 'r') as h5_root_node:
     for k, v in h5_node_walker(h5_root_node):
       yield k, v
 
@@ -200,12 +200,11 @@ class TestLDPred(unittest.TestCase):
     # summary_dict[11]['value'], if present, is the count of non-matching nts.
     # It should be 0.
     self.assertEqual(summary_dict.get(11, {}).get('value', 0), 0)
-    out = p_dict['out']
-    with h5py.File(out) as h5f:
+    with h5py.File(p_dict['out'], 'r') as h5f:
       self.assertEqual(len(h5f['sum_stats']['chrom_1']['betas']), 10)
 
   def test_ld_calculation(self):
-    df = h5py.File('%s/test_data/goldens/golden.coord0.hdf5' % TEST_DIR)
+    df = h5py.File('%s/test_data/goldens/golden.coord0.hdf5' % TEST_DIR, 'r')
     g = df['cord_data']['chrom_1']
     snps, n_raw_snps, n_snps = ld.extract_snps_from_cord_data_chrom(g)
     first_10_snps = snps[:10]

@@ -251,7 +251,7 @@ def get_ld_dict(cord_data_file, local_ld_file_prefix, ld_radius,
         num_raw_snps=0
         print('Calculating LD information w. radius %d' % ld_radius)
 
-        df = h5py.File(cord_data_file)
+        df = h5py.File(cord_data_file, 'r')
         cord_data_g = df['cord_data']
 
         for chrom_str in cord_data_g:
@@ -297,7 +297,7 @@ def get_ld_dict(cord_data_file, local_ld_file_prefix, ld_radius,
         
         num_raw_snps=0
         #Verify LD data
-        df = h5py.File(cord_data_file)
+        df = h5py.File(cord_data_file, 'r')
         cord_data_g = df['cord_data']
         for chrom_str in cord_data_g:
             g = cord_data_g[chrom_str]
