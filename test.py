@@ -1,5 +1,13 @@
 """
 A test file for LDpred.
+
+Examples
+--------
+To run all tests:
+$ python test.py
+
+To run a specific test:
+$ python -m unittest test.TestLDPred.test_ldpred_inf
 """
 
 import LDpred
@@ -144,6 +152,12 @@ def make_p_dict(*args):
   return vars(LDpred.parser.parse_args(args))
 
 class TestLDPred(unittest.TestCase):
+  @classmethod
+  def setUpClass(cls):
+    print('Testing LDpred.\n')
+    print('Note that this test currently only tests the core functionality of LDpred.')
+    print('Please report bugs on github (https://github.com/bvilhjal/ldpred) or to Bjarni J Vilhjalmsson (bjarni.vilhjalmsson@gmail.com).\n')
+
   def setUp(self):
     self.tf = tempfile.NamedTemporaryFile()
     self.tmp_file_prefix = next(tempfile._get_candidate_names())
@@ -165,23 +179,21 @@ class TestLDPred(unittest.TestCase):
     }
     bimfile = 'test_data/LDpred_cc_data_p0.001_train_0.bim'
     summary_dict = {}
-    out = 'test_parse_sum_stats.hdf5'
+    out = '%s_parse_sum_stats.hdf5' % self.tmp_file_prefix
     with h5py.File(out, 'w') as h5f:
       sum_stats_parsers.parse_sum_stats(h5f, p_dict, bimfile, summary_dict)
       self.assertEqual(len(h5f['sum_stats']['chrom_1']['betas']), 10)
-    # Clean up.
-    os.remove(out)
 
   def test_coord_genotypes(self):
     p_dict = make_p_dict(
         '--debug',
         'coord',
         '--gf=./test_data/LDpred_data_p0.001_train_0',
-        #'--vgf=./test_data/LDpred_data_p0.001_test_0',
+        '--vgf=./test_data/LDpred_data_p0.001_test_0',
         '--ssf=./test_data/coord_genotypes_ss.txt',
         '--ssf-format=STANDARD',
         '--N=10000',
-        '--out=./test_coord_genotypes.hdf5',
+        '--out=%s_coord_genotypes.hdf5' % self.tmp_file_prefix,
     )
     summary_dict = coord_genotypes.main(p_dict)
     # summary_dict[11]['value'], if present, is the count of non-matching nts.
@@ -190,20 +202,9 @@ class TestLDPred(unittest.TestCase):
     out = p_dict['out']
     with h5py.File(out) as h5f:
       self.assertEqual(len(h5f['sum_stats']['chrom_1']['betas']), 10)
-    # Clean up.
-    os.remove(out)
 
   def test_ld_calculation(self):
-    coord_file = self.tmp_file_prefix + '.coord0.hdf5'
-    run_test(
-        'Coordinating test data into file %s' % coord_file,
-        'coord --gf=./test_data/LDpred_data_p0.001_train_0 --vgf=./test_data/LDpred_data_p0.001_test_0 --ssf=./test_data/LDpred_data_p0.001_ss_0.txt --ssf-format=STANDARD  --N=10000  --out=%s' % coord_file,
-        'Problems when coordinating data!',
-        coord_file,
-        'test_data/goldens/golden.coord0.hdf5'
-    )
-
-    df = h5py.File(coord_file)
+    df = h5py.File('./test_data/goldens/golden.coord0.hdf5')
     g = df['cord_data']['chrom_1']
     snps, n_raw_snps, n_snps = ld.extract_snps_from_cord_data_chrom(g)
     first_10_snps = snps[:10]
@@ -214,11 +215,7 @@ class TestLDPred(unittest.TestCase):
     golden_ld_mat = np.load('test_data/ld_data.npz')['ld']
     self.assertTrue(np.allclose(ld_mat, golden_ld_mat))
 
-  def test_ldpred(self):
-    print('Testing LDpred.\n')
-    print('Note that this test currently only tests the core functionality of LDpred.')
-    print('Please report bugs on github (https://github.com/bvilhjal/ldpred) or to Bjarni J Vilhjalmsson (bjarni.vilhjalmsson@gmail.com).\n')
-
+  def test_ldpred_coord0(self):
     coord_file = self.tmp_file_prefix + '.coord0.hdf5'
     run_test(
         'Coordinating test data into file %s' % coord_file,
@@ -228,6 +225,7 @@ class TestLDPred(unittest.TestCase):
         'test_data/goldens/golden.coord0.hdf5'
     )
 
+  def test_ldpred_coord(self):
     coord_file = self.tmp_file_prefix + '.coord.hdf5'
     run_test(
         'Coordinating test data into file %s' % coord_file,
@@ -236,66 +234,73 @@ class TestLDPred(unittest.TestCase):
         coord_file,
         'test_data/goldens/golden.coord.hdf5')
 
+  def test_ldpred_inf(self):
     run_test(
         'Running LDpred-inf with coordinated file prefix: %s ' % self.tmp_file_prefix,
-        '--debug inf --cf=%s  --ldr=100   --ldf=%s  --N=10000  --out=%s' % (coord_file, self.tmp_file_prefix, self.tmp_file_prefix),
+        '--debug inf --cf=./test_data/goldens/golden.coord.hdf5  --ldr=100   --ldf=%s  --N=10000  --out=%s' % (self.tmp_file_prefix, self.tmp_file_prefix),
         'Problems when running LDpred_inf!',
         self.tmp_file_prefix + '.txt',
         'test_data/goldens/golden.txt',
         self.tmp_file_prefix + '_ldradius100.pkl.gz',
         'test_data/goldens/golden_ldradius100.pkl.gz')
 
+  def test_ldpred_gibbs(self):
     run_test(
         'Running LDpred with coordinated file prefix: %s ' % self.tmp_file_prefix,
-        '--debug gibbs --cf=%s  --ldr=100   --ldf=%s  --f=0.001 --N=10000  --out=%s' % (coord_file, self.tmp_file_prefix, self.tmp_file_prefix),
+        '--debug gibbs --cf=./test_data/goldens/golden.coord.hdf5  --ldr=100   --ldf=%s  --f=0.001 --N=10000  --out=%s' % (self.tmp_file_prefix, self.tmp_file_prefix),
         'Problems when running LDpred!',
         self.tmp_file_prefix + '_LDpred-inf.txt',
         'test_data/goldens/golden_LDpred-inf.txt',
         self.tmp_file_prefix + '_LDpred_p1.0000e-03.txt',
         'test_data/goldens/golden_LDpred_p1.0000e-03.txt')
 
+  def test_ldpred_p_plus_t(self):
     run_test(
         'Running P+T with coordinated file prefix: %s ' % self.tmp_file_prefix,
-        '--debug p+t --cf=%s  --ldr=100  --p=0.001 --out=%s' % (coord_file, self.tmp_file_prefix),
+        '--debug p+t --cf=./test_data/goldens/golden.coord.hdf5  --ldr=100  --p=0.001 --out=%s' % self.tmp_file_prefix,
         'Problems when running P+T!',
         self.tmp_file_prefix + '_P+T_r0.20_p1.0000e-03.txt',
         'test_data/goldens/golden_P+T_r0.20_p1.0000e-03.txt')
 
+  def test_ldpred_score_1(self):
     prs_file_prefix = self.tmp_file_prefix + 'prs'
     run_test(
-        'Validating results with output file prefix: %s' % self.tmp_file_prefix,
-        '--debug score --gf=./test_data/LDpred_data_p0.001_test_0  --rf=%s  --out=%s' % (self.tmp_file_prefix, prs_file_prefix),
+        'Validating results with output file prefix: %s' % prs_file_prefix,
+        '--debug score --gf=./test_data/LDpred_data_p0.001_test_0  --rf=./test_data/goldens/golden  --out=%s' % prs_file_prefix,
         'Problems with the validation step!',
         prs_file_prefix + '_LDpred-inf.txt',
         'test_data/goldens/goldenprs_LDpred-inf.txt',
         prs_file_prefix + '_LDpred_p1.0000e-03.txt',
         'test_data/goldens/goldenprs_LDpred_p1.0000e-03.txt')
 
+  def test_ldpred_score_2(self):
     prs_file_prefix2 = self.tmp_file_prefix + 'prs_2'
     run_test(
         'Validating results with output file prefix: %s' % self.tmp_file_prefix,
-        'score --gf=./test_data/LDpred_data_p0.001_test_0  --rf=%s  --out=%s' % (self.tmp_file_prefix, prs_file_prefix2),
+        'score --gf=./test_data/LDpred_data_p0.001_test_0  --rf=./test_data/goldens/golden  --out=%s' % prs_file_prefix2,
         'Problems with the validation step!',
         prs_file_prefix2 + '_LDpred-inf.txt',
         'test_data/goldens/goldenprs_2_LDpred-inf.txt',
         prs_file_prefix2 + '_LDpred_p1.0000e-03.txt',
         'test_data/goldens/goldenprs_2_LDpred_p1.0000e-03.txt',)
 
+  def test_ldpred_score_p_plus_t(self):
+    prs_file_prefix2 = self.tmp_file_prefix + 'prs_2'
     run_test(
         'Validating results with output file prefix: %s' % self.tmp_file_prefix,
-        'score --gf=./test_data/LDpred_data_p0.001_test_0  --rf=%s  --rf-format=P+T --out=%s' % (self.tmp_file_prefix, prs_file_prefix),
+        'score --gf=./test_data/LDpred_data_p0.001_test_0  --rf=./test_data/goldens/golden  --rf-format=P+T --out=%s' % prs_file_prefix2,
         'Problems with the P+T validation step!',
-        prs_file_prefix + '_P+T_p1.0000e-03.txt',
+        prs_file_prefix2 + '_P+T_p1.0000e-03.txt',
         'test_data/goldens/goldenprs_2_P+T_p1.0000e-03.txt')
 
+  def test_ldpred_score_3(self):
     prs_file_prefix3 = self.tmp_file_prefix + 'prs_3'
     run_test(
         'Validating results with output file prefix: %s' % self.tmp_file_prefix,
-        'score --gf=./test_data/LDpred_data_p0.001_test_0  --only-score --rf=%s  --rf-format=P+T --out=%s' % (self.tmp_file_prefix, prs_file_prefix3),
+        'score --gf=./test_data/LDpred_data_p0.001_test_0  --only-score --rf=./test_data/goldens/golden  --rf-format=P+T --out=%s' % prs_file_prefix3,
         'Problems with the P+T validation step!',
         prs_file_prefix3 + '_P+T_p1.0000e-03.txt',
         'test_data/goldens/goldenprs_3_P+T_p1.0000e-03.txt')
-    print('Test finished successfully!')
 
 
 if __name__ == '__main__':
