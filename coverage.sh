@@ -47,7 +47,11 @@ cd "${COVERAGE_TMPDIR}"
 echo "The coverage temp directory is: ${COVERAGE_TMPDIR}"
 
 # Run code coverage and generate HTML report.
-PYTHONPATH="${LDPRED_SRC_ROOT}:${PYTHONPATH}" python -B "${COVERAGE_BIN}" run --branch --source="${LDPRED_SRC_ROOT}" "${@:-${LDPRED_SRC_ROOT}/test.py}"
+PYTHONPATH="${LDPRED_SRC_ROOT}:${PYTHONPATH}" python -B "${COVERAGE_BIN}" run \
+  --branch \
+  --source="${LDPRED_SRC_ROOT}" \
+  --omit="${LDPRED_SRC_ROOT}/test.py,${LDPRED_SRC_ROOT}/setup.py" \
+  "${@:-${LDPRED_SRC_ROOT}/test.py}"
 coverage html
 echo "To view the code coverage report, point your web browser to:"
 echo "file:${COVERAGE_TMPDIR}/htmlcov/index.html"
