@@ -91,7 +91,7 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
     chromosomes = sp.unique(gf_chromosomes)
     chromosomes.sort()
 
-    chr_dict = plinkfiles.get_chrom_dict(loci, chromosomes)
+    chr_dict = plinkfiles.get_chrom_dict(loci, chromosomes, debug)
     
     if validation_genotype_file is not None:
         if debug:
@@ -105,7 +105,7 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
         plinkf_val.close()
         summary_dict[5]={'name':'SNPs in Validation data:','value':len(loci_val)}
 
-        chr_dict_val = plinkfiles.get_chrom_dict(loci_val, chromosomes)
+        chr_dict_val = plinkfiles.get_chrom_dict(loci_val, chromosomes, debug)
 
         # Open HDF5 file and prepare out data
         assert not 'iids' in hdf5_file, 'Something is wrong with the HDF5 file, no individuals IDs were found.'
