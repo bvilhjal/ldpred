@@ -216,6 +216,25 @@ class TestLDPred(unittest.TestCase):
     golden_ld_mat = np.load(os.path.join(TEST_DIR, 'test_data/ld_data.npz'))['ld']
     self.assertTrue(np.allclose(ld_mat, golden_ld_mat))
 
+  def test_get_chromosome_herits(self):
+    p_dict = make_p_dict(
+        '--debug',
+        'inf',
+        '--cf=%s/test_data/goldens/golden.coord.hdf5' % TEST_DIR,
+        '--ldr=100',
+        '--ldf=' + self.tmp_file_prefix,
+        '--N=10000',
+        '--out=' + self.tmp_file_prefix,
+    )
+    summary_dict = {}
+    ld_dict = ld.get_ld_dict_using_p_dict(p_dict, summary_dict)
+    coord_file = os.path.join(TEST_DIR, 'test_data/goldens/golden.coord.hdf5')
+    df = h5py.File(coord_file, 'r')
+    herit_dict = ld.get_chromosome_herits(df['cord_data'], ld_dict['ld_scores_dict'], n=p_dict['N'], h2=None)
+    print(herit_dict)
+    self.assertAlmostEqual(herit_dict['chrom_1'], 0.0741219)
+    self.assertAlmostEqual(herit_dict['gw_h2_ld_score_est'], 0.0741219)
+
   def test_ldpred_coord0(self):
     coord_file = self.tmp_file_prefix + '.coord0.hdf5'
     run_test(
