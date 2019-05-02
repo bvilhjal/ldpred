@@ -32,7 +32,6 @@ def run_test(mesg, cmd_str, error_mesg, *actual_and_golden_outputs):
   print(cmd_str + '\n')
   cmd_args = cmd_str.split()
   try:
-    np.random.seed(42)  # Set random seed to stabilize test results
     LDpred.main_with_args(cmd_args)
     for i in xrange(0, len(actual_and_golden_outputs), 2):
       actual_output = actual_and_golden_outputs[i]
@@ -264,6 +263,7 @@ class TestLDPred(unittest.TestCase):
         'test_data/goldens/golden_ldradius100.pkl.gz')
 
   def test_ldpred_gibbs(self):
+    np.random.seed(42)  # Set random seed to stabilize test results
     run_test(
         'Running LDpred with coordinated file prefix: %s ' % self.tmp_file_prefix,
         '--debug gibbs --cf=%s/test_data/goldens/golden.coord.hdf5  --ldr=100   --ldf=%s  --f=0.001 --N=10000  --out=%s' % (TEST_DIR, self.tmp_file_prefix, self.tmp_file_prefix),
