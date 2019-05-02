@@ -21,7 +21,7 @@
 # $ TMPDIR=${HOME}/tmp ./coverage.sh
 #
 # Run coverage for a specific test.
-# $ ./coverage.sh -m unittest test.TestLDPred.test_ldpred_inf
+# $ ./coverage.sh -m unittest test.TestLDpred.test_ldpred_inf
 
 # Check first if the coverage tool is available.
 readonly COVERAGE_BIN="$(which coverage)"

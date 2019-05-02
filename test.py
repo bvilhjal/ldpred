@@ -7,7 +7,7 @@ To run all tests:
 $ python test.py
 
 To run a specific test:
-$ python -m unittest test.TestLDPred.test_ldpred_inf
+$ python -m unittest test.TestLDpred.test_ldpred_inf
 """
 
 import LDpred
@@ -151,7 +151,7 @@ def assert_files_equal(file1, file2):
 def make_p_dict(*args):
   return vars(LDpred.parser.parse_args(args))
 
-class TestLDPred(unittest.TestCase):
+class TestLDpred(unittest.TestCase):
   @classmethod
   def setUpClass(cls):
     print('Testing LDpred.\n')
