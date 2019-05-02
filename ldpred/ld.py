@@ -217,6 +217,14 @@ def smart_ld_pruning(scores, ld_table, max_ld=0.5, verbose=False, reverse=False)
     return pruning_vector             
 
 
+def get_ld_dict_using_p_dict(p_dict, summary_dict):
+    return get_ld_dict(p_dict['cf'], p_dict['ldf'], p_dict['ldr'],
+                       verbose=p_dict['debug'],
+                       compressed=not p_dict['no_ld_compression'],
+                       use_hickle=p_dict['hickle_ld'],
+                       summary_dict=summary_dict)
+
+
 def get_ld_dict(cord_data_file, local_ld_file_prefix, ld_radius, 
                 gm_ld_radius=None, verbose=False, compressed=True, 
                 use_hickle=False, summary_dict=None):
