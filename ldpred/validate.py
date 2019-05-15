@@ -142,7 +142,7 @@ def get_prs(genotype_file, rs_id_map, phen_map=None, only_score = False, verbose
     
     if len(found_loci)<0.99*len(rs_id_map):
         perc_missing = 1 - float(len(found_loci))/float(len(rs_id_map))
-        raise Warning('More than 0.2f%% of variants for which weights were calculated were not found in '
+        raise Warning('More than 0.2f% %% of variants for which weights were calculated were not found in '
                         'validation data.  This can lead to poor prediction accuracies.  Please consider '
                         'using the --vbim flag in the coord step to identify overlapping SNPs.'
                         '\n'%(perc_missing*100)) 
