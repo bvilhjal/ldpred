@@ -470,7 +470,7 @@ def calc_risk_scores(bed_file, rs_id_map, phen_map, out_file=None,
                     'Intercept': betas[2][0], 'ldpred_prs_effect': betas[0][0], 'sex': betas[1][0]}
                 if verbose:
                     print('Fitted effects (betas) for PRS, sex, and intercept on true phenotype:', betas)
-                adj_pred_dict['sex_adj'] = sp.dot(Xs, betas)
+                adj_pred_dict['sex_prs'] = sp.dot(Xs, betas)
                 pred_r2 = 1 - rss_pd / rss0
                 print('Variance explained (Pearson R2) by PRS adjusted for Sex: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
                 res_dict['Sex_adj_pred_r2'] = pred_r2
@@ -488,7 +488,7 @@ def calc_risk_scores(bed_file, rs_id_map, phen_map, out_file=None,
                 (betas, rss_pd, r, s) = linalg.lstsq(Xs, true_phens)
                 weights_dict['pc_adj'] = {
                     'Intercept': betas[1][0], 'ldpred_prs_effect': betas[0][0], 'pcs': betas[2][0]}
-                adj_pred_dict['pc_adj'] = sp.dot(Xs, betas)
+                adj_pred_dict['pc_prs'] = sp.dot(Xs, betas)
                 pred_r2 = 1 - rss_pd / rss0
                 print('Variance explained (Pearson R2) by PRS adjusted for PCs: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
                 res_dict['PC_adj_pred_r2'] = pred_r2
@@ -507,7 +507,7 @@ def calc_risk_scores(bed_file, rs_id_map, phen_map, out_file=None,
                     (betas, rss_pd, r, s) = linalg.lstsq(Xs, true_phens)
                     weights_dict['sex_pc_adj'] = {
                         'Intercept': betas[2][0], 'ldpred_prs_effect': betas[0][0], 'sex': betas[1][0], 'pcs': betas[3][0]}
-                    adj_pred_dict['sex_pc_adj'] = sp.dot(Xs, betas)
+                    adj_pred_dict['sex_pc_prs'] = sp.dot(Xs, betas)
                     pred_r2 = 1 - rss_pd / rss0
                     print('Variance explained (Pearson R2) by PRS adjusted for PCs and Sex: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
                     res_dict['PC_Sex_adj_pred_r2'] = pred_r2
@@ -523,7 +523,7 @@ def calc_risk_scores(bed_file, rs_id_map, phen_map, out_file=None,
                 Xs = sp.hstack([pval_derived_effects_prs, covariates,
                                 sp.ones((len(true_phens), 1))])
                 (betas, rss_pd, r, s) = linalg.lstsq(Xs, true_phens)
-                adj_pred_dict['cov_adj'] = sp.dot(Xs, betas)
+                adj_pred_dict['cov_prs'] = sp.dot(Xs, betas)
                 pred_r2 = 1 - rss_pd / rss0
                 print('Variance explained (Pearson R2) by PRS adjusted for Covariates: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
                 res_dict['Cov_adj_pred_r2'] = pred_r2
@@ -540,7 +540,7 @@ def calc_risk_scores(bed_file, rs_id_map, phen_map, out_file=None,
                     Xs = sp.hstack([pval_derived_effects_prs, covariates,
                                     sex, pcs, sp.ones((len(true_phens), 1))])
                     (betas, rss_pd, r, s) = linalg.lstsq(Xs, true_phens)
-                    adj_pred_dict['cov_sex_pc_adj'] = sp.dot(Xs, betas)
+                    adj_pred_dict['cov_sex_pc_prs'] = sp.dot(Xs, betas)
                     pred_r2 = 1 - rss_pd / rss0
                     print('Variance explained (Pearson R2) by PRS adjusted for Cov+PCs+Sex: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
                     res_dict['Cov_PC_Sex_adj_pred_r2'] = pred_r2
