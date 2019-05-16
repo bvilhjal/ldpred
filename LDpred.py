@@ -244,7 +244,7 @@ parser_score.add_argument('--out', type=str, required=True,
                     help='The prefix of risk score output file.')
 parser_score.add_argument('--pf', type=str, default=None,
                     help='A file with individual IDs and phenotypes.')
-parser_score.add_argument('--pf-format', type=str, default='STANDARD', choices = {'STANDARD','FAM'},
+parser_score.add_argument('--pf-format', type=str, default='STANDARD', choices = {'STANDARD','FAM','LSTANDARD'},
                     help='Phenotype file format. Two formats are supported a (PLINK) FAM format, and '
                     'STANDARD format (default), which is a whitespace/tab delimited file with two '
                     'columns IID and PHEN.')
