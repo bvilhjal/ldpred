@@ -82,6 +82,10 @@ def is_gz(name):
     return name.lower().endswith(('.gz', '.gzip'))
 
 
+def get_beta_from_pvalue(pvalue, raw_beta):
+  return -sp.sign(raw_beta) * stats.norm.ppf(pvalue / 2.0)
+
+
 def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_file=None, n=None, ch=None, pos=None,
                     A1=None, A2=None, reffreq=None, case_freq=None, control_freq=None, case_n=None,
                     control_n=None, info=None, rs=None, pval=None, eff=None, ncol=None,
@@ -269,10 +273,10 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
                 if not input_is_beta:
                     raw_beta = sp.log(raw_beta)
                     chrom_dict[chrom]['log_odds'].append(raw_beta)
-                    beta = sp.sign(raw_beta) * stats.norm.ppf(pval_read / 2.0)
+                    beta = get_beta_from_pvalue(pval_read, raw_beta)
                     chrom_dict[chrom]['betas'].append(beta / sp.sqrt(N))
                 else:
-                    beta = sp.sign(raw_beta) * stats.norm.ppf(pval_read / 2.0)
+                    beta = get_beta_from_pvalue(pval_read, raw_beta)
                     chrom_dict[chrom]['log_odds'].append(beta / sp.sqrt(N))
                     chrom_dict[chrom]['betas'].append(beta / sp.sqrt(N))
 

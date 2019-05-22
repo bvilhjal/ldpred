@@ -163,7 +163,7 @@ class TestLDpred(unittest.TestCase):
     self.tmp_file_prefix = next(tempfile._get_candidate_names())
 
   def tearDown(self):
-    print('Cleaning up files.')
+    print('Cleaning up files: %s* ' % self.tmp_file_prefix)
     cmd_str = 'rm -f %s*' % self.tmp_file_prefix
     print(cmd_str + '\n')
     assert os.system(cmd_str) == 0, 'Problems cleaning up test files!  Testing stopped'
@@ -183,6 +183,13 @@ class TestLDpred(unittest.TestCase):
     with h5py.File(out, 'w') as h5f:
       sum_stats_parsers.parse_sum_stats(h5f, p_dict, bimfile, summary_dict)
       self.assertEqual(len(h5f['sum_stats']['chrom_1']['betas']), 10)
+
+  def test_get_beta_from_pvalue(self):
+    pval_read = np.array([1.0, 0.0, 1.0e-6, 1.0e-6])
+    raw_beta = np.array([-1.5, 1.5, 1.5, -1.5])
+    actual_betas = sum_stats_parsers.get_beta_from_pvalue(pval_read, raw_beta)
+    expected_betas = [0.0, np.inf, 4.89163848, -4.89163848]
+    self.assertTrue(np.allclose(actual_betas, expected_betas))
 
   def test_coord_genotypes(self):
     p_dict = make_p_dict(
