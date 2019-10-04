@@ -78,9 +78,6 @@ def parse_sum_stats(h5f, p_dict, bimfile, summary_dict):
     summary_dict[14]={'name':'Run time for parsing summary stats:','value': '%d min and %0.2f sec'%(t / 60, t % 60)}
 
 
-def is_gz(name):
-    return name.lower().endswith(('.gz', '.gzip'))
-
 
 def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_file=None, n=None, ch=None, pos=None,
                     A1=None, A2=None, reffreq=None, case_freq=None, control_freq=None, case_n=None,
@@ -139,12 +136,12 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
     invalid_beta = 0
     chrom_dict = {}
     opener = open
-    if is_gz(filename):
+    if util.is_gz(filename):
         opener = gzip.open
     print('Parsing summary statistics file: %s' % filename)
     with opener(filename) as f:
         header = f.readline()
-        if is_gz(filename):
+        if util.is_gz(filename):
             header = header.decode('utf-8')
         if debug:
             print('File header:')
@@ -172,7 +169,7 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
             if line_i%1000==0 and num_lines>0:
                 sys.stdout.write('\b\b\b\b\b\b\b%0.2f%%' % (100.0 * (float(line_i) / (num_lines))))
                 sys.stdout.flush()            
-            if is_gz(filename):
+            if util.is_gz(filename):
                 line = line.decode('utf-8')
             l = (line.strip()).split()
             # get the SNP ID first
@@ -202,11 +199,12 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
                     pos_read = snps_pos_map[sid]['pos']
 
                 pval_read = float(l[header_dict[pval]])
-                if not isfinite(stats.norm.ppf(pval_read)):
+                if pval_read==0 or not isfinite(stats.norm.ppf(pval_read)):
                     invalid_p += 1
                     continue
 
-                if not isfinite(float(l[header_dict[eff]])):
+                beta_read = float(l[header_dict[eff]])
+                if not isfinite(beta_read):
                     invalid_beta += 1
                     continue
 
@@ -347,7 +345,7 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
             print('%d SNPs excluded due to invalid genomic positions' % invalid_pos)
         else:
             print('%d SNPs with non-matching genomic positions (not excluded)' % invalid_pos)
-        print('%d SNPs excluded due to invalid P-value' % invalid_p)
+        print('%d SNPs excluded due to invalid P-values ' % invalid_p)
         print('%d SNPs excluded due to invalid effect sizes' % invalid_p)
         print('%d SNPs parsed from summary statistics file' % num_snps)
     summary_dict[3.09]={'name':'dash', 'value':'Summary statistics'}
