@@ -10,10 +10,17 @@ from ldpred import reporting
 
 import sys
 import textwrap
+import random
+import scipy
 
 __version__ = '1.0.6'
 __date__ = '18 March 2019'
  
+#Set a random seed to avoid varying results.
+random_seed=42
+random.seed(random_seed)
+scipy.random.seed(random_seed)
+
 title = '\033[96mLDpred v. %s\033[0m'%__version__
 title_len= len(title)-9
 num_dashes = reporting.window_length-title_len-2
@@ -103,7 +110,7 @@ parser_coord.add_argument('--maf', type=float, default=0.01,
 parser_coord.add_argument('--max-freq-discrep', type=float, default=0.1,
                     help='Max frequency discrepancy allowed between reported sum stats frequency and frequency '
                     'in the LD reference data.  To disable check, set to 1.')
-parser_coord.add_argument('--ssf-format', type=str, default="CUSTOM", choices={'CUSTOM','STANDARD','GIANT', 'PGC'},
+parser_coord.add_argument('--ssf-format', type=str, default="CUSTOM", choices={'LDPRED','CUSTOM','STANDARD','GIANT', 'PGC'},
                     help='This is the format type of the summary statistics file. '
                     'By default the CUSTOM format requires the user to specify the file format using additional '
                     'arguments.')
@@ -128,6 +135,9 @@ parser_coord.add_argument('--pval', type=str, default="P",
                     help="Column header containing the P-value information")
 parser_coord.add_argument('--eff', type=str, default="OR",
                     help="Column header containing effect size information")
+parser_coord.add_argument('--se', type=str, default="SE",
+                    help='Column header containing standard error. Note: these are only used if corresponding p-values'
+                    ' are smaller than approximately 1E-325, or if --z-from-se is set.')
 parser_coord.add_argument('--ncol', type=str, default="N",
                     help="Column header containing sample size information")
 parser_coord.add_argument('--case-freq', type=str, default=None,
@@ -138,6 +148,9 @@ parser_coord.add_argument('--case-n', type=str, default=None,
                     help="Column header containing case sample size information")
 parser_coord.add_argument('--control-n', type=str, default=None,
                     help="Column header containing control sample size information")
+parser_coord.add_argument('--z-from-se', default=False, action='store_true',
+                    help='If this option is set, then the effects use by LDpred are derived using the effect estimates '
+                    'and their standard errors. (Only possible if standard errors are available in the summary stats)')
 # parser_coord.add_argument('--gmdir', type=str,
 #                     help='The directory of genetic map.', default=None)
 
