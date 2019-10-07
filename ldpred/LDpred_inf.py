@@ -147,7 +147,7 @@ def ldpred_inf_genomewide(data_file=None, ld_radius = None, ld_dict=None, out_fi
         print('The slope for predictions with P-value derived  effects is: %0.4f'%regression_slope)
         results_dict['slope_pd']=regression_slope
     
-    weights_out_file = '%s.txt'%(out_file_prefix)
+    weights_out_file = '%s_LDpred-inf.txt' % (out_file_prefix)
     with open(weights_out_file,'w') as f:
         f.write('chrom    pos    sid    nt1    nt2    raw_beta    ldpred_inf_beta\n')
         for chrom, pos, sid, nt, raw_beta, ldpred_beta in zip(chromosomes, positions, sids, nts, raw_effect_sizes, ldpred_effect_sizes):
