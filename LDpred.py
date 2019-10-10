@@ -173,7 +173,7 @@ parser_gibbs.add_argument('--out', type=str, required=True,
 parser_gibbs.add_argument('--f', default=[1,0.3,0.1,0.03,0.01,0.003,0.001], nargs='+', type=float,
                     help="Fraction of causal variants used in the Gibbs sampler")
 
-parser_gibbs.add_argument('--N', type=int, default=100000, required=True,
+parser_gibbs.add_argument('--N', type=int, default=None,
                     help='Number of individuals on which the summary statistics are assumed to be based on.')
 parser_gibbs.add_argument('--n-iter', type=int, default=60,
                     help='The number of iterations used by the Gibbs sampler. The default is 60.')

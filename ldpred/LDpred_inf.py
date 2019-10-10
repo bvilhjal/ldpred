@@ -108,7 +108,7 @@ def ldpred_inf_genomewide(data_file=None, ld_radius = None, ld_dict=None, out_fi
                 nts_arr = (g['nts'][...]).astype(util.nts_u_dtype)
                 nts.extend(nts_arr)
         
-            h2_chrom = herit_dict[chrom_str] 
+            h2_chrom = herit_dict[chrom_str]['h2'] 
             updated_betas = ldpred_inf(pval_derived_betas, genotypes=None, reference_ld_mats=chrom_ref_ld_mats[chrom_str], 
                                                 h2=h2_chrom, n=n, ld_window_size=2*ld_radius, verbose=False)
                     

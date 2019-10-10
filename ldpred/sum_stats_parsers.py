@@ -143,6 +143,7 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
     invalid_pos = 0
     invalid_p = 0
     invalid_beta = 0
+    se_inferred_zscores = 0
     chrom_dict = {}
     opener = open
     if util.is_gz(filename):
@@ -223,7 +224,7 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
                     se_read = float(l[header_dict[se]])
                     if not isfinite(se_read):
                         continue
-
+                    se_inferred_zscores += 1
                     if input_is_beta:
                         abs_beta = sp.absolute(beta_read)/se_read
                     else:
@@ -232,15 +233,15 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
                 else:
                     if pval_read==0 or not isfinite(stats.norm.ppf(pval_read)):
                         #Attempt to Parse SEs to infer Z-score
-                        if se is  None:
-                            invalid_p += 1
+                        invalid_p += 1
+                        if se is None:
                             continue
                         else:
                             se_read = float(l[header_dict[se]])
                             if not isfinite(se_read):
-                                invalid_p += 1
                                 continue
 
+                            se_inferred_zscores += 1
                             if input_is_beta:
                                 abs_beta = sp.absolute(beta_read)/se_read
                             else:
@@ -252,7 +253,7 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
 
                 if not chrom in chrom_dict:
                     chrom_dict[chrom] = {'ps':[], 'log_odds':[], 'infos':[], 'freqs':[],
-                             'betas':[], 'nts': [], 'sids': [], 'positions': []}
+                             'betas':[], 'nts': [], 'sids': [], 'positions': [], 'ns':[]}
                 chrom_dict[chrom]['sids'].append(sid)
                 chrom_dict[chrom]['positions'].append(pos_read)
                 # Check the frequency
@@ -306,6 +307,7 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
                         N = float(l[header_dict[ncol]])
                 else:
                     N = n
+                chrom_dict[chrom]['ns'].append(N)
                 if not input_is_beta:
                     raw_beta = sp.log(raw_beta)
                 beta = sp.sign(raw_beta) * abs_beta/ sp.sqrt(N)
@@ -334,7 +336,7 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
         assert len(chrom_dict[chrom]['positions'])==len(chrom_dict[chrom]['betas'])==len(chrom_dict[chrom]['ps'])==len(chrom_dict[chrom]['nts']), 'Problems with parsing summary stats'
         sl = list(zip(chrom_dict[chrom]['positions'], chrom_dict[chrom]['sids'], chrom_dict[chrom]['nts'],
                  chrom_dict[chrom]['betas'], chrom_dict[chrom]['log_odds'], chrom_dict[chrom]['infos'],
-                 chrom_dict[chrom]['freqs'], chrom_dict[chrom]['ps']))
+                 chrom_dict[chrom]['freqs'], chrom_dict[chrom]['ps'], chrom_dict[chrom]['ns']))
         sl.sort()
         ps = []
         betas = []
@@ -344,8 +346,9 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
         log_odds = []
         infos = []
         freqs = []
+        ns = []
         prev_pos = -1
-        for pos, sid, nt, beta, lo, info, frq, p in sl:
+        for pos, sid, nt, beta, lo, info, frq, p, num_ind in sl:
             if pos == prev_pos:
                 if debug:
                     print('duplicated position %d' % pos)
@@ -363,6 +366,7 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
             log_odds.append(lo)
             infos.append(info)
             freqs.append(frq)
+            ns.append(num_ind)
         nts = sp.array(nts, dtype=util.nts_dtype)
         sids = sp.array(sids, dtype=util.sids_dtype)
         if debug:
@@ -379,6 +383,7 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
         g.create_dataset('nts', data=nts)
         g.create_dataset('sids', data=sids)
         g.create_dataset('positions', data=positions)
+        g.create_dataset('ns', data=ns)
         hdf5_file.flush()
     if debug:
         print('%d SNPs excluded due to invalid chromosome' % invalid_chr)
@@ -394,7 +399,9 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
     if invalid_p>0:
         summary_dict[3.2]={'name':'Num invalid P-values in sum stats','value':invalid_p}
     if invalid_beta>0:
-        summary_dict[3.21]={'name':'Num invalid P-values in sum stats','value':invalid_p}
+        summary_dict[3.21]={'name':'Num invalid betas in sum stats','value':invalid_beta}
+    if se_inferred_zscores>0:
+        summary_dict[3.22]={'name':'Num z-scores inferred from SEs and effects','value':se_inferred_zscores}
     if invalid_chr>0:
             summary_dict[3.4]={'name':'SNPs w non-matching chromosomes excluded','value':invalid_chr}
     if invalid_pos>0:

@@ -11,9 +11,8 @@ from ldpred import ld
 from ldpred import reporting
 
 
-
         
-def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=1000, ld_radius=100,
+def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=None, ns= None, ld_radius=100,
                  num_iter=60, burn_in=10, p=None, zero_jump_prob=0.05, tight_sampling=False,
                  ld_dict=None, reference_ld_mats=None, ld_boundaries=None, verbose=False,
                  print_progress=True):
@@ -22,14 +21,32 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=1000, l
     """
     t0 = time.time()
     m = len(beta_hats)
-    n = float(n)
+
+
+    if n is None:
+        #If coefficient of variation is small, then use one N nevertheless.
+        n_cv = sp.std(ns)/sp.mean(ns)
+        if n_cv<0.1:
+            n = sp.mean(ns)
+            if verbose:
+                print ("Sample size does not vary much (CV=%0.4f).  Using a fixed sample size of %0.2f"%(n_cv,n))
+        else:
+            if verbose:
+                print ("Using varying sample sizes")
+                print ("Sample size ranges between %d and %d"%(min(ns),max(ns)))
+                print ("Average sample size is %0.2f "%(sp.mean(ns)))
+        ld_pred_inf_n = sp.mean(ns)
+    else:
+        n = float(n)
+        print ("Using the given fixed sample size of %d"%(n))
+        ld_pred_inf_n = float(n)
     
     # If no starting values for effects were given, then use the infinitesimal model starting values.
     if start_betas is None and verbose:
         print('Initializing LDpred effects with posterior mean LDpred-inf effects.')
         print('Calculating LDpred-inf effects.')
         start_betas = LDpred_inf.ldpred_inf(beta_hats, genotypes=genotypes, reference_ld_mats=reference_ld_mats,
-                                            h2=h2, n=n, ld_window_size=2 * ld_radius, verbose=False)
+                                            h2=h2, n=ld_pred_inf_n, ld_window_size=2 * ld_radius, verbose=False)
     curr_betas = sp.copy(start_betas)
     assert len(curr_betas)==m,'Betas returned by LDpred_inf do not have the same length as expected.'
     curr_post_means = sp.zeros(m)
@@ -41,10 +58,13 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=1000, l
     # Setting up the marginal Bayes shrink
     Mp = m * p
     hdmp = (h2 / Mp)
-    hdmpn = hdmp + 1.0 / n
-    hdmp_hdmpn = (hdmp / hdmpn)
-    c_const = (p / sp.sqrt(hdmpn))
-    d_const = (1.0 - p) / (sp.sqrt(1.0 / n))
+    
+    
+    if n is not None:
+        hdmpn = hdmp + 1.0 / n
+        hdmp_hdmpn = (hdmp / hdmpn)
+        c_const = (p / sp.sqrt(hdmpn))
+        d_const = (1.0 - p) / (sp.sqrt(1.0 / n))
 
     for k in range(num_iter):  # Big iteration
 
@@ -56,7 +76,9 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=1000, l
             alpha = 1.0 - zero_jump_prob
 
         rand_ps = sp.random.random(m)
-        rand_norms = stats.norm.rvs(0.0, (hdmp_hdmpn) * (1.0 / n), size=m)
+        
+        if n is not None:
+            rand_norms = stats.norm.rvs(0.0, (hdmp_hdmpn) * (1.0 / n), size=m)
 
         if ld_boundaries is None:
             for i, snp_i in enumerate(iter_order):
@@ -64,6 +86,18 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=1000, l
                 focal_i = min(ld_radius, snp_i)
                 stop_i = min(m, snp_i + ld_radius + 1)
                 
+                #Figure out what sample size to use, and dependent values
+                if n is not None:
+                    rand_norm =rand_norms[i]
+                    ni = n
+                else:
+                    ni = ns[i]
+                    hdmpn = hdmp + 1.0 / ni
+                    hdmp_hdmpn = (hdmp / hdmpn)
+                    c_const = (p / sp.sqrt(hdmpn))
+                    d_const = (1.0 - p) / (sp.sqrt(1.0 / ni))
+                    rand_norm =  stats.norm.rvs(0.0, (hdmp_hdmpn) * (1.0 / ni), size=1)[0]
+
                 # Local LD matrix
                 D_i = ld_dict[snp_i]
                 
@@ -75,7 +109,8 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=1000, l
                 res_beta_hat_i = beta_hats[snp_i] - sp.dot(D_i , local_betas)
                 b2 = res_beta_hat_i ** 2
     
-                d_const_b2_exp = d_const * sp.exp(-b2 * n / 2.0)
+
+                d_const_b2_exp = d_const * sp.exp(-b2 * ni / 2.0)
                 if sp.isreal(d_const_b2_exp):
                     numerator = c_const * sp.exp(-b2 / (2.0 * hdmpn))
                     if sp.isreal(numerator):
@@ -92,7 +127,7 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=1000, l
     
                 if rand_ps[i] < postp * alpha:
                     # Sample from the posterior Gaussian dist.
-                    proposed_beta = rand_norms[i] + hdmp_hdmpn * res_beta_hat_i
+                    proposed_beta = rand_norm + hdmp_hdmpn * res_beta_hat_i
     
                 else:
                     # Sample 0
@@ -105,6 +140,18 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=1000, l
                 stop_i = ld_boundaries[snp_i][1]
                 focal_i = snp_i - start_i
                 
+                #Figure out what sample size to use, and dependent values
+                if n is not None:
+                    rand_norm =rand_norms[i]
+                    ni = n
+                else:
+                    ni = ns[i]
+                    rand_norm =  stats.norm.rvs(0.0, (hdmp_hdmpn) * (1.0 / ni), size=1)[0]
+                    hdmpn = hdmp + 1.0 / ni
+                    hdmp_hdmpn = (hdmp / hdmpn)
+                    c_const = (p / sp.sqrt(hdmpn))
+                    d_const = (1.0 - p) / (sp.sqrt(1.0 / ni))
+                    
                 # Local LD matrix
                 D_i = ld_dict[snp_i]
                 
@@ -116,7 +163,7 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=1000, l
                 res_beta_hat_i = beta_hats[snp_i] - sp.dot(D_i , local_betas)
                 b2 = res_beta_hat_i ** 2
     
-                d_const_b2_exp = d_const * sp.exp(-b2 * n / 2.0)
+                d_const_b2_exp = d_const * sp.exp(-b2 * ni / 2.0)
                 if sp.isreal(d_const_b2_exp):
                     numerator = c_const * sp.exp(-b2 / (2.0 * hdmpn))
                     if sp.isreal(numerator):
@@ -174,6 +221,7 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
         risk_scores_pval_derived = sp.zeros(num_individs)
         has_phenotypes = True
 
+
     ld_scores_dict = ld_dict['ld_scores_dict']
     chrom_ld_dict = ld_dict['chrom_ld_dict']
     chrom_ref_ld_mats = ld_dict['chrom_ref_ld_mats']
@@ -182,8 +230,20 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
     results_dict = {}
     cord_data_g = df['cord_data']
 
+    all_ns = []
+    for chrom_str in util.chromosomes_list:
+        if chrom_str in cord_data_g:
+            g = cord_data_g[chrom_str]
+            all_ns.extend(g['ns'][...])
+
+    if n is None:
+        assert all_ns is not None, 'Sample size missing. Please use --N flag, or ensure they are parsed as part of the summary statistics.'
+        mean_n = sp.mean(all_ns)
+    else:
+        mean_n = n
+
     #Calculating genome-wide heritability using LD score regression, and partition heritability by chromsomes
-    herit_dict = ld.get_chromosome_herits(cord_data_g, ld_scores_dict, n, h2=h2, debug=verbose,summary_dict=summary_dict)
+    herit_dict = ld.get_chromosome_herits(cord_data_g, ld_scores_dict, mean_n, h2=h2, debug=verbose,summary_dict=summary_dict)
 
     LDpred_inf_chrom_dict = {}
     print('Calculating LDpred-inf weights')
@@ -197,10 +257,11 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
             snp_stds = snp_stds.flatten()
             ok_snps_filter = snp_stds > 0
             pval_derived_betas = g['betas'][...]
-            pval_derived_betas = pval_derived_betas[ok_snps_filter]            
-            h2_chrom = herit_dict[chrom_str]
+            pval_derived_betas = pval_derived_betas[ok_snps_filter]      
+                              
+            h2_chrom = herit_dict[chrom_str]['h2']
             start_betas = LDpred_inf.ldpred_inf(pval_derived_betas, genotypes=None, reference_ld_mats=chrom_ref_ld_mats[chrom_str],
-                                                h2=h2_chrom, n=n, ld_window_size=2 * ld_radius, verbose=False)
+                                                h2=h2_chrom, n=mean_n, ld_window_size=2 * ld_radius, verbose=False)
             LDpred_inf_chrom_dict[chrom_str] = start_betas
 
     
@@ -237,6 +298,7 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
                 snp_stds = g['snp_stds_ref'][...]
                 snp_stds = snp_stds.flatten()
                 pval_derived_betas = g['betas'][...]
+                ns = g['ns'][...]
                 positions = g['positions'][...]
                 sids = (g['sids'][...]).astype(util.sids_u_dtype)
                 log_odds = g['log_odds'][...]
@@ -249,6 +311,7 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
                     sids = sids[ok_snps_filter]
                     log_odds = log_odds[ok_snps_filter]
                     nts = nts[ok_snps_filter]
+                    ns = ns[ok_snps_filter]
                     if verbose and has_phenotypes:
                         raw_snps = raw_snps[ok_snps_filter]
 
@@ -261,16 +324,16 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
                     out_nts.extend(nts)
         
                 
-                h2_chrom = herit_dict[chrom_str]
+                h2_chrom = herit_dict[chrom_str]['h2']
                 if 'chrom_ld_boundaries' in ld_dict:
                     ld_boundaries = ld_dict['chrom_ld_boundaries'][chrom_str]
-                    res_dict = ldpred_gibbs(pval_derived_betas, h2=h2_chrom, n=n, p=p, ld_radius=ld_radius,
+                    res_dict = ldpred_gibbs(pval_derived_betas, h2=h2_chrom, n=n, ns=ns, p=p, ld_radius=ld_radius,
                                             verbose=verbose, num_iter=num_iter, burn_in=burn_in, ld_dict=chrom_ld_dict[chrom_str],
                                             start_betas=LDpred_inf_chrom_dict[chrom_str], ld_boundaries=ld_boundaries,
                                             zero_jump_prob=zero_jump_prob,
                                             print_progress=False)
                 else:
-                    res_dict = ldpred_gibbs(pval_derived_betas, h2=h2_chrom, n=n, p=p, ld_radius=ld_radius,
+                    res_dict = ldpred_gibbs(pval_derived_betas, h2=h2_chrom, n=n, ns=ns, p=p, ld_radius=ld_radius,
                                             verbose=verbose, num_iter=num_iter, burn_in=burn_in, ld_dict=chrom_ld_dict[chrom_str],
                                             start_betas=LDpred_inf_chrom_dict[chrom_str], zero_jump_prob=zero_jump_prob,
                                             print_progress=False)
@@ -347,6 +410,7 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
 
 
 def main(p_dict):
+    #Check parameters
     summary_dict = {}
     summary_dict[0]={'name':'Coordinated data filename','value':p_dict['cf']}
     summary_dict[0.1]={'name':'SNP weights output file (prefix)', 'value':p_dict['out']}

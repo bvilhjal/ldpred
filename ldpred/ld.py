@@ -297,27 +297,34 @@ def get_ld_dict(cord_data_file, local_ld_file_prefix, ld_radius,
     return ld_dict
 
 
-def get_chromosome_herits(cord_data_g, ld_scores_dict, n, h2=None, max_h2=1, debug=False, summary_dict={}):
+def get_chromosome_herits(cord_data_g, ld_scores_dict, n, h2=None, max_h2=1, estimate_h2_per_chrom=True, debug=False, summary_dict={}):
     """
     Calculating genome-wide heritability using LD score regression, and partition heritability by chromosome
     """
-    num_snps = 0
-    sum_beta2s = 0
+    tot_num_snps = 0
+    tot_sum_beta2s = 0
     herit_dict = {}
     for chrom_str in util.chromosomes_list:
         if chrom_str in cord_data_g:
             g = cord_data_g[chrom_str]
             betas = g['betas'][...]
             n_snps = len(betas)
-            num_snps += n_snps
-            sum_beta2s += sp.sum(betas ** 2)
-            herit_dict[chrom_str] = n_snps
+            tot_num_snps += n_snps
+            sum_beta2s = sp.sum(betas ** 2)
+            tot_sum_beta2s += sum_beta2s
+            chr_chi_square_lambda = sp.mean(n * sum_beta2s / float(n_snps))
+            chr_avg_ld_score = ld_scores_dict['chrom_dict'][chrom_str]['avg_ld_score']
+            chr_h2_ld_score_est = max(0.0001, (max(1, chr_chi_square_lambda) - 1) / (n * (chr_avg_ld_score / n_snps)))
+            herit_dict[chrom_str]= {'n_snps':n_snps,'h2':chr_h2_ld_score_est}
+            if debug:
+                print('%s heritability LD score estimate: %0.4f'% (chrom_str,chr_h2_ld_score_est))
+            
     
-    print('%d SNP effects were found' % num_snps)
+    print('%d SNP effects were found' % tot_num_snps)
 
     L = ld_scores_dict['avg_gw_ld_score']
-    chi_square_lambda = sp.mean(n * sum_beta2s / float(num_snps))
-    gw_h2_ld_score_est = max(0.0001, (max(1, chi_square_lambda) - 1) / (n * (L / num_snps)))
+    chi_square_lambda = sp.mean(n * tot_sum_beta2s / float(tot_num_snps))
+    gw_h2_ld_score_est = max(0.0001, (max(1, chi_square_lambda) - 1) / (n * (L / tot_num_snps)))
     if debug:
         print('Genome-wide lambda inflation: %0.4f'% chi_square_lambda)
         print('Genome-wide mean LD score: %0.4f'% L)
@@ -334,9 +341,10 @@ def get_chromosome_herits(cord_data_g, ld_scores_dict, n, h2=None, max_h2=1, deb
     print('Heritability used for inference: %0.4f'%h2)
         
     #Distributing heritabilities among chromosomes.
-    for k in herit_dict:
-        herit_dict[k] = h2 * herit_dict[k]/float(num_snps)
-    
+    if not estimate_h2_per_chrom:
+        for chrom_str in herit_dict:
+            herit_dict[chrom_str] = h2 * herit_dict[chrom_str]['n_snps']/float(tot_num_snps)
+        
     herit_dict['gw_h2_ld_score_est'] = gw_h2_ld_score_est
 
     return herit_dict

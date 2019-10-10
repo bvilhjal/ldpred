@@ -4,14 +4,16 @@ import time
 from ldpred import ld
 from ldpred import util
 
-def smart_ld_pruning(beta_hats, ld_table, pvalues=None, max_ld=0.2, verbose=False):
+def ld_clumping(beta_hats, ld_table, pruning_stat =None, pvalues=None, max_ld=0.2, verbose=False):
     """
-    Smart LD pruning.
+    Smart LD pruning.  (Also known as LD clumping)
     """    
     if verbose:
-        print('Doing smart LD pruning')
+        print('LD clumping')
     t0 = time.time()
-    if pvalues is not None:
+    if pruning_stat is not None: 
+        pruning_vector = ld.smart_ld_pruning(pruning_stat, ld_table, max_ld=max_ld, verbose=verbose, reverse=True)    
+    elif pvalues is not None:
         pruning_vector = ld.smart_ld_pruning(pvalues, ld_table, max_ld=max_ld, verbose=verbose)    
     else:
         pruning_vector = ld.smart_ld_pruning(beta_hats ** 2, ld_table, max_ld=max_ld, verbose=verbose, reverse=True)    
@@ -121,7 +123,8 @@ def ld_pruning(data_file=None, ld_radius = None, out_file_prefix=None, p_thres=N
                 norm_ref_snps = sp.array((raw_snps - snp_means)/snp_stds,dtype='float32') 
                 ld_table = ld.calc_ld_table(norm_ref_snps, max_ld_dist=ld_radius, min_r2=max_r2, verbose=verbose)
                 
-                updated_raw_betas, pruning_vector = smart_ld_pruning(raw_betas, ld_table, pvalues=pvalues, max_ld=max_r2, verbose=verbose)
+                updated_raw_betas, pruning_vector = ld_clumping(raw_betas, ld_table, pruning_stat=pval_derived_betas**2, 
+                                                                max_ld=max_r2, verbose=verbose)
                 updated_pval_derived_betas = pval_derived_betas * pruning_vector
                 num_snps_used += sp.sum(pruning_vector)
             else:
