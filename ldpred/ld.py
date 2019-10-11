@@ -297,7 +297,7 @@ def get_ld_dict(cord_data_file, local_ld_file_prefix, ld_radius,
     return ld_dict
 
 
-def get_chromosome_herits(cord_data_g, ld_scores_dict, n, h2=None, max_h2=1, estimate_h2_per_chrom=True, debug=False, summary_dict={}):
+def get_chromosome_herits(cord_data_g, ld_scores_dict, n, h2=None, max_h2=1, use_gw_h2=False, debug=False, summary_dict={}):
     """
     Calculating genome-wide heritability using LD score regression, and partition heritability by chromosome
     """
@@ -341,9 +341,9 @@ def get_chromosome_herits(cord_data_g, ld_scores_dict, n, h2=None, max_h2=1, est
     print('Heritability used for inference: %0.4f'%h2)
         
     #Distributing heritabilities among chromosomes.
-    if not estimate_h2_per_chrom:
+    if use_gw_h2:
         for chrom_str in herit_dict:
-            herit_dict[chrom_str] = h2 * herit_dict[chrom_str]['n_snps']/float(tot_num_snps)
+            herit_dict[chrom_str]['h2'] = h2 * herit_dict[chrom_str]['n_snps']/float(tot_num_snps)
         
     herit_dict['gw_h2_ld_score_est'] = gw_h2_ld_score_est
 

@@ -389,7 +389,8 @@ def calc_risk_scores(bed_file, rs_id_map, phen_map, out_file=None,
                      adjust_for_covariates=False, adjust_for_pcs=False, 
                      non_zero_chromosomes=None, only_score = False, 
                      verbose=False, summary_dict=None):
-    print('Parsing PLINK bed file: %s' % bed_file)
+    if verbose:
+        print('Parsing PLINK bed file: %s' % bed_file)
 
     if split_by_chrom:
         num_individs = len(phen_map)

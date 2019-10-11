@@ -38,7 +38,8 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=None, n
         ld_pred_inf_n = sp.mean(ns)
     else:
         n = float(n)
-        print ("Using the given fixed sample size of %d"%(n))
+        if verbose:
+            print ("Using the given fixed sample size of %d"%(n))
         ld_pred_inf_n = float(n)
     
     # If no starting values for effects were given, then use the infinitesimal model starting values.
@@ -206,9 +207,8 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=None, n
 
 
 def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_prefix=None, 
-                      summary_dict=None, ps=None,
-                      n=None, h2=None, num_iter=None, 
-                      verbose=False, zero_jump_prob=0.05, burn_in=5):
+                      summary_dict=None, ps=None,n=None, h2=None, use_gw_h2=False, 
+                      num_iter=None, verbose=False, zero_jump_prob=0.05, burn_in=5):
     """
     Calculate LDpred for a genome
     """    
@@ -243,7 +243,8 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
         mean_n = n
 
     #Calculating genome-wide heritability using LD score regression, and partition heritability by chromsomes
-    herit_dict = ld.get_chromosome_herits(cord_data_g, ld_scores_dict, mean_n, h2=h2, debug=verbose,summary_dict=summary_dict)
+    herit_dict = ld.get_chromosome_herits(cord_data_g, ld_scores_dict, mean_n, h2=h2, use_gw_h2=use_gw_h2, 
+                                          debug=verbose, summary_dict=summary_dict)
 
     LDpred_inf_chrom_dict = {}
     print('Calculating LDpred-inf weights')
@@ -261,7 +262,7 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
                               
             h2_chrom = herit_dict[chrom_str]['h2']
             start_betas = LDpred_inf.ldpred_inf(pval_derived_betas, genotypes=None, reference_ld_mats=chrom_ref_ld_mats[chrom_str],
-                                                h2=h2_chrom, n=mean_n, ld_window_size=2 * ld_radius, verbose=False)
+                                                h2=h2_chrom, n=mean_n, ld_window_size=2 * ld_radius, verbose=verbose)
             LDpred_inf_chrom_dict[chrom_str] = start_betas
 
     
@@ -283,7 +284,7 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
             out_nts = []
             
         chrom_i = 0
-        num_chrom = len(util.chromosomes_list)
+        num_chrom = len(cord_data_g.keys())
         for chrom_str in util.chromosomes_list:
             chrom_i+=1
             if chrom_str in cord_data_g:
@@ -427,7 +428,7 @@ def main(p_dict):
     summary_dict[1.9]={'name':'dash', 'value':'LDpred Gibbs sampler'}
     ldpred_genomewide(data_file=p_dict['cf'], out_file_prefix=p_dict['out'], ps=p_dict['f'], ld_radius=p_dict['ldr'],
                       ld_dict=ld_dict, n=p_dict['N'], num_iter=p_dict['n_iter'], burn_in=p_dict['n_burn_in'], 
-                      h2=p_dict['h2'], verbose=p_dict['debug'], summary_dict=summary_dict)
+                      h2=p_dict['h2'], use_gw_h2=p_dict['use_gw_h2'], verbose=p_dict['debug'], summary_dict=summary_dict)
     t1 = time.time()
     t = (t1 - t0)
     summary_dict[2.2]={'name':'Running time for Gibbs sampler(s):','value':'%d min and %0.2f secs'% (t / 60, t % 60)}

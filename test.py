@@ -75,6 +75,19 @@ def test_LD_pred_inf(label='inf', td_prefix='./test_data/sim1_0'):
     print(cmd_str + '\n')
     assert os.system(cmd_str) == 0, 'Problems with the validation step!'
 
+    ld_file = tmp_file_prefix+label+'.ld'
+    weights_file = tmp_file_prefix+label+'.weights'
+    print('Running LDpred-inf with coordinated file prefix: %s ' % coord_file)
+    cmd_str = 'python LDpred.py --debug inf --cf=%s  --ldr=100  --use-gw-h2 --ldf=%s  --N=10000  --out=%s' % (coord_file, ld_file, weights_file)
+    print(cmd_str + '\n')
+    assert os.system(cmd_str) == 0, 'Problems when running LDpred_inf!'
+
+    prs_file_prefix = tmp_file_prefix + label+'.prs'
+    print('Validating results with output file prefix: %s' % weights_file)
+    cmd_str = 'python LDpred.py --debug score --gf=%s_test  --rf=%s  --out=%s' % (td_prefix, weights_file, prs_file_prefix)
+    print(cmd_str + '\n')
+    assert os.system(cmd_str) == 0, 'Problems with the validation step!'
+
 
 def test_gibbs(label='gibbs',td_prefix='./test_data/sim2_0'):
     print("Testing LDpred-gibbs Workflow")
@@ -120,7 +133,7 @@ def test_mix(label='mix', td_prefix='./test_data/',num_traits=1):
             ld_file = file_prefix+'.ld'
             weights_file = file_prefix+'.weights'
             print('Running LDpred with coordinated file prefix: %s ' % coord_file)
-            cmd_str = 'python LDpred.py --debug gibbs --n-burn-in 3 --n-iter 30 --cf=%s  --ldr=100   --ldf=%s  --f 1 0.3 0.1 --out=%s' % (coord_file, ld_file, weights_file)
+            cmd_str = 'python LDpred.py --debug gibbs --N 5500 --use-gw-h2  --n-burn-in 3 --n-iter 25 --cf=%s  --ldr=100   --ldf=%s  --f 1 0.3 0.1 --out=%s' % (coord_file, ld_file, weights_file)
             print(cmd_str + '\n')
             assert os.system(cmd_str) == 0, 'Problems when running LDpred!'
         
@@ -136,20 +149,49 @@ def test_mix(label='mix', td_prefix='./test_data/',num_traits=1):
             assert os.system(cmd_str) == 0, 'Problems with the validation step!'
             print('Test finished successfully!')
         
-            prs_file_prefix2 = file_prefix+'.prs2'
-            print('Validating results with output file prefix: %s' % prs_file_prefix2)
-            cmd_str = 'python LDpred.py --debug score --gf=%s_test  --only-score --rf=%s  --rf-format=P+T --out=%s' % (df_prefix, weights_file, prs_file_prefix2)
-            print(cmd_str + '\n')
-            assert os.system(cmd_str) == 0, 'Problems with the P+T validation step!'
-            print('Test finished successfully!')
 
+def test_mix2(label='mix2', td_prefix='./test_data/',num_traits=1):
+    print("Testing mixed LDpred Workflow")
     
+    for sim_i in range(1,6):
+        td = './test_data/sim%d'%sim_i
+        for t_i in range(num_traits):
+            file_prefix = '%s_%s_sim%d_%d'%(tmp_file_prefix,label,sim_i,t_i)
+            df_prefix = '%s_%d'%(td,t_i)
+            
+            coord_file = file_prefix+'.hdf5'
+            print('Coordinating test data into file %s' % coord_file)
+            cmd_str = 'python LDpred.py coord --gf=%s_train --vbim=%s_test.bim --ssf=%s_ss.txt --ssf-format=LDPRED --out=%s' % (df_prefix,df_prefix,df_prefix,coord_file)
+            print(cmd_str + '\n')
+            assert os.system(cmd_str) == 0, 'Problems when coordinating data!'
+        
+            ld_file = file_prefix+'.ld'
+            weights_file = file_prefix+'.weights'
+            print('Running LDpred with coordinated file prefix: %s ' % coord_file)
+            cmd_str = 'python LDpred.py gibbs --n-burn-in 3 --n-iter 30 --cf=%s  --ldr=150   --ldf=%s  --f 1 0.1 0.01 0.001 --out=%s' % (coord_file, ld_file, weights_file)
+            print(cmd_str + '\n')
+            assert os.system(cmd_str) == 0, 'Problems when running LDpred!'
+        
+            print('Running P+T with coordinated file prefix: %s ' % coord_file)
+            cmd_str = 'python LDpred.py p+t --cf=%s  --ldr=100  --p 1 0.1 0.01 0.001 0.0001 --out=%s' % (coord_file, weights_file)
+            print(cmd_str + '\n')
+            assert os.system(cmd_str) == 0, 'Problems when running P+T!'
+        
+            prs_file_prefix = file_prefix+'.prs'
+            print('Validating results with output file prefix: %s' % prs_file_prefix)
+            cmd_str = 'python LDpred.py score --gf=%s_test  --rf=%s  --out=%s' % (df_prefix, weights_file, prs_file_prefix)
+            print(cmd_str + '\n')
+            assert os.system(cmd_str) == 0, 'Problems with the validation step!'
+            print('Test finished successfully!')
+        
 try:
     test_coord()
     test_simple_pt()
     test_LD_pred_inf()    
     test_gibbs()
     test_mix()
+    test_mix2()
+
 
 
 except Exception as e:

@@ -180,8 +180,15 @@ parser_gibbs.add_argument('--n-iter', type=int, default=60,
 parser_gibbs.add_argument('--n-burn-in', type=int, default=5,
                     help='The number of burn-in iterations used by the Gibbs sampler. The default is 5.')
 parser_gibbs.add_argument('--h2', type=float, default=None, 
-                    help='The heritability assumed by LDpred.  By default it estimates the heritability from'
-                    ' the GWAS summary statistics using LD score regression (Bulik-Sullivan et al., Nat Genet 2015).')
+                    help='The genome-wide heritability assumed by LDpred, which is then partitioned '
+                    'proportional to the number of SNPs on each chromosome.  By default it estimates the '
+                    'heritability for each chromosome from the GWAS summary statistics using LD score '
+                    'regression (Bulik-Sullivan et al., Nat Genet 2015).')
+parser_gibbs.add_argument('--use-gw-h2', default=False, action='store_true',
+                    help='Estimate heritability genome-wide and partition it proportional to the number of SNPs on each chromsome '
+                    'instead of estimating it for each chromosome separately.  This is like a likely good choice if '
+                    'the summary statistics used are based on small sample sizes (approx <50K), or if the trait is '
+                    'not very heritable.')
 parser_gibbs.add_argument('--no-ld-compression', default=False, action='store_true',
                     help='Do not compress LD information.  Saves storing and loading time of LD information, '
                     'but takes more space on disk.')
@@ -212,8 +219,15 @@ parser_inf.add_argument('--out', type=str, required=True,
 parser_inf.add_argument('--N', type=int, default=100000, required=True,
                     help='Number of individuals on which the summary statistics are assumed to be based on.')
 parser_inf.add_argument('--h2', type=float, default=None, 
-                    help='The heritability assumed by LDpred.  By default it estimates the heritability from'
-                    ' the GWAS summary statistics using LD score regression (Bulik-Sullivan et al., Nat Genet 2015).')
+                    help='The genome-wide heritability assumed by LDpred, which is then partitioned '
+                    'proportional to the number of SNPs on each chromosome.  By default it estimates the '
+                    'heritability for each chromosome from the GWAS summary statistics using LD score '
+                    'regression (Bulik-Sullivan et al., Nat Genet 2015).')
+parser_inf.add_argument('--use-gw-h2', default=False, action='store_true', 
+                    help='Estimate heritability genome-wide and partition it proportional to the number of SNPs on each chromsome '
+                    'instead of estimating it for each chromosome separately.  This is like a likely good choice if '
+                    'the summary statistics used are based on small sample sizes (approx <50K), or if the trait is '
+                    'not very heritable.')
 parser_inf.add_argument('--no-ld-compression', default=False, action='store_true',
                     help='Do not compress LD information.  Saves storing and loading time of LD information, '
                     'but takes more space on disk.')
