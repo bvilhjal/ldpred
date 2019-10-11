@@ -45,7 +45,7 @@ def ldpred_inf(beta_hats, h2=0.1, n=1000, inf_shrink_matrices=None,
         updated_betas[start_i: stop_i] = sp.dot(A_inv * n , beta_hats[start_i: stop_i])  # Adjust the beta_hats
 
         if verbose:
-            sys.stdout.write('\b\b\b\b\b\b\b%0.2f%%' % (100.0 * (min(1, float(wi + ld_window_size) / m))))
+            sys.stdout.write('\r%0.2f%%' % (100.0 * (min(1, float(wi + ld_window_size) / m))))
             sys.stdout.flush()
 
     t1 = time.time()

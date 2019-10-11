@@ -149,7 +149,7 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
     for chrom in chromosomes:
         chrom_i +=1
         if not debug:
-            sys.stdout.write('\b\b\b\b\b\b\b%0.2f%%' % (100.0 * (float(chrom_i) / (len(chromosomes)+1))))
+            sys.stdout.write('\r%0.2f%%' % (100.0 * (float(chrom_i) / (len(chromosomes)+1))))
             sys.stdout.flush()            
         try:
             chr_str = 'chrom_%d' % chrom
@@ -508,7 +508,7 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
         tot_num_maf_filtered_snps += num_maf_filtered_snps
 
     if not debug:
-        sys.stdout.write('\b\b\b\b\b\b\b%0.2f%%\n' % (100.0))
+        sys.stdout.write('\r%0.2f%%\n' % (100.0))
         sys.stdout.flush()                        
 
 

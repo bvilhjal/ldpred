@@ -183,7 +183,7 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
         for line in f:
             line_i +=1
             if line_i%1000==0 and num_lines>0:
-                sys.stdout.write('\b\b\b\b\b\b\b%0.2f%%' % (100.0 * (float(line_i) / (num_lines))))
+                sys.stdout.write('\r%0.2f%%' % (100.0 * (float(line_i) / (num_lines))))
                 sys.stdout.flush()            
             if util.is_gz(filename):
                 line = line.decode('utf-8')
@@ -323,7 +323,7 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
                 print('Please note that only data on chromosomes 1-23, and X are parsed.')
 
     if num_lines>0:
-        sys.stdout.write('\b\b\b\b\b\b\b%0.2f%%\n' % (100.0))
+        sys.stdout.write('\r%0.2f%%\n' % (100.0))
         sys.stdout.flush()            
     print('SS file loaded, now sorting and storing in HDF5 file.')
     assert not 'sum_stats' in hdf5_file, 'Something is wrong with HDF5 file?'
