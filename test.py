@@ -168,12 +168,12 @@ def test_mix2(label='mix2', td_prefix='./test_data/',num_traits=1):
             ld_file = file_prefix+'.ld'
             weights_file = file_prefix+'.weights'
             print('Running LDpred with coordinated file prefix: %s ' % coord_file)
-            cmd_str = 'python LDpred.py gibbs --n-burn-in 3 --n-iter 30 --cf=%s  --ldr=150   --ldf=%s  --f 1 0.1 0.01 0.001 --out=%s' % (coord_file, ld_file, weights_file)
+            cmd_str = 'python LDpred.py gibbs --n-burn-in 5 --n-iter 35 --cf=%s  --ldr=150   --ldf=%s  --f 1 0.1 0.01 0.001 --out=%s' % (coord_file, ld_file, weights_file)
             print(cmd_str + '\n')
             assert os.system(cmd_str) == 0, 'Problems when running LDpred!'
         
             print('Running P+T with coordinated file prefix: %s ' % coord_file)
-            cmd_str = 'python LDpred.py p+t --cf=%s  --ldr=100  --p 1 0.1 0.01 0.001 0.0001 --out=%s' % (coord_file, weights_file)
+            cmd_str = 'python LDpred.py p+t --cf=%s  --ldr=150  --r2 0.5 0.2 0.1 --p 1 0.1 0.01 0.001 0.0001 --out=%s' % (coord_file, weights_file)
             print(cmd_str + '\n')
             assert os.system(cmd_str) == 0, 'Problems when running P+T!'
         

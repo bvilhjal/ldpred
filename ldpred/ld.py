@@ -338,7 +338,8 @@ def get_chromosome_herits(cord_data_g, ld_scores_dict, n, h2=None, max_h2=1, use
         if gw_h2_ld_score_est>1:
             print ('LD-score estimated heritability is suspiciously large, suggesting that the given sample size is wrong, or that SNPs are enriched for heritability (e.g. using p-value thresholding). If the SNPs are enriched for heritability we suggest using the --h2 flag to provide a more reasonable heritability estimate.')
         h2 = min(gw_h2_ld_score_est,max_h2)
-    print('Heritability used for inference: %0.4f'%h2)
+    if debug:
+        print('Heritability used for inference: %0.4f'%h2)
         
     #Distributing heritabilities among chromosomes.
     if use_gw_h2:
