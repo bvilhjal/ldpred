@@ -27,6 +27,7 @@ def _verify_coord_data_(data_dict):
     assert num_snps ==len(data_dict['sids']), 'Inconsistencies in coordinated data sizes'
     assert num_snps ==len(data_dict['betas']), 'Inconsistencies in coordinated data sizes'
     assert num_snps ==len(data_dict['log_odds']), 'Inconsistencies in coordinated data sizes'
+    assert num_snps ==len(data_dict['ns']), 'Inconsistencies in coordinated data sizes'
     if 'raw_snps_val' in data_dict:
         assert num_snps ==len(data_dict['raw_snps_val']), 'Inconsistencies in coordinated data sizes'
         assert num_snps ==len(data_dict['snp_stds_val']), 'Inconsistencies in coordinated data sizes'
@@ -57,6 +58,8 @@ def write_coord_data(cord_data_g, coord_dict, debug=False):
     ofg.create_dataset('sids', data=sp.array(coord_dict['sids'],dtype=util.sids_dtype))
     ofg.create_dataset('betas', data=coord_dict['betas'])
     ofg.create_dataset('log_odds', data=coord_dict['log_odds'])
+    ofg.create_dataset('ns', data=coord_dict['ns'])
+
     
     if coord_dict['genetic_map'] is not None:
         ofg.create_dataset('genetic_map', data=coord_dict['genetic_map'])
@@ -386,6 +389,7 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
         betas = betas[ok_indices['ss']]  
         log_odds = log_odds[ok_indices['ss']]  
 
+        ns = ssg['ns'][...][ok_indices['ss']]
         ps = ssg['ps'][...][ok_indices['ss']]
         nts = sp.array(ok_nts)  
         sids = (ssg['sids'][...]).astype(util.sids_u_dtype)
@@ -416,6 +420,7 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
                 snp_means = snp_means[ok_freq_snps]
                 freqs = freqs[ok_freq_snps]
                 ps = ps[ok_freq_snps]
+                ns = ns[ok_freq_snps]
                 positions = positions[ok_freq_snps]
                 nts = nts[ok_freq_snps]
                 sids = sids[ok_freq_snps]
@@ -439,6 +444,7 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
             snp_means = snp_means[maf_filter]
             freqs = freqs[maf_filter]
             ps = ps[maf_filter]
+            ns = ns[maf_filter]
             positions = positions[maf_filter]
             nts = nts[maf_filter]
             sids = sids[maf_filter]
@@ -468,6 +474,7 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
                            'snp_means_ref': snp_means, 
                            'freqs_ref': freqs,
                            'ps': ps,
+                           'ns': ns,
                            'positions': positions,
                            'nts': nts,
                            'sids': sids,
