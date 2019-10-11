@@ -5,6 +5,7 @@ import scipy as sp
 from scipy import linalg
 from ldpred import util
 from ldpred import ld
+from ldpred import reporting
 
 def ldpred_inf(beta_hats, h2=0.1, n=1000, inf_shrink_matrices=None, 
                reference_ld_mats=None, genotypes=None, ld_window_size=100, verbose=False):
@@ -44,7 +45,7 @@ def ldpred_inf(beta_hats, h2=0.1, n=1000, inf_shrink_matrices=None,
         updated_betas[start_i: stop_i] = sp.dot(A_inv * n , beta_hats[start_i: stop_i])  # Adjust the beta_hats
 
         if verbose:
-            sys.stdout.write('\r%0.2f%%' % (100.0 * (min(1, float(wi + 1.0) / m))))
+            sys.stdout.write('\r%0.2f%%' % (100.0 * (min(1, float(wi + ld_window_size) / m))))
             sys.stdout.flush()
 
     t1 = time.time()
@@ -55,7 +56,7 @@ def ldpred_inf(beta_hats, h2=0.1, n=1000, inf_shrink_matrices=None,
 
 
 def ldpred_inf_genomewide(data_file=None, ld_radius = None, ld_dict=None, out_file_prefix=None,
-                          n=None, h2=None, verbose=False):
+                          n=None, h2=None, use_gw_h2=False, verbose=False, summary_dict=None):
     """
     Calculate LDpred for a genome
     """    
@@ -77,7 +78,8 @@ def ldpred_inf_genomewide(data_file=None, ld_radius = None, ld_dict=None, out_fi
     cord_data_g = df['cord_data']
 
     #Calculating genome-wide heritability using LD score regression, and partition heritability by chromsomes
-    herit_dict = ld.get_chromosome_herits(cord_data_g, ld_scores_dict, n, h2=h2)
+    herit_dict = ld.get_chromosome_herits(cord_data_g, ld_scores_dict, n, h2=h2, use_gw_h2=use_gw_h2, 
+                                          debug=verbose,summary_dict=summary_dict)
 
     if out_file_prefix:
         #Preparing output files
@@ -108,7 +110,7 @@ def ldpred_inf_genomewide(data_file=None, ld_radius = None, ld_dict=None, out_fi
                 nts_arr = (g['nts'][...]).astype(util.nts_u_dtype)
                 nts.extend(nts_arr)
         
-            h2_chrom = herit_dict[chrom_str] 
+            h2_chrom = herit_dict[chrom_str]['h2'] 
             updated_betas = ldpred_inf(pval_derived_betas, genotypes=None, reference_ld_mats=chrom_ref_ld_mats[chrom_str], 
                                                 h2=h2_chrom, n=n, ld_window_size=2*ld_radius, verbose=False)
                     
@@ -147,7 +149,7 @@ def ldpred_inf_genomewide(data_file=None, ld_radius = None, ld_dict=None, out_fi
         print('The slope for predictions with P-value derived  effects is: %0.4f'%regression_slope)
         results_dict['slope_pd']=regression_slope
     
-    weights_out_file = '%s.txt'%(out_file_prefix)
+    weights_out_file = '%s_LDpred-inf.txt' % (out_file_prefix)
     with open(weights_out_file,'w') as f:
         f.write('chrom    pos    sid    nt1    nt2    raw_beta    ldpred_inf_beta\n')
         for chrom, pos, sid, nt, raw_beta, ldpred_beta in zip(chromosomes, positions, sids, nts, raw_effect_sizes, ldpred_effect_sizes):
@@ -157,11 +159,29 @@ def ldpred_inf_genomewide(data_file=None, ld_radius = None, ld_dict=None, out_fi
 
 
 def main(p_dict):
+    summary_dict = {}
+    summary_dict[0]={'name':'Coordinated data filename','value':p_dict['cf']}
+    summary_dict[0.1]={'name':'SNP weights output file (prefix)', 'value':p_dict['out']}
+    summary_dict[0.2]={'name':'LD data filename (prefix)', 'value':p_dict['ldf']}
+    summary_dict[1]={'name':'LD radius used','value':str(p_dict['ldr'])}
+    t0 = time.time()
+    summary_dict[1.09]={'name':'dash', 'value':'LD information'}
     ld_dict = ld.get_ld_dict(p_dict['cf'], p_dict['ldf'], p_dict['ldr'], verbose=p_dict['debug'], 
-                             compressed=not p_dict['no_ld_compression'], use_hickle=p_dict['hickle_ld'], summary_dict={})
-    
+                             compressed=not p_dict['no_ld_compression'], use_hickle=p_dict['hickle_ld'], summary_dict=summary_dict)
+    t1 = time.time()
+    t = (t1 - t0)
+    summary_dict[1.2]={'name':'Running time for calculating LD information:','value':'%d min and %0.2f secs'% (t / 60, t % 60)}
+    t0 = time.time()
+    summary_dict[1.9]={'name':'dash', 'value':'LDpred infinitesimal model'}
     ldpred_inf_genomewide(data_file=p_dict['cf'], out_file_prefix=p_dict['out'], ld_radius=p_dict['ldr'], 
-                          ld_dict = ld_dict, n=p_dict['N'], h2=p_dict['h2'], verbose=p_dict['debug'])
+                          ld_dict = ld_dict, n=p_dict['N'], h2=p_dict['h2'], use_gw_h2=p_dict['use_gw_h2'],
+                          verbose=p_dict['debug'], summary_dict=summary_dict)
+    t1 = time.time()
+    t = (t1 - t0)
+    summary_dict[2.2]={'name':'Running time for LDpred-inf:','value':'%d min and %0.2f secs'% (t / 60, t % 60)}
+    reporting.print_summary(summary_dict, 'Summary of LDpred-inf')
+    
+        
             
                     
 
