@@ -110,7 +110,7 @@ parser_coord.add_argument('--maf', type=float, default=0.01,
 parser_coord.add_argument('--max-freq-discrep', type=float, default=0.1,
                     help='Max frequency discrepancy allowed between reported sum stats frequency and frequency '
                     'in the LD reference data.  To disable check, set to 1.')
-parser_coord.add_argument('--ssf-format', type=str, default="CUSTOM", choices={'LDPRED','CUSTOM','STANDARD','GIANT', 'PGC'},
+parser_coord.add_argument('--ssf-format', type=str, default="CUSTOM", choices={'LDPRED','CUSTOM','STANDARD','GIANT', 'BASIC','PGC'},
                     help='This is the format type of the summary statistics file. '
                     'By default the CUSTOM format requires the user to specify the file format using additional '
                     'arguments.')
