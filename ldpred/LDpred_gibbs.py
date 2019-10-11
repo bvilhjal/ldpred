@@ -350,7 +350,7 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
                 if verbose:
                     print('Calculating SNP weights for Chromosome %s' % ((chrom_str.split('_'))[1]))
                 else:
-                    sys.stdout.write('\b\b\b\b\b\b\b%0.2f%%' % (100.0 * (min(1, float(chrom_i + 1) / num_chrom))))
+                    sys.stdout.write('\b\b\b\b\b\b\b%0.2f%%' % (100.0 * (min(1, float(chrom_i) / num_chrom))))
                     sys.stdout.flush()
 
                 updated_betas = updated_betas / (snp_stds.flatten())
