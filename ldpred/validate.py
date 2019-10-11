@@ -323,10 +323,11 @@ def parse_pt_res(file_name):
     return rs_id_map, non_zero_chromosomes
 
 def write_scores_file(out_file, prs_dict, pval_derived_effects_prs, adj_pred_dict, 
-                      output_regression_betas=False, weights_dict=None):
+                      output_regression_betas=False, weights_dict=None, verbose=False):
     num_individs = len(prs_dict['iids'])
     with open(out_file, 'w') as f:
-        print ('Writing polygenic scores to file %s'%out_file)
+        if verbose:
+            print ('Writing polygenic scores to file %s'%out_file)
         out_str = 'IID, true_phens, PRS'
         if 'sex' in prs_dict:
             out_str = out_str + ', sex'
@@ -363,7 +364,8 @@ def write_scores_file(out_file, prs_dict, pval_derived_effects_prs, adj_pred_dic
                 f.write(out_str)
     if output_regression_betas and weights_dict != None:
         hdf5file = out_file + '.weights.hdf5'
-        print ('Writing PRS regression weights to file %s'%hdf5file)
+        if verbose:
+            print ('Writing PRS regression weights to file %s'%hdf5file)
         oh5f = h5py.File(hdf5file, 'w')
         for k1 in list(weights_dict.keys()):
             kg = oh5f.create_group(k1)
@@ -419,7 +421,8 @@ def calc_risk_scores(bed_file, rs_id_map, phen_map, out_file=None,
         write_only_scores_file(out_file, prs_dict, pval_derived_effects_prs)
         res_dict = {}
     elif sp.std(prs_dict['true_phens'])==0:
-        print('No variance left to explain in phenotype.')
+        if verbose:
+            print('No variance left to explain in phenotype.')
         res_dict = {'pred_r2': 0}
     else:
         # Report prediction accuracy
@@ -563,7 +566,8 @@ def calc_risk_scores(bed_file, rs_id_map, phen_map, out_file=None,
 
         # Write PRS out to file.
         if out_file != None:
-            write_scores_file(out_file, prs_dict, pval_derived_effects_prs, adj_pred_dict, weights_dict=weights_dict)
+            write_scores_file(out_file, prs_dict, pval_derived_effects_prs, adj_pred_dict, 
+                              weights_dict=weights_dict, verbose=verbose)
 
     return res_dict
 
@@ -702,7 +706,6 @@ def main(p_dict):
             for p_thres in p_dict['p']:
                 weights_file = '%s_P+T_r%0.2f_p%0.4e.txt' % (p_dict['rf'], max_r2, p_thres)
                 if os.path.isfile(weights_file):
-                    print('')
                     print('Calculating P+T risk scores using p-value threshold of %0.3e, and r2 threshold of %0.2f' % (p_thres, max_r2))
                     rs_id_map, non_zero_chromosomes = parse_pt_res(weights_file)
                     if len(rs_id_map)>0:

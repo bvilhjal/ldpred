@@ -179,7 +179,7 @@ def test_mix2(label='mix2', td_prefix='./test_data/',num_traits=1):
         
             prs_file_prefix = file_prefix+'.prs'
             print('Validating results with output file prefix: %s' % prs_file_prefix)
-            cmd_str = 'python LDpred.py score --gf=%s_test  --rf=%s  --out=%s' % (df_prefix, weights_file, prs_file_prefix)
+            cmd_str = 'python LDpred.py score --gf=%s_test  --r2 0.5 0.2 0.1 --rf=%s  --out=%s' % (df_prefix, weights_file, prs_file_prefix)
             print(cmd_str + '\n')
             assert os.system(cmd_str) == 0, 'Problems with the validation step!'
             print('Test finished successfully!')
