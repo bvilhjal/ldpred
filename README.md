@@ -109,5 +109,8 @@ In addition to the LDpred gibbs sampler and infinitesimal model methods, the pac
 
 This method often yields better predictions than LDpred when the LD reference panel is small, or when the training data is very large (due to problems with gibbs sampler convergence).
 
+### Citation ###
+Please cite [this paper](https://doi.org/10.1016/j.ajhg.2015.09.001)
+
 ### Acknowledges ###
 Thanks to all who provided bug reports and contributed code.
