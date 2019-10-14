@@ -21,6 +21,15 @@ from numpy import linalg
 from ldpred import util
 
 
+def _calculate_D(snps, snp_i, snp, start_i, stop_i, ld_dict, ld_scores):
+    m, n = snps.shape
+    X = snps[start_i: stop_i]
+    D_i = sp.dot(snp, X.T) / n
+    r2s = D_i ** 2
+    ld_dict[snp_i] = D_i
+    lds_i = sp.sum(r2s - (1 - r2s) / (n - 2), dtype='float32')
+    ld_scores[snp_i] = lds_i
+
 
 def get_LDpred_ld_tables(snps, ld_radius=100, ld_window_size=0, h2=None, n_training=None, gm=None, gm_ld_radius=None):
     """
@@ -33,15 +42,9 @@ def get_LDpred_ld_tables(snps, ld_radius=100, ld_window_size=0, h2=None, n_train
     ret_dict = {}
     if gm_ld_radius is None:
         for snp_i, snp in enumerate(snps):
-            # Calculate D
             start_i = max(0, snp_i - ld_radius)
             stop_i = min(m, snp_i + ld_radius + 1)
-            X = snps[start_i: stop_i]
-            D_i = sp.dot(snp, X.T) / n
-            r2s = D_i ** 2
-            ld_dict[snp_i] = D_i
-            lds_i = sp.sum(r2s - (1 - r2s) / (n - 2), dtype='float32')
-            ld_scores[snp_i] = lds_i
+            _calculate_D(snps, snp_i, snp, start_i, stop_i, ld_dict, ld_scores)
     else:
         assert gm is not None, 'Genetic map is missing.'
         window_sizes = []
@@ -67,13 +70,7 @@ def get_LDpred_ld_tables(snps, ld_radius=100, ld_window_size=0, h2=None, n_train
             curr_ws = stop_i - start_i
             window_sizes.append(curr_ws)
             assert curr_ws > 0, 'Some issues with the genetic map'
-
-            X = snps[start_i: stop_i]
-            D_i = sp.dot(snp, X.T) / n
-            r2s = D_i ** 2
-            ld_dict[snp_i] = D_i
-            lds_i = sp.sum(r2s - (1 - r2s) / (n - 2), dtype='float32')
-            ld_scores[snp_i] = lds_i
+            _calculate_D(snps, snp_i, snp, start_i, stop_i, ld_dict, ld_scores)
         
         avg_window_size = sp.mean(window_sizes)
         print('Average # of SNPs in LD window was %0.2f' % avg_window_size)
@@ -159,6 +156,29 @@ def calc_ld_table(snps, max_ld_dist=2000, min_r2=0.2, verbose=True, normalize=Fa
     return ld_table
 
 
+def extract_snps_from_cord_data_chrom(g):
+    raw_snps = g['raw_snps_ref'][...]
+    snp_stds = g['snp_stds_ref'][...]
+    snp_means = g['snp_means_ref'][...]
+    n_raw_snps = len(raw_snps)
+
+    # Filter monomorphic SNPs
+    ok_snps_filter = snp_stds > 0
+    ok_snps_filter = ok_snps_filter.flatten()
+    raw_snps = raw_snps[ok_snps_filter]
+    snp_means = snp_means[ok_snps_filter]
+    snp_stds = snp_stds[ok_snps_filter]
+
+    n_snps = len(raw_snps)
+    snp_means.shape = (n_snps, 1)
+    snp_stds.shape = (n_snps, 1)
+
+    # Normalize SNPs..
+    snps = sp.array((raw_snps - snp_means) / snp_stds, dtype='float32')
+    assert snps.shape == raw_snps.shape, 'Problems normalizing SNPs (array shape mismatch).'
+    return snps, n_raw_snps, n_snps
+
+
 def smart_ld_pruning(scores, ld_table, max_ld=0.5, verbose=False, reverse=False):
     """
     Prunes SNPs in LD, but with smaller scores (p-values or betas)
@@ -197,6 +217,14 @@ def smart_ld_pruning(scores, ld_table, max_ld=0.5, verbose=False, reverse=False)
     return pruning_vector             
 
 
+def get_ld_dict_using_p_dict(p_dict, summary_dict):
+    return get_ld_dict(p_dict['cf'], p_dict['ldf'], p_dict['ldr'],
+                       verbose=p_dict['debug'],
+                       compressed=not p_dict['no_ld_compression'],
+                       use_hickle=p_dict['hickle_ld'],
+                       summary_dict=summary_dict)
+
+
 def get_ld_dict(cord_data_file, local_ld_file_prefix, ld_radius, 
                 gm_ld_radius=None, verbose=False, compressed=True, 
                 use_hickle=False, summary_dict=None):
@@ -223,33 +251,17 @@ def get_ld_dict(cord_data_file, local_ld_file_prefix, ld_radius,
         num_raw_snps=0
         print('Calculating LD information w. radius %d' % ld_radius)
 
-        df = h5py.File(cord_data_file)
+        df = h5py.File(cord_data_file, 'r')
         cord_data_g = df['cord_data']
 
         for chrom_str in cord_data_g:
             if verbose:
                 print('Calculating LD for chromosome %s' % chrom_str)
             g = cord_data_g[chrom_str]
-            raw_snps = g['raw_snps_ref'][...]
-            snp_stds = g['snp_stds_ref'][...]
-            snp_means = g['snp_means_ref'][...]
-            num_raw_snps += len(raw_snps)
-            
-            # Filter monomorphic SNPs
-            ok_snps_filter = snp_stds > 0
-            ok_snps_filter = ok_snps_filter.flatten()
-            raw_snps = raw_snps[ok_snps_filter]
-            snp_means = snp_means[ok_snps_filter]
-            snp_stds = snp_stds[ok_snps_filter]
+            snps, n_raw_snps, n_snps = extract_snps_from_cord_data_chrom(g)
+            num_raw_snps += n_raw_snps
+            num_snps += n_snps
 
-            n_snps = len(raw_snps)
-            snp_means.shape = (n_snps, 1)   
-            snp_stds.shape = (n_snps, 1)   
-            
-            
-            # Normalize SNPs..
-            snps = sp.array((raw_snps - snp_means) / snp_stds, dtype='float32')
-            assert snps.shape == raw_snps.shape, 'Problems normalizing SNPs (array shape mismatch).'
             if gm_ld_radius is not None:
                 assert 'genetic_map' in g, 'Genetic map is missing.'
                 gm = g['genetic_map'][...]
@@ -262,7 +274,6 @@ def get_ld_dict(cord_data_file, local_ld_file_prefix, ld_radius,
             ld_scores = ret_dict['ld_scores']
             chrom_ld_scores_dict[chrom_str] = {'ld_scores':ld_scores, 'avg_ld_score':sp.mean(ld_scores)}
             ld_score_sum += sp.sum(ld_scores)
-            num_snps += n_snps
         avg_gw_ld_score = ld_score_sum / float(num_snps)
         ld_scores_dict = {'avg_gw_ld_score': avg_gw_ld_score, 'chrom_dict':chrom_ld_scores_dict, 
                           'num_snps':num_snps, 'num_raw_snps':num_raw_snps}    
@@ -286,7 +297,7 @@ def get_ld_dict(cord_data_file, local_ld_file_prefix, ld_radius,
         
         num_raw_snps=0
         #Verify LD data
-        df = h5py.File(cord_data_file)
+        df = h5py.File(cord_data_file, 'r')
         cord_data_g = df['cord_data']
         for chrom_str in cord_data_g:
             g = cord_data_g[chrom_str]

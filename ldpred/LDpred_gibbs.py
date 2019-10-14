@@ -354,8 +354,7 @@ def main(p_dict):
     summary_dict[1]={'name':'LD radius used','value':str(p_dict['ldr'])}
     t0 = time.time()
     summary_dict[1.09]={'name':'dash', 'value':'LD information'}
-    ld_dict = ld.get_ld_dict(p_dict['cf'], p_dict['ldf'], p_dict['ldr'], verbose=p_dict['debug'],
-                              compressed=not p_dict['no_ld_compression'], use_hickle=p_dict['hickle_ld'], summary_dict=summary_dict)    
+    ld_dict = ld.get_ld_dict_using_p_dict(p_dict, summary_dict=summary_dict)
     t1 = time.time()
     t = (t1 - t0)
     summary_dict[1.2]={'name':'Running time for calculating LD information:','value':'%d min and %0.2f secs'% (t / 60, t % 60)}
