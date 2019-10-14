@@ -49,7 +49,7 @@ def parse_plink_snps(genotype_file, snp_indices):
             snp = sp.array(line, dtype='int8')
             bin_counts = line.allele_counts()
             if bin_counts[-1] > 0:
-                mode_v = sp.argmax(bin_counts[:2])
+                mode_v = sp.argmax(bin_counts[:3])
                 snp[snp == 3] = mode_v
             s_i = snp_order[snp_i]
             raw_snps[s_i] = snp

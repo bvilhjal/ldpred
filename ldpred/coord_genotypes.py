@@ -346,7 +346,7 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
                     flip_nts = False
                     
                     #Coordination is a bit more complicate when validation genotypes are provided..
-                    if not sp.all(g_nt == ss_nt) or sp.all(os_g_nt == ss_nt):
+                    if not (sp.all(g_nt == ss_nt) or sp.all(os_g_nt == ss_nt)):
                         flip_nts = (g_nt[1] == ss_nt[0] and g_nt[0] == ss_nt[1]) or (
                             os_g_nt[1] == ss_nt[0] and os_g_nt[0] == ss_nt[1])
                         

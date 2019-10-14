@@ -79,7 +79,7 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=None, n
         rand_ps = sp.random.random(m)
         
         if n is not None:
-            rand_norms = stats.norm.rvs(0.0, (hdmp_hdmpn) * (1.0 / n), size=m)
+            rand_norms = stats.norm.rvs(0.0, np.sqrt((hdmp_hdmpn) * (1.0 / n)), size=m)
 
         if ld_boundaries is None:
             for i, snp_i in enumerate(iter_order):
@@ -97,7 +97,7 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=None, n
                     hdmp_hdmpn = (hdmp / hdmpn)
                     c_const = (p / sp.sqrt(hdmpn))
                     d_const = (1.0 - p) / (sp.sqrt(1.0 / ni))
-                    rand_norm =  stats.norm.rvs(0.0, (hdmp_hdmpn) * (1.0 / ni), size=1)[0]
+                    rand_norm =  stats.norm.rvs(0.0, np.sqrt((hdmp_hdmpn) * (1.0 / ni)), size=1)[0]
 
                 # Local LD matrix
                 D_i = ld_dict[snp_i]
@@ -147,7 +147,7 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=None, n
                     ni = n
                 else:
                     ni = ns[i]
-                    rand_norm =  stats.norm.rvs(0.0, (hdmp_hdmpn) * (1.0 / ni), size=1)[0]
+                    rand_norm =  stats.norm.rvs(0.0, np.sqrt((hdmp_hdmpn) * (1.0 / ni)), size=1)[0]
                     hdmpn = hdmp + 1.0 / ni
                     hdmp_hdmpn = (hdmp / hdmpn)
                     c_const = (p / sp.sqrt(hdmpn))
