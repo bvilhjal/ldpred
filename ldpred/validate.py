@@ -142,7 +142,7 @@ def get_prs(genotype_file, rs_id_map, phen_map=None, only_score = False, verbose
     
     if len(found_loci)<0.99*len(rs_id_map):
         perc_missing = 1 - float(len(found_loci))/float(len(rs_id_map))
-        raise Warning('More than 0.2f%% of variants for which weights were calculated were not found in '
+        raise Warning('More than %0.2f %% of variants for which weights were calculated were not found in '
                         'validation data.  This can lead to poor prediction accuracies.  Please consider '
                         'using the --vbim flag in the coord step to identify overlapping SNPs.'
                         '\n'%(perc_missing*100)) 
@@ -323,10 +323,11 @@ def parse_pt_res(file_name):
     return rs_id_map, non_zero_chromosomes
 
 def write_scores_file(out_file, prs_dict, pval_derived_effects_prs, adj_pred_dict, 
-                      output_regression_betas=False, weights_dict=None):
+                      output_regression_betas=False, weights_dict=None, verbose=False):
     num_individs = len(prs_dict['iids'])
     with open(out_file, 'w') as f:
-        print ('Writing polygenic scores to file %s'%out_file)
+        if verbose:
+            print ('Writing polygenic scores to file %s'%out_file)
         out_str = 'IID, true_phens, PRS'
         if 'sex' in prs_dict:
             out_str = out_str + ', sex'
@@ -363,7 +364,8 @@ def write_scores_file(out_file, prs_dict, pval_derived_effects_prs, adj_pred_dic
                 f.write(out_str)
     if output_regression_betas and weights_dict != None:
         hdf5file = out_file + '.weights.hdf5'
-        print ('Writing PRS regression weights to file %s'%hdf5file)
+        if verbose:
+            print ('Writing PRS regression weights to file %s'%hdf5file)
         oh5f = h5py.File(hdf5file, 'w')
         for k1 in list(weights_dict.keys()):
             kg = oh5f.create_group(k1)
@@ -389,7 +391,8 @@ def calc_risk_scores(bed_file, rs_id_map, phen_map, out_file=None,
                      adjust_for_covariates=False, adjust_for_pcs=False, 
                      non_zero_chromosomes=None, only_score = False, 
                      verbose=False, summary_dict=None):
-    print('Parsing PLINK bed file: %s' % bed_file)
+    if verbose:
+        print('Parsing PLINK bed file: %s' % bed_file)
 
     if split_by_chrom:
         num_individs = len(phen_map)
@@ -418,146 +421,153 @@ def calc_risk_scores(bed_file, rs_id_map, phen_map, out_file=None,
         write_only_scores_file(out_file, prs_dict, pval_derived_effects_prs)
         res_dict = {}
     elif sp.std(prs_dict['true_phens'])==0:
-        print('No variance left to explain in phenotype.')
+        if verbose:
+            print('No variance left to explain in phenotype.')
         res_dict = {'pred_r2': 0}
     else:
         # Report prediction accuracy
         assert len(phen_map) > 0, 'No individuals found.  Problems parsing the phenotype file?'
-        
-        pval_eff_corr = sp.corrcoef(pval_derived_effects_prs, prs_dict['true_phens'])[0, 1]
-        pval_eff_r2 = pval_eff_corr ** 2
-    
-        res_dict = {'pred_r2': pval_eff_r2}
-    
-        pval_derived_effects_prs.shape = (len(pval_derived_effects_prs), 1)
-        true_phens = sp.array(prs_dict['true_phens'])
-        true_phens.shape = (len(true_phens), 1)
-    
         # Store covariate weights, slope, etc.
         weights_dict = {}
     
         # Store Adjusted predictions
         adj_pred_dict = {}
-    
-        # Direct effect
-        Xs = sp.hstack([pval_derived_effects_prs, sp.ones((len(true_phens), 1))])
-        (betas, rss00, r, s) = linalg.lstsq(
-            sp.ones((len(true_phens), 1)), true_phens)
-        (betas, rss, r, s) = linalg.lstsq(Xs, true_phens)
-        pred_r2 = 1 - rss / rss00
-        weights_dict['unadjusted'] = {
-            'Intercept': betas[1][0], 'ldpred_prs_effect': betas[0][0]}
-    
-        if verbose:
-            print('PRS correlation: %0.4f' % pval_eff_corr)
-        print('Variance explained (Pearson R2) by PRS: %0.4f' % pred_r2)
-    
-        # Adjust for sex
-        if adjust_for_sex and 'sex' in prs_dict and len(prs_dict['sex']) > 0:
-            sex = sp.array(prs_dict['sex'])
-            sex.shape = (len(sex), 1)
-            (betas, rss0, r, s) = linalg.lstsq(
-                sp.hstack([sex, sp.ones((len(true_phens), 1))]), true_phens)
-            Xs = sp.hstack([pval_derived_effects_prs, sex,
-                            sp.ones((len(true_phens), 1))])
-            (betas, rss_pd, r, s) = linalg.lstsq(Xs, true_phens)
-            weights_dict['sex_adj'] = {
-                'Intercept': betas[2][0], 'ldpred_prs_effect': betas[0][0], 'sex': betas[1][0]}
+
+        #If there is no prediction, then output 0s.
+        if sp.std(pval_derived_effects_prs)==0:
+            res_dict = {'pred_r2': 0}
+            weights_dict['unadjusted'] = {'Intercept': 0, 'ldpred_prs_effect': 0}
+        else:
+            pval_eff_corr = sp.corrcoef(pval_derived_effects_prs, prs_dict['true_phens'])[0, 1]
+            pval_eff_r2 = pval_eff_corr ** 2
+        
+            res_dict = {'pred_r2': pval_eff_r2}
+        
+            pval_derived_effects_prs.shape = (len(pval_derived_effects_prs), 1)
+            true_phens = sp.array(prs_dict['true_phens'])
+            true_phens.shape = (len(true_phens), 1)
+        
+        
+            # Direct effect
+            Xs = sp.hstack([pval_derived_effects_prs, sp.ones((len(true_phens), 1))])
+            (betas, rss00, r, s) = linalg.lstsq(
+                sp.ones((len(true_phens), 1)), true_phens)
+            (betas, rss, r, s) = linalg.lstsq(Xs, true_phens)
+            pred_r2 = 1 - rss / rss00
+            weights_dict['unadjusted'] = {
+                'Intercept': betas[1][0], 'ldpred_prs_effect': betas[0][0]}
+        
             if verbose:
-                print('Fitted effects (betas) for PRS, sex, and intercept on true phenotype:', betas)
-            adj_pred_dict['sex_adj'] = sp.dot(Xs, betas)
-            pred_r2 = 1 - rss_pd / rss0
-            print('Variance explained (Pearson R2) by PRS adjusted for Sex: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
-            res_dict['Sex_adj_pred_r2'] = pred_r2
-            pred_r2 = 1 - rss_pd / rss00
-            print('Variance explained (Pearson R2) by PRS + Sex : %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
-            res_dict['Sex_adj_pred_r2+Sex'] = pred_r2
-    
-        # Adjust for PCs
-        if adjust_for_pcs and 'pcs' in prs_dict and len(prs_dict['pcs']) > 0:
-            pcs = prs_dict['pcs']
-            (betas, rss0, r, s) = linalg.lstsq(
-                sp.hstack([pcs, sp.ones((len(true_phens), 1))]), true_phens)
-            Xs = sp.hstack([pval_derived_effects_prs,
-                            sp.ones((len(true_phens), 1)), pcs])
-            (betas, rss_pd, r, s) = linalg.lstsq(Xs, true_phens)
-            weights_dict['pc_adj'] = {
-                'Intercept': betas[1][0], 'ldpred_prs_effect': betas[0][0], 'pcs': betas[2][0]}
-            adj_pred_dict['pc_adj'] = sp.dot(Xs, betas)
-            pred_r2 = 1 - rss_pd / rss0
-            print('Variance explained (Pearson R2) by PRS adjusted for PCs: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
-            res_dict['PC_adj_pred_r2'] = pred_r2
-            pred_r2 = 1 - rss_pd / rss00
-            print('Variance explained (Pearson R2) by PRS + PCs: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
-            res_dict['PC_adj_pred_r2+PC'] = pred_r2
-    
-            # Adjust for both PCs and Sex
+                print('PRS correlation: %0.4f' % pval_eff_corr)
+            print('Variance explained (Pearson R2) by PRS: %0.4f' % pred_r2)
+        
+            # Adjust for sex
             if adjust_for_sex and 'sex' in prs_dict and len(prs_dict['sex']) > 0:
                 sex = sp.array(prs_dict['sex'])
                 sex.shape = (len(sex), 1)
                 (betas, rss0, r, s) = linalg.lstsq(
-                    sp.hstack([sex, pcs, sp.ones((len(true_phens), 1))]), true_phens)
+                    sp.hstack([sex, sp.ones((len(true_phens), 1))]), true_phens)
                 Xs = sp.hstack([pval_derived_effects_prs, sex,
+                                sp.ones((len(true_phens), 1))])
+                (betas, rss_pd, r, s) = linalg.lstsq(Xs, true_phens)
+                weights_dict['sex_adj'] = {
+                    'Intercept': betas[2][0], 'ldpred_prs_effect': betas[0][0], 'sex': betas[1][0]}
+                if verbose:
+                    print('Fitted effects (betas) for PRS, sex, and intercept on true phenotype:', betas)
+                adj_pred_dict['sex_prs'] = sp.dot(Xs, betas)
+                pred_r2 = 1 - rss_pd / rss0
+                print('Variance explained (Pearson R2) by PRS adjusted for Sex: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
+                res_dict['Sex_adj_pred_r2'] = pred_r2
+                pred_r2 = 1 - rss_pd / rss00
+                print('Variance explained (Pearson R2) by PRS + Sex : %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
+                res_dict['Sex_adj_pred_r2+Sex'] = pred_r2
+        
+            # Adjust for PCs
+            if adjust_for_pcs and 'pcs' in prs_dict and len(prs_dict['pcs']) > 0:
+                pcs = prs_dict['pcs']
+                (betas, rss0, r, s) = linalg.lstsq(
+                    sp.hstack([pcs, sp.ones((len(true_phens), 1))]), true_phens)
+                Xs = sp.hstack([pval_derived_effects_prs,
                                 sp.ones((len(true_phens), 1)), pcs])
                 (betas, rss_pd, r, s) = linalg.lstsq(Xs, true_phens)
-                weights_dict['sex_pc_adj'] = {
-                    'Intercept': betas[2][0], 'ldpred_prs_effect': betas[0][0], 'sex': betas[1][0], 'pcs': betas[3][0]}
-                adj_pred_dict['sex_pc_adj'] = sp.dot(Xs, betas)
+                weights_dict['pc_adj'] = {
+                    'Intercept': betas[1][0], 'ldpred_prs_effect': betas[0][0], 'pcs': betas[2][0]}
+                adj_pred_dict['pc_prs'] = sp.dot(Xs, betas)
                 pred_r2 = 1 - rss_pd / rss0
-                print('Variance explained (Pearson R2) by PRS adjusted for PCs and Sex: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
-                res_dict['PC_Sex_adj_pred_r2'] = pred_r2
+                print('Variance explained (Pearson R2) by PRS adjusted for PCs: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
+                res_dict['PC_adj_pred_r2'] = pred_r2
                 pred_r2 = 1 - rss_pd / rss00
-                print('Variance explained (Pearson R2) by PRS+PCs+Sex: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
-                res_dict['PC_Sex_adj_pred_r2+PC_Sex'] = pred_r2
-    
-        # Adjust for covariates
-        if adjust_for_covariates and 'covariates' in prs_dict and len(prs_dict['covariates']) > 0:
-            covariates = prs_dict['covariates']
-            (betas, rss0, r, s) = linalg.lstsq(
-                sp.hstack([covariates, sp.ones((len(true_phens), 1))]), true_phens)
-            Xs = sp.hstack([pval_derived_effects_prs, covariates,
-                            sp.ones((len(true_phens), 1))])
-            (betas, rss_pd, r, s) = linalg.lstsq(Xs, true_phens)
-            adj_pred_dict['cov_adj'] = sp.dot(Xs, betas)
-            pred_r2 = 1 - rss_pd / rss0
-            print('Variance explained (Pearson R2) by PRS adjusted for Covariates: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
-            res_dict['Cov_adj_pred_r2'] = pred_r2
-            pred_r2 = 1 - rss_pd / rss00
-            print('Variance explained (Pearson R2) by PRS + Cov: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
-            res_dict['Cov_adj_pred_r2+Cov'] = pred_r2
-    
-            if adjust_for_pcs and 'pcs' in prs_dict and len(prs_dict['pcs']) and 'sex' in prs_dict and len(prs_dict['sex']) > 0:
-                pcs = prs_dict['pcs']
-                sex = sp.array(prs_dict['sex'])
-                sex.shape = (len(sex), 1)
+                print('Variance explained (Pearson R2) by PRS + PCs: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
+                res_dict['PC_adj_pred_r2+PC'] = pred_r2
+        
+                # Adjust for both PCs and Sex
+                if adjust_for_sex and 'sex' in prs_dict and len(prs_dict['sex']) > 0:
+                    sex = sp.array(prs_dict['sex'])
+                    sex.shape = (len(sex), 1)
+                    (betas, rss0, r, s) = linalg.lstsq(
+                        sp.hstack([sex, pcs, sp.ones((len(true_phens), 1))]), true_phens)
+                    Xs = sp.hstack([pval_derived_effects_prs, sex,
+                                    sp.ones((len(true_phens), 1)), pcs])
+                    (betas, rss_pd, r, s) = linalg.lstsq(Xs, true_phens)
+                    weights_dict['sex_pc_adj'] = {
+                        'Intercept': betas[2][0], 'ldpred_prs_effect': betas[0][0], 'sex': betas[1][0], 'pcs': betas[3][0]}
+                    adj_pred_dict['sex_pc_prs'] = sp.dot(Xs, betas)
+                    pred_r2 = 1 - rss_pd / rss0
+                    print('Variance explained (Pearson R2) by PRS adjusted for PCs and Sex: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
+                    res_dict['PC_Sex_adj_pred_r2'] = pred_r2
+                    pred_r2 = 1 - rss_pd / rss00
+                    print('Variance explained (Pearson R2) by PRS+PCs+Sex: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
+                    res_dict['PC_Sex_adj_pred_r2+PC_Sex'] = pred_r2
+        
+            # Adjust for covariates
+            if adjust_for_covariates and 'covariates' in prs_dict and len(prs_dict['covariates']) > 0:
+                covariates = prs_dict['covariates']
                 (betas, rss0, r, s) = linalg.lstsq(
-                    sp.hstack([covariates, sex, pcs, sp.ones((len(true_phens), 1))]), true_phens)
+                    sp.hstack([covariates, sp.ones((len(true_phens), 1))]), true_phens)
                 Xs = sp.hstack([pval_derived_effects_prs, covariates,
-                                sex, pcs, sp.ones((len(true_phens), 1))])
+                                sp.ones((len(true_phens), 1))])
                 (betas, rss_pd, r, s) = linalg.lstsq(Xs, true_phens)
-                adj_pred_dict['cov_sex_pc_adj'] = sp.dot(Xs, betas)
+                adj_pred_dict['cov_prs'] = sp.dot(Xs, betas)
                 pred_r2 = 1 - rss_pd / rss0
-                print('Variance explained (Pearson R2) by PRS adjusted for Cov+PCs+Sex: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
-                res_dict['Cov_PC_Sex_adj_pred_r2'] = pred_r2
+                print('Variance explained (Pearson R2) by PRS adjusted for Covariates: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
+                res_dict['Cov_adj_pred_r2'] = pred_r2
                 pred_r2 = 1 - rss_pd / rss00
-                print('Variance explained (Pearson R2) by PRS+Cov+PCs+Sex: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
-                res_dict['Cov_PC_Sex_adj_pred_r2+Cov_PC_Sex'] = pred_r2
-    
-    
-        # Now calibration
-        y_norm = (true_phens - sp.mean(true_phens)) / sp.std(true_phens)
-        denominator = sp.dot(pval_derived_effects_prs.T, pval_derived_effects_prs)
-        numerator = sp.dot(pval_derived_effects_prs.T, y_norm)
-        regression_slope = (numerator / denominator)[0][0]
-        if verbose:
-            print('The slope for predictions with weighted effects is: %0.4f'% regression_slope)
-    
+                print('Variance explained (Pearson R2) by PRS + Cov: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
+                res_dict['Cov_adj_pred_r2+Cov'] = pred_r2
+        
+                if adjust_for_pcs and 'pcs' in prs_dict and len(prs_dict['pcs']) and 'sex' in prs_dict and len(prs_dict['sex']) > 0:
+                    pcs = prs_dict['pcs']
+                    sex = sp.array(prs_dict['sex'])
+                    sex.shape = (len(sex), 1)
+                    (betas, rss0, r, s) = linalg.lstsq(
+                        sp.hstack([covariates, sex, pcs, sp.ones((len(true_phens), 1))]), true_phens)
+                    Xs = sp.hstack([pval_derived_effects_prs, covariates,
+                                    sex, pcs, sp.ones((len(true_phens), 1))])
+                    (betas, rss_pd, r, s) = linalg.lstsq(Xs, true_phens)
+                    adj_pred_dict['cov_sex_pc_prs'] = sp.dot(Xs, betas)
+                    pred_r2 = 1 - rss_pd / rss0
+                    print('Variance explained (Pearson R2) by PRS adjusted for Cov+PCs+Sex: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
+                    res_dict['Cov_PC_Sex_adj_pred_r2'] = pred_r2
+                    pred_r2 = 1 - rss_pd / rss00
+                    print('Variance explained (Pearson R2) by PRS+Cov+PCs+Sex: %0.4f (%0.6f)' % (pred_r2, (1 - pred_r2) / sp.sqrt(num_individs)))
+                    res_dict['Cov_PC_Sex_adj_pred_r2+Cov_PC_Sex'] = pred_r2
+        
+        
+            # Now calibration
+            y_norm = (true_phens - sp.mean(true_phens)) / sp.std(true_phens)
+            denominator = sp.dot(pval_derived_effects_prs.T, pval_derived_effects_prs)
+            numerator = sp.dot(pval_derived_effects_prs.T, y_norm)
+            regression_slope = (numerator / denominator)[0][0]
+            if verbose:
+                print('The slope for predictions with weighted effects is: %0.4f'% regression_slope)
+        
     
         num_individs = len(prs_dict['pval_derived_effects_prs'])
 
         # Write PRS out to file.
         if out_file != None:
-            write_scores_file(out_file, prs_dict, pval_derived_effects_prs, adj_pred_dict, weights_dict=weights_dict)
+            write_scores_file(out_file, prs_dict, pval_derived_effects_prs, adj_pred_dict, 
+                              weights_dict=weights_dict, verbose=verbose)
 
     return res_dict
 
@@ -696,22 +706,24 @@ def main(p_dict):
             for p_thres in p_dict['p']:
                 weights_file = '%s_P+T_r%0.2f_p%0.4e.txt' % (p_dict['rf'], max_r2, p_thres)
                 if os.path.isfile(weights_file):
-                    print('')
                     print('Calculating P+T risk scores using p-value threshold of %0.3e, and r2 threshold of %0.2f' % (p_thres, max_r2))
                     rs_id_map, non_zero_chromosomes = parse_pt_res(weights_file)
-                    out_file = '%s_P+T_p%0.4e.txt' % (p_dict['out'], p_thres)
-                    method_str = 'P+T_p%0.4e' % (p_thres)
-                    res_dict[method_str] = calc_risk_scores(p_dict['gf'], rs_id_map, phen_map, out_file=out_file,
-                                                            split_by_chrom=p_dict['split_by_chrom'],
-                                                            non_zero_chromosomes=non_zero_chromosomes, 
-                                                            adjust_for_pcs=adjust_for_pcs,
-                                                            adjust_for_covariates=adjust_for_covs,
-                                                            only_score=p_dict['only_score'],
-                                                            verbose=verbose, summary_dict=summary_dict)
-                    if len(res_dict[method_str]) and (res_dict[method_str]['pred_r2']) >best_pt_pred_r2:
-                        best_pt_pred_r2 = res_dict[method_str]['pred_r2']
-                        best_t = p_thres
-                        best_r2 = max_r2
+                    if len(rs_id_map)>0:
+                        out_file = '%s_P+T_p%0.4e.txt' % (p_dict['out'], p_thres)
+                        method_str = 'P+T_p%0.4e' % (p_thres)
+                        res_dict[method_str] = calc_risk_scores(p_dict['gf'], rs_id_map, phen_map, out_file=out_file,
+                                                                split_by_chrom=p_dict['split_by_chrom'],
+                                                                non_zero_chromosomes=non_zero_chromosomes, 
+                                                                adjust_for_pcs=adjust_for_pcs,
+                                                                adjust_for_covariates=adjust_for_covs,
+                                                                only_score=p_dict['only_score'],
+                                                                verbose=verbose, summary_dict=summary_dict)
+                        if len(res_dict[method_str]) and (res_dict[method_str]['pred_r2']) >best_pt_pred_r2:
+                            best_pt_pred_r2 = res_dict[method_str]['pred_r2']
+                            best_t = p_thres
+                            best_r2 = max_r2
+                    else:
+                        print('No SNPs found with p-values below the given threshold.')
                     prs_file_is_missing=False
         if best_pt_pred_r2>0 and not p_dict['only_score']:                
             summary_dict[5.4]={'name':'Best P+T (r2=%0.2f, p=%0.2e) (unadjusted) R2:'%(best_r2, best_t),'value':'%0.4f'%best_pt_pred_r2}

@@ -6,19 +6,27 @@ LDpred is a Python based software package that adjusts GWAS summary statistics
 for the effects of linkage disequilibrium (LD).  The details of the method is
 described in Vilhjalmsson et al. (AJHG 2015) [http://www.cell.com/ajhg/abstract/S0002-9297(15)00365-1]
 
-* The current version is 1.0.6
+* The current version is 1.0.7
 
 ## Getting Started ##
 ### News ###
 
-Mar 18th, 2019: Version 1.0.6 released and is available on pip using 
+Oct 11th, 2019: Version 1.0.7 released and is available on pip using 
 
 `pip install ldpred`
 
-Feb 28th, 2019: Added a wiki with Q and A.  Please add questions (and answers)
-https://github.com/bvilhjal/ldpred/wiki/LDpred-Wiki
+Oct 11th, 2019: 
+⋅⋅* Improved handling of variants with p-values rounded down to 0.  
 
+⋅⋅* Added options to enable effect estimate inference from standard errors (--z-from-se) in coordination step. 
 
+⋅⋅* Fixed a serious bug that caused sample sizes in summary stats file not always be used correctly when provided.
+
+⋅⋅* LDpred gibbs can now handle differing sample sizes per variant effects, if they are parsed in summary stats.  This can improves convergence and accuracy subtantially, but slows the gibbs sampler (approx 5x).  It can be avoided by setting --N flag.
+
+⋅⋅* If the heritability is not provided when running LDpred gibbs and inf it now estimates it separately for each chromosome, which can improve accuracy if summary stats sample size is large.  To avoid this behavior, either set --h2 flag, or use --use-gw-h2 flag.
+
+⋅⋅* Improved reporting and other things.
 
 ### Requirements ###
 LDpred currently requires three Python packages to be installed and in path.  These
@@ -100,6 +108,9 @@ In addition to the LDpred gibbs sampler and infinitesimal model methods, the pac
 `python LDpred.py p+t`
 
 This method often yields better predictions than LDpred when the LD reference panel is small, or when the training data is very large (due to problems with gibbs sampler convergence).
+
+### Citation ###
+Please cite [this paper](https://doi.org/10.1016/j.ajhg.2015.09.001)
 
 ### Acknowledges ###
 Thanks to all who provided bug reports and contributed code.

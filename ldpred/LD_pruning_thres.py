@@ -1,17 +1,21 @@
 import h5py
 import scipy as sp
 import time
+import sys
 from ldpred import ld
+from ldpred import reporting
 from ldpred import util
 
-def smart_ld_pruning(beta_hats, ld_table, pvalues=None, max_ld=0.2, verbose=False):
+def ld_clumping(beta_hats, ld_table, pruning_stat =None, pvalues=None, max_ld=0.2, verbose=False):
     """
-    Smart LD pruning.
+    Smart LD pruning.  (Also known as LD clumping)
     """    
     if verbose:
-        print('Doing smart LD pruning')
+        print('LD clumping')
     t0 = time.time()
-    if pvalues is not None:
+    if pruning_stat is not None: 
+        pruning_vector = ld.smart_ld_pruning(pruning_stat, ld_table, max_ld=max_ld, verbose=verbose, reverse=True)    
+    elif pvalues is not None:
         pruning_vector = ld.smart_ld_pruning(pvalues, ld_table, max_ld=max_ld, verbose=verbose)    
     else:
         pruning_vector = ld.smart_ld_pruning(beta_hats ** 2, ld_table, max_ld=max_ld, verbose=verbose, reverse=True)    
@@ -46,14 +50,6 @@ def ld_pruning(data_file=None, ld_radius = None, out_file_prefix=None, p_thres=N
         if has_phenotypes:
             risk_scores = sp.zeros(num_individs)    
             
-        print('')
-        if max_r2<1:
-            print('Applying LD-pruning + P-value thresholding with p-value threshold of %0.2e, a LD radius of %d SNPs, and a max r2 of %0.2f' %(p_thres, ld_radius, max_r2))
-        else:
-            if p_thres<1:
-                print('Applying P-value thresholding with p-value threshold of %0.2e' %(p_thres))
-            else:
-                print('Calculating polygenic risk score using all SNPs')        
         results_dict = {}
         num_snps = 0
         cord_data_g = df['cord_data']
@@ -121,7 +117,8 @@ def ld_pruning(data_file=None, ld_radius = None, out_file_prefix=None, p_thres=N
                 norm_ref_snps = sp.array((raw_snps - snp_means)/snp_stds,dtype='float32') 
                 ld_table = ld.calc_ld_table(norm_ref_snps, max_ld_dist=ld_radius, min_r2=max_r2, verbose=verbose)
                 
-                updated_raw_betas, pruning_vector = smart_ld_pruning(raw_betas, ld_table, pvalues=pvalues, max_ld=max_r2, verbose=verbose)
+                updated_raw_betas, pruning_vector = ld_clumping(raw_betas, ld_table, pruning_stat=pval_derived_betas**2, 
+                                                                max_ld=max_r2, verbose=verbose)
                 updated_pval_derived_betas = pval_derived_betas * pruning_vector
                 num_snps_used += sp.sum(pruning_vector)
             else:
@@ -144,9 +141,10 @@ def ld_pruning(data_file=None, ld_radius = None, out_file_prefix=None, p_thres=N
                 r2 = corr ** 2
                 print('The R2 prediction accuracy of PRS using %s was: %0.4f' %(chrom_str, r2))
     
-                    
-        print('There were %d (SNP) effects after p-value thresholding' % tot_num_snps)
-        print('After LD-pruning %d SNPs had non-zero effects'%num_snps_used)
+        if verbose:            
+            print('There were %d (SNP) effects after p-value thresholding' % tot_num_snps)
+            print('After LD-pruning %d SNPs had non-zero effects'%num_snps_used)
+        
         if has_phenotypes:
             results_dict[p_str]['y']=y
             results_dict[p_str]['risk_scores']=risk_scores
@@ -177,9 +175,49 @@ def ld_pruning(data_file=None, ld_radius = None, out_file_prefix=None, p_thres=N
                 f.write('%s    %d    %s    %s    %s    %0.4e    %0.4e    %0.4e    %0.4e\n'%(chrom, pos, sid, nt1, nt2, raw_beta, raw_pval_beta, upd_beta, upd_pval_beta))
     df.close()
 
-def main(p_dict):
+def run_pt(p_dict,summary_dict={}):
+    pi=0
     for p_thres in reversed(p_dict['p']):
+        max_r2s=p_dict['r2']
+        if p_dict['debug']:
+            print('')
+            if len(max_r2s)>1 or max_r2s[0]<1:
+                r2s_string = ', '.join(['%0.2f'%r2 for r2 in max_r2s])
+                print('Applying LD-pruning + P-value thresholding with p-value threshold of %0.2e, a LD radius of %d SNPs, and a max r2(s) of %s' %(p_thres, p_dict['ldr'], r2s_string))
+            elif p_thres<1:
+                print('Applying P-value thresholding with p-value threshold of %0.2e' %(p_thres))
+            else:
+                print('Calculating polygenic risk score using all SNPs')        
+        else:
+            sys.stdout.write('\b\b\b\b\b\b\b%0.2f%%' % (100.0 * (float(pi) / len(p_dict['p']))))
+            sys.stdout.flush()
+
         ld_pruning(data_file=p_dict['cf'], out_file_prefix=p_dict['out'], p_thres=p_thres, ld_radius=p_dict['ldr'],
-                   max_r2s=p_dict['r2'])
+                   max_r2s=max_r2s)
+        pi+=1
+    if not p_dict['debug']:
+        sys.stdout.write('\b\b\b\b\b\b\b%0.2f%%\n' % (100.0))
+        sys.stdout.flush()
+    summary_dict[1.2]={'name':'P-value thresholds used','value':str(p_dict['p'])}
+    summary_dict[1.3]={'name':'Maximum r2 LD thresholds used','value':str(max_r2s)}
+   
+
+def main(p_dict):
+    summary_dict = {}
+    summary_dict[0]={'name':'Coordinated data filename','value':p_dict['cf']}
+    summary_dict[0.1]={'name':'SNP weights output file (prefix)', 'value':p_dict['out']}
+    summary_dict[1]={'name':'LD radius used','value':str(p_dict['ldr'])}
+    t0 = time.time()
+    summary_dict[1.1]={'name':'dash', 'value':'LD-pruning + Thresholding'}
+    run_pt(p_dict,summary_dict)
+    t1 = time.time()
+    t = (t1 - t0)
+    summary_dict[2]={'name':'Running time for calculating P+T:','value':'%d min and %0.2f secs'% (t / 60, t % 60)}
+    
+    reporting.print_summary(summary_dict, 'Summary of LD-pruning + Tresholding')
+
+        
+            
+
 
     

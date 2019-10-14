@@ -153,6 +153,10 @@ def load_hapmap_SNPs():
     f.close()
     return hm3_sids
 
+def is_gz(name):
+    return name.lower().endswith(('.gz', '.gzip'))
+
+
 
 def count_lines(filename):
     if sys.version_info >= (3,0):
@@ -162,8 +166,11 @@ def count_lines(filename):
 
 
 def count_lines_fast(filename):
+    opener = open
+    if is_gz(filename):
+        opener = gzip.open
     try:
-        with open(filename, 'rb') as f:
+        with opener(filename, 'rb') as f:
             bufgen = takewhile(lambda x: x, (f.raw.read(1024*1024) for _ in repeat(None)))
             num_lines =sum( buf.count(b'\n') for buf in bufgen )
     except Exception:
@@ -172,9 +179,11 @@ def count_lines_fast(filename):
             
 
 def count_lines_slow(filename):
-    
+    opener = open
+    if is_gz(filename):
+        opener = gzip.open    
     try:
-        with open(filename, 'rb') as f:
+        with opener(filename, 'rb') as f:
             num_lines = sum(1 for line in f)
     except Exception:
         num_lines=-1
