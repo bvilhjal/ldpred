@@ -1,6 +1,5 @@
 import scipy as sp
 from scipy import stats
-from scipy import isinf
 from scipy import isfinite
 import gzip
 from ldpred import util
@@ -85,10 +84,6 @@ def parse_sum_stats(h5f, p_dict, bimfile, summary_dict):
     t = (t1 - t0)
     summary_dict[14]={'name':'Run time for parsing summary stats:','value': '%d min and %0.2f sec'%(t / 60, t % 60)}
 
-
-
-def get_beta_from_pvalue(pvalue, raw_beta):
-  return -sp.sign(raw_beta) * stats.norm.ppf(pvalue / 2.0)
 
 
 def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_file=None, n=None, ch=None, pos=None,
@@ -314,13 +309,6 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
                 chrom_dict[chrom]['ns'].append(N)
                 if not input_is_beta:
                     raw_beta = sp.log(raw_beta)
-#                     chrom_dict[chrom]['log_odds'].append(raw_beta)
-#                     beta = get_beta_from_pvalue(pval_read, raw_beta)
-#                     chrom_dict[chrom]['betas'].append(beta / sp.sqrt(N))
-#                 else:
-#                     beta = get_beta_from_pvalue(pval_read, raw_beta)
-#                     chrom_dict[chrom]['log_odds'].append(beta / sp.sqrt(N))
-#                     chrom_dict[chrom]['betas'].append(beta / sp.sqrt(N))
                 beta = sp.sign(raw_beta) * abs_beta/ sp.sqrt(N)
                 if input_is_beta:
                     chrom_dict[chrom]['log_odds'].append(beta)

@@ -9,6 +9,7 @@ from ldpred import LDpred_inf
 from ldpred import util
 from ldpred import ld
 from ldpred import reporting
+from ldpred import coord_genotypes
 
 
         
@@ -230,17 +231,7 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
     results_dict = {}
     cord_data_g = df['cord_data']
 
-    all_ns = []
-    for chrom_str in util.chromosomes_list:
-        if chrom_str in cord_data_g:
-            g = cord_data_g[chrom_str]
-            all_ns.extend(g['ns'][...])
-
-    if n is None:
-        assert all_ns is not None, 'Sample size missing. Please use --N flag, or ensure they are parsed as part of the summary statistics.'
-        mean_n = sp.mean(all_ns)
-    else:
-        mean_n = n
+    mean_n = coord_genotypes.get_mean_sample_size(n, cord_data_g)
 
     #Calculating genome-wide heritability using LD score regression, and partition heritability by chromsomes
     herit_dict = ld.get_chromosome_herits(cord_data_g, ld_scores_dict, mean_n, h2=h2, use_gw_h2=use_gw_h2, 
@@ -419,7 +410,7 @@ def main(p_dict):
     summary_dict[1]={'name':'LD radius used','value':str(p_dict['ldr'])}
     t0 = time.time()
     summary_dict[1.09]={'name':'dash', 'value':'LD information'}
-    ld_dict = ld.get_ld_dict_using_p_dict(p_dict, summary_dict=summary_dict)
+    ld_dict = ld.get_ld_dict_using_p_dict(p_dict, summary_dict)
     t1 = time.time()
     t = (t1 - t0)
     summary_dict[1.2]={'name':'Running time for calculating LD information:','value':'%d min and %0.2f secs'% (t / 60, t % 60)}

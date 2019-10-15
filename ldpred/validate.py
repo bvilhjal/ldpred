@@ -709,8 +709,8 @@ def main(p_dict):
                     print('Calculating P+T risk scores using p-value threshold of %0.3e, and r2 threshold of %0.2f' % (p_thres, max_r2))
                     rs_id_map, non_zero_chromosomes = parse_pt_res(weights_file)
                     if len(rs_id_map)>0:
-                        out_file = '%s_P+T_p%0.4e.txt' % (p_dict['out'], p_thres)
-                        method_str = 'P+T_p%0.4e' % (p_thres)
+                        out_file = '%s_P+T_r%0.2f_p%0.4e.txt' % (p_dict['out'], max_r2, p_thres)
+                        method_str = 'P+T_r%0.2f_p%0.4e' % (max_r2,p_thres)
                         res_dict[method_str] = calc_risk_scores(p_dict['gf'], rs_id_map, phen_map, out_file=out_file,
                                                                 split_by_chrom=p_dict['split_by_chrom'],
                                                                 non_zero_chromosomes=non_zero_chromosomes, 

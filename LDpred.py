@@ -216,7 +216,7 @@ parser_inf.add_argument('--ldf', type=str, required=True,
                     'LD radius used.')
 parser_inf.add_argument('--out', type=str, required=True,
                     help='Output Prefix for SNP weights')
-parser_inf.add_argument('--N', type=int, default=100000, required=True,
+parser_inf.add_argument('--N', type=int, default=None,
                     help='Number of individuals on which the summary statistics are assumed to be based on.')
 parser_inf.add_argument('--h2', type=float, default=None, 
                     help='The genome-wide heritability assumed by LDpred, which is then partitioned '
@@ -324,8 +324,7 @@ def main_with_args(args):
     
     
 def main():
-  main_with_args(sys.argv[1:])
-
+    main_with_args(sys.argv[1:])
 
 if __name__ == '__main__':
     main()

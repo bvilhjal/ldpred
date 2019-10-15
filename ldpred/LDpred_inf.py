@@ -6,6 +6,7 @@ from scipy import linalg
 from ldpred import util
 from ldpred import ld
 from ldpred import reporting
+from ldpred import coord_genotypes
 
 def ldpred_inf(beta_hats, h2=0.1, n=1000, inf_shrink_matrices=None, 
                reference_ld_mats=None, genotypes=None, ld_window_size=100, verbose=False):
@@ -62,13 +63,11 @@ def ldpred_inf_genomewide(data_file=None, ld_radius = None, ld_dict=None, out_fi
     """    
     
     df = h5py.File(data_file,'r')
-    has_phenotypes=False
-    if 'y' in df:
-        'Validation phenotypes found.'
+    has_phenotypes = 'y' in df
+    if has_phenotypes:
         y = df['y'][...]  # Phenotype
         num_individs = len(y)
         risk_scores_pval_derived = sp.zeros(num_individs)
-        has_phenotypes=True
 
     ld_scores_dict = ld_dict['ld_scores_dict']
     chrom_ref_ld_mats = ld_dict['chrom_ref_ld_mats']
@@ -77,8 +76,10 @@ def ldpred_inf_genomewide(data_file=None, ld_radius = None, ld_dict=None, out_fi
     results_dict = {}
     cord_data_g = df['cord_data']
 
+    mean_n = coord_genotypes.get_mean_sample_size(n, cord_data_g)
+
     #Calculating genome-wide heritability using LD score regression, and partition heritability by chromsomes
-    herit_dict = ld.get_chromosome_herits(cord_data_g, ld_scores_dict, n, h2=h2, use_gw_h2=use_gw_h2, 
+    herit_dict = ld.get_chromosome_herits(cord_data_g, ld_scores_dict, mean_n, h2=h2, use_gw_h2=use_gw_h2, 
                                           debug=verbose,summary_dict=summary_dict)
 
     if out_file_prefix:
