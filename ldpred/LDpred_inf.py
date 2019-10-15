@@ -8,6 +8,8 @@ from ldpred import ld
 from ldpred import reporting
 from ldpred import coord_genotypes
 
+
+
 def ldpred_inf(beta_hats, h2=0.1, n=1000, inf_shrink_matrices=None, 
                reference_ld_mats=None, genotypes=None, ld_window_size=100, verbose=False):
     """
@@ -113,9 +115,10 @@ def ldpred_inf_genomewide(data_file=None, ld_radius = None, ld_dict=None, out_fi
         
             h2_chrom = herit_dict[chrom_str]['h2'] 
             updated_betas = ldpred_inf(pval_derived_betas, genotypes=None, reference_ld_mats=chrom_ref_ld_mats[chrom_str], 
-                                                h2=h2_chrom, n=n, ld_window_size=2*ld_radius, verbose=False)
+                                                h2=h2_chrom, n=mean_n, ld_window_size=2*ld_radius, verbose=False)
                     
-            print('Calculating scores for Chromosome %s'%((chrom_str.split('_'))[1]))
+            if verbose:
+                print('Calculating scores for Chromosome %s'%((chrom_str.split('_'))[1]))
             updated_betas = updated_betas / (snp_stds.flatten())
             ldpred_effect_sizes.extend(updated_betas)
             if has_phenotypes:
@@ -123,7 +126,8 @@ def ldpred_inf_genomewide(data_file=None, ld_radius = None, ld_dict=None, out_fi
                 risk_scores_pval_derived += prs
                 corr = sp.corrcoef(y, prs)[0, 1]
                 r2 = corr ** 2
-                print('The R2 prediction accuracy of PRS using %s was: %0.4f' %(chrom_str, r2))
+                if verbose:
+                    print('The R2 prediction accuracy of PRS using %s was: %0.4f' %(chrom_str, r2))
 
                 
     if has_phenotypes:

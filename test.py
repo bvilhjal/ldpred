@@ -150,7 +150,7 @@ def assert_files_equal(file1, file2):
 def make_p_dict(*args):
     return vars(LDpred.parser.parse_args(args))
 
-class TestLDpred(unittest.TestCase):
+class SimpleTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         print('Testing LDpred.\n')
@@ -183,114 +183,21 @@ class TestLDpred(unittest.TestCase):
             sum_stats_parsers.parse_sum_stats(h5f, p_dict, bimfile, summary_dict)
             self.assertEqual(len(h5f['sum_stats']['chrom_1']['betas']), 2000)
 
-# tf = tempfile.NamedTemporaryFile()
-# tmp_file_prefix = next(tempfile._get_candidate_names())
 
-# print('Testing LDpred.\n')
-# print('Note that this test currently only tests the core functionality of LDpred.')
-# print('Please report bugs on github (https://github.com/bvilhjal/ldpred) or to Bjarni J Vilhjalmsson (bjarni.vilhjalmsson@gmail.com).\n')
-
-# def test_coord(label='coord', td_prefix='./test_data/sim5_0'):
-#     print("Testing P+T Workflow")
-    
-#     coord_file = tmp_file_prefix+label + '.coord0.hdf5'
-#     print('Coordinating test data into file %s' % coord_file)
-#     cmd_str = 'python LDpred.py --debug coord --gf=%s_train --vgf=%s_test --ssf=%s_ss.txt --ssf-format=LDPRED  --N=8000  --out=%s' %(td_prefix,td_prefix,td_prefix, coord_file)
-#     print(cmd_str + '\n')
-#     assert os.system(cmd_str) == 0, 'Problems when coordinating data!'
-
-#     coord_file = tmp_file_prefix+label + '.coord1.hdf5'
-#     print('Coordinating test data into file %s' % coord_file)
-#     cmd_str = 'python LDpred.py --debug coord --z-from-se --gf=%s_train --vgf=%s_test --ssf=%s_ss.txt --ssf-format=LDPRED  --N=8000  --out=%s' %(td_prefix,td_prefix,td_prefix, coord_file)
-#     print(cmd_str + '\n')
-#     assert os.system(cmd_str) == 0, 'Problems when coordinating data!'
-
-
-# def test_simple_pt(label='pt', td_prefix='./test_data/sim2_0'):
-#     print("Testing P+T Workflow")
-    
-#     coord_file = tmp_file_prefix+label + '.coord0.hdf5'
-#     print('Coordinating test data into file %s' % coord_file)
-#     cmd_str = 'python LDpred.py --debug coord --gf=%s_train --vgf=%s_test --ssf=%s_ss.txt --ssf-format=LDPRED  --N=8000  --out=%s'%(td_prefix,td_prefix,td_prefix, coord_file)
-#     print(cmd_str + '\n')
-#     assert os.system(cmd_str) == 0, 'Problems when coordinating data!'
-    
-#     weights_file = tmp_file_prefix+label+'.weights'
-#     print('Running P+T with coordinated file prefix: %s ' % tmp_file_prefix)
-#     cmd_str = 'python LDpred.py --debug p+t --cf=%s  --ldr=100  --p=0.001 --out=%s' % (coord_file, weights_file)
-#     print(cmd_str + '\n')
-#     assert os.system(cmd_str) == 0, 'Problems when running P+T!'
-
-#     prs_file_prefix = tmp_file_prefix + label+'.prs'
-#     print('Validating results with output file prefix: %s' % tmp_file_prefix)
-#     cmd_str = 'python LDpred.py score --gf=%s_test  --rf=%s  --rf-format=P+T --out=%s' % (td_prefix, weights_file, prs_file_prefix)
-#     print(cmd_str + '\n')
-#     assert os.system(cmd_str) == 0, 'Problems with the P+T validation step!'
-#     print('Test finished successfully!')
-
-
-
-
-# def test_LD_pred_inf(label='inf', td_prefix='./test_data/sim1_0'):
-#     print("Testing LDpred-inf Workflow")
-    
-#     coord_file = tmp_file_prefix + label+'.coord.hdf5'
-#     print('Coordinating test data into file %s' % coord_file)
-#     cmd_str = 'python LDpred.py --debug coord --gf=%s_train --vbim=%s_test.bim --ssf=%s_ss.txt --ssf-format=LDPRED  --beta --N=8000  --out=%s' %(td_prefix,td_prefix,td_prefix, coord_file)
-#     print(cmd_str + '\n')
-#     assert os.system(cmd_str) == 0, 'Problems when coordinating data!'
-
-#     ld_file = tmp_file_prefix+label+'.ld'
-#     weights_file = tmp_file_prefix+label+'.weights'
-#     print('Running LDpred-inf with coordinated file prefix: %s ' % coord_file)
-#     cmd_str = 'python LDpred.py --debug inf --cf=%s  --ldr=100   --ldf=%s  --N=10000  --out=%s' % (coord_file, ld_file, weights_file)
-#     print(cmd_str + '\n')
-#     assert os.system(cmd_str) == 0, 'Problems when running LDpred_inf!'
-
-#     prs_file_prefix = tmp_file_prefix + label+'.prs'
-#     print('Validating results with output file prefix: %s' % weights_file)
-#     cmd_str = 'python LDpred.py --debug score --gf=%s_test  --rf=%s  --out=%s' % (td_prefix, weights_file, prs_file_prefix)
-#     print(cmd_str + '\n')
-#     assert os.system(cmd_str) == 0, 'Problems with the validation step!'
-
-#     ld_file = tmp_file_prefix+label+'.ld'
-#     weights_file = tmp_file_prefix+label+'.weights'
-#     print('Running LDpred-inf with coordinated file prefix: %s ' % coord_file)
-#     cmd_str = 'python LDpred.py --debug inf --cf=%s  --ldr=100  --use-gw-h2 --ldf=%s  --N=10000  --out=%s' % (coord_file, ld_file, weights_file)
-#     print(cmd_str + '\n')
-#     assert os.system(cmd_str) == 0, 'Problems when running LDpred_inf!'
-
-#     prs_file_prefix = tmp_file_prefix + label+'.prs'
-#     print('Validating results with output file prefix: %s' % weights_file)
-#     cmd_str = 'python LDpred.py --debug score --gf=%s_test  --rf=%s  --out=%s' % (td_prefix, weights_file, prs_file_prefix)
-#     print(cmd_str + '\n')
-#     assert os.system(cmd_str) == 0, 'Problems with the validation step!'
-
-
-# def test_gibbs(label='gibbs',td_prefix='./test_data/sim2_0'):
-#     print("Testing LDpred-gibbs Workflow")
-
-#     coord_file = tmp_file_prefix + label+'.coord.hdf5'
-#     print('Coordinating test data into file %s' % coord_file)
-#     cmd_str = 'python LDpred.py --debug coord --gf=%s_train --vbim=%s_test.bim --ssf=%s_ss.txt --ssf-format=LDPRED  --beta --N=8000  --out=%s' %(td_prefix,td_prefix,td_prefix, coord_file)
-#     print(cmd_str + '\n')
-#     assert os.system(cmd_str) == 0, 'Problems when coordinating data!'
-
-#     ld_file = tmp_file_prefix+label+'.ld'
-#     weights_file = tmp_file_prefix+label+'.weights'
-   
-#     print('Running LDpred with coordinated file prefix: %s ' % tmp_file_prefix)
-#     cmd_str = 'python LDpred.py --debug gibbs --cf=%s  --ldr=100   --ldf=%s  --f=0.001 --N=10000  --out=%s' % (coord_file, ld_file, weights_file)
-#     print(cmd_str + '\n')
-#     assert os.system(cmd_str) == 0, 'Problems when running LDpred!'
-    
-
-#     prs_file_prefix = tmp_file_prefix + label+'.prs'
-#     print('Validating results with output file prefix: %s' % tmp_file_prefix)
-#     cmd_str = 'python LDpred.py score --gf=%s_test --rf=%s  --out=%s' % (td_prefix, weights_file, prs_file_prefix)
-#     print(cmd_str + '\n')
-#     assert os.system(cmd_str) == 0, 'Problems with the validation step!'
-#     print('Test finished successfully!')
+        p_dict = {
+            'ssf': os.path.join(TEST_DIR, 'test_data/sim4_0_ss.txt'),
+            'ssf_format': 'LDPRED',
+            'only_hm3': False,
+            'N': None,
+            'debug': True,
+            'z_from_se':True,
+            'match_genomic_pos': False,}
+        bimfile = os.path.join(TEST_DIR, 'test_data/sim4_0_test.bim')
+        summary_dict = {}
+        out = '%s_parse_sum_stats.hdf5' % self.tmp_file_prefix
+        with h5py.File(out, 'w') as h5f:
+            sum_stats_parsers.parse_sum_stats(h5f, p_dict, bimfile, summary_dict)
+            self.assertEqual(len(h5f['sum_stats']['chrom_1']['betas']), 2000)
 
 
 
@@ -310,6 +217,8 @@ class TestLDpred(unittest.TestCase):
         self.assertEqual(summary_dict.get(11, {}).get('value', 0), 0)
         with h5py.File(p_dict['out'], 'r') as h5f:
             self.assertEqual(len(h5f['sum_stats']['chrom_1']['betas']), 2000)
+
+
 
     def test_ld_calculation(self):
         df = h5py.File('%s/test_data/goldens/golden.coord0.hdf5' % TEST_DIR, 'r')
@@ -364,24 +273,24 @@ class TestLDpred(unittest.TestCase):
 
     def test_ldpred_inf(self):
         run_test(
-            'Running LDpred-inf with LD file prefix: %s ' % self.tmp_file_prefix,
-            '--debug inf --cf=%s/test_data/goldens/golden.coord.hdf5  --ldr=100   --ldf=%s  --N=5000  --out=%s' % (TEST_DIR, self.tmp_file_prefix, self.tmp_file_prefix),
+            'Running LDpred-inf with output file prefix: %s ' % self.tmp_file_prefix,
+            '--debug inf --cf=%s/test_data/goldens/golden.coord.hdf5  --ldr=100   --ldf=%s  --out=%s' % (TEST_DIR, self.tmp_file_prefix, self.tmp_file_prefix),
             'Problems when running LDpred_inf!',
-            self.tmp_file_prefix + '.txt',
-            'test_data/goldens/golden.txt',
+            self.tmp_file_prefix + '_LDpred-inf.txt',
+            'test_data/goldens/golden_inf_LDpred-inf.txt',
             self.tmp_file_prefix + '_ldradius100.pkl.gz',
-            'test_data/goldens/golden_ldradius100.pkl.gz')
+            'test_data/goldens/golden_inf_ldradius100.pkl.gz')
 
-        def test_ldpred_gibbs(self):
-            np.random.seed(42)  # Set random seed to stabilize test results
-            run_test(
-                'Running LDpred with coordinated file prefix: %s ' % self.tmp_file_prefix,
-                '--debug gibbs --cf=%s/test_data/goldens/golden.coord.hdf5  --ldr=100   --ldf=%s  --f=0.001 --N=10000  --out=%s' % (TEST_DIR, self.tmp_file_prefix, self.tmp_file_prefix),
-                'Problems when running LDpred!',
-                self.tmp_file_prefix + '_LDpred-inf.txt',
-                'test_data/goldens/golden_LDpred-inf.txt',
-                self.tmp_file_prefix + '_LDpred_p1.0000e-03.txt',
-                'test_data/goldens/golden_LDpred_p1.0000e-03.txt')
+    def test_ldpred_gibbs(self):
+        run_test(
+            'Running LDpred with output file prefix: %s ' % self.tmp_file_prefix,
+            '--debug gibbs --cf=%s/test_data/goldens/golden.coord.hdf5  --ldr=100   --ldf=%s  --f=0.001  --out=%s' % (TEST_DIR, self.tmp_file_prefix, self.tmp_file_prefix),
+            'Problems when running LDpred!',
+            self.tmp_file_prefix + '_LDpred-inf.txt',
+            'test_data/goldens/golden_LDpred-inf.txt',
+            self.tmp_file_prefix + '_LDpred_p1.0000e-03.txt',
+            'test_data/goldens/golden_LDpred_p1.0000e-03.txt',
+            )
 
     def test_ldpred_p_plus_t(self):
         run_test(
@@ -392,10 +301,10 @@ class TestLDpred(unittest.TestCase):
             'test_data/goldens/golden_P+T_r0.20_p1.0000e-03.txt')
 
     def test_ldpred_score_1(self):
-        prs_file_prefix = self.tmp_file_prefix + 'prs'
+        prs_file_prefix = self.tmp_file_prefix 
         run_test(
             'Validating results with output file prefix: %s' % prs_file_prefix,
-            '--debug score --gf=%s/test_data/LDpred_data_p0.001_test_0  --rf=%s/test_data/goldens/golden  --out=%s' % (TEST_DIR, TEST_DIR, prs_file_prefix),
+            '--debug score --gf=%s/test_data/sim2_0_test  --rf=%s/test_data/goldens/golden  --out=%s' % (TEST_DIR, TEST_DIR, prs_file_prefix),
             'Problems with the validation step!',
             prs_file_prefix + '_LDpred-inf.txt',
             'test_data/goldens/goldenprs_LDpred-inf.txt',
@@ -403,126 +312,245 @@ class TestLDpred(unittest.TestCase):
             'test_data/goldens/goldenprs_LDpred_p1.0000e-03.txt')
 
     def test_ldpred_score_2(self):
-        prs_file_prefix2 = self.tmp_file_prefix + 'prs_2'
+        prs_file_prefix = self.tmp_file_prefix 
         run_test(
             'Validating results with output file prefix: %s' % self.tmp_file_prefix,
-            'score --gf=%s/test_data/LDpred_data_p0.001_test_0  --rf=%s/test_data/goldens/golden  --out=%s' % (TEST_DIR, TEST_DIR, prs_file_prefix2),
+            'score --gf=%s/test_data/sim2_0_test  --rf-format LDPRED --rf=%s/test_data/goldens/golden  --out=%s' % (TEST_DIR, TEST_DIR, prs_file_prefix),
             'Problems with the validation step!',
-            prs_file_prefix2 + '_LDpred-inf.txt',
-            'test_data/goldens/goldenprs_2_LDpred-inf.txt',
-            prs_file_prefix2 + '_LDpred_p1.0000e-03.txt',
-            'test_data/goldens/goldenprs_2_LDpred_p1.0000e-03.txt',)
-
-    def test_ldpred_score_p_plus_t(self):
-        prs_file_prefix2 = self.tmp_file_prefix + 'prs_2'
-        run_test(
-            'Validating results with output file prefix: %s' % self.tmp_file_prefix,
-            'score --gf=%s/test_data/LDpred_data_p0.001_test_0  --rf=%s/test_data/goldens/golden  --rf-format=P+T --out=%s' % (TEST_DIR, TEST_DIR, prs_file_prefix2),
-            'Problems with the P+T validation step!',
-            prs_file_prefix2 + '_P+T_p1.0000e-03.txt',
-            'test_data/goldens/goldenprs_2_P+T_p1.0000e-03.txt')
+            prs_file_prefix + '_LDpred-inf.txt',
+            'test_data/goldens/goldenprs_LDpred-inf.txt',
+            prs_file_prefix + '_LDpred_p1.0000e-03.txt',
+            'test_data/goldens/goldenprs_LDpred_p1.0000e-03.txt',)
 
     def test_ldpred_score_3(self):
-        prs_file_prefix3 = self.tmp_file_prefix + 'prs_3'
+        prs_file_prefix = self.tmp_file_prefix
         run_test(
             'Validating results with output file prefix: %s' % self.tmp_file_prefix,
-            'score --gf=%s/test_data/LDpred_data_p0.001_test_0  --only-score --rf=%s/test_data/goldens/golden  --rf-format=P+T --out=%s' % (TEST_DIR, TEST_DIR, prs_file_prefix3),
+            'score --gf=%s/test_data/sim2_0_test  --only-score --rf=%s/test_data/goldens/golden  --rf-format=P+T --out=%s' % (TEST_DIR, TEST_DIR, prs_file_prefix),
             'Problems with the P+T validation step!',
-            prs_file_prefix3 + '_P+T_p1.0000e-03.txt',
-            'test_data/goldens/goldenprs_3_P+T_p1.0000e-03.txt')
+            prs_file_prefix + '_P+T_p1.0000e-03.txt',
+            'test_data/goldens/goldenprs_only_score_P+T_p1.0000e-03.txt')
+
+    def test_ldpred_score_4(self):
+        prs_file_prefix = self.tmp_file_prefix
+        run_test(
+            'Validating results with output file prefix: %s' % self.tmp_file_prefix,
+            'score --gf=%s/test_data/sim2_0_test  --rf=%s/test_data/goldens/golden  --rf-format=P+T --out=%s' % (TEST_DIR, TEST_DIR, prs_file_prefix),
+            'Problems with the P+T validation step!',
+            prs_file_prefix + '_P+T_p1.0000e-03.txt',
+            'test_data/goldens/goldenprs_P+T_p1.0000e-03.txt')
+
+
+class ComplexTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        print('Testing LDpred: Integration tests.\n')
+        print('Note that this test currently only tests the core functionality of LDpred.')
+        print('Please report bugs on github (https://github.com/bvilhjal/ldpred) or to Bjarni J Vilhjalmsson (bjarni.vilhjalmsson@gmail.com).\n')
+
+    def setUp(self):
+        self.tf = tempfile.NamedTemporaryFile()
+        self.tmp_file_prefix = next(tempfile._get_candidate_names())
+
+    def tearDown(self):
+        print('Cleaning up files: %s* ' % self.tmp_file_prefix)
+        cmd_str = 'rm -f %s*' % self.tmp_file_prefix
+        print(cmd_str + '\n')
+        assert os.system(cmd_str) == 0, 'Problems cleaning up test files!  Testing stopped'
+
+    def test_mix1(self):
+        t_i = 0
+        label='mix'
+        for sim_i in range(1,6):
+            td = '%s/test_data/sim%d'%(TEST_DIR, sim_i)
+    
+            file_prefix = '%s_%s_sim%d_%d'%(self.tmp_file_prefix,label,sim_i,t_i)
+            df_prefix = '%s_%d'%(td,t_i)
+            coord_file = file_prefix+'.hdf5'
+            golden_coord_file = 'test_data/goldens/golden_%s_%i_%i.coord.hdf5'%(label,sim_i,t_i)
+             
+            run_test(
+                'Validating results with output file prefix: %s' % self.tmp_file_prefix,
+                '--debug coord --gf=%s_train --vbim=%s_test.bim --ssf=%s_ss.txt --ssf-format=LDPRED --out=%s' % (df_prefix,df_prefix,df_prefix,coord_file),
+                'Problems when coordinating data!',
+                coord_file,
+                golden_coord_file)
+    
+            ld_file = file_prefix+'.ld'
+            weights_file = file_prefix+'.weights'
+            golden_weights_prefix = 'test_data/goldens/golden_%s_%i_%i'%(label, sim_i,t_i)
+            run_test(
+                'Running LDpred with coordinated file prefix: %s ' % golden_coord_file,
+                '--debug gibbs --N 5500 --use-gw-h2  --n-burn-in 3 --n-iter 25 --cf=%s  --ldr=100   --ldf=%s  --f 1 0.3 0.1 --out=%s' % (golden_coord_file, ld_file, weights_file),
+                'Problems when running LDpred!',
+                weights_file + '_LDpred-inf.txt',
+                '%s_LDpred-inf.txt'%golden_weights_prefix,
+                weights_file + '_LDpred_p1.0000e-01.txt',
+                '%s_LDpred_p1.0000e-01.txt'%golden_weights_prefix)
+    
+         
+            run_test(
+                'Running P+T with coordinated file prefix: %s ' % golden_coord_file,
+                '--debug p+t --cf=%s  --ldr=100  --p 1 0.3 0.1 --out=%s' % (golden_coord_file, weights_file),
+                'Problems when running P+T!',
+                weights_file + '_P+T_r0.20_p1.0000e-01.txt',
+                '%s_P+T_r0.20_p1.0000e-01.txt'%golden_weights_prefix,
+                weights_file + '_P+T_r0.20_p1.0000e+00.txt',
+                '%s_P+T_r0.20_p1.0000e+00.txt'%golden_weights_prefix)
+    
+         
+            prs_file_prefix = file_prefix+'.prs'
+            golden_prs_prefix = 'test_data/goldens/golden_%s_prs_%i_%i'%(label,sim_i,t_i)
+            run_test(
+                'Validating results with output file prefix: %s' % prs_file_prefix,
+                '--debug score --gf=%s_test  --rf=%s  --out=%s' % (df_prefix, golden_weights_prefix, prs_file_prefix),
+                'Problems with the validation step!',
+                prs_file_prefix + '_P+T_r0.20_p1.0000e-01.txt',
+                '%s_P+T_r0.20_p1.0000e-01.txt'%(golden_prs_prefix),
+                prs_file_prefix + '_P+T_r0.20_p1.0000e+00.txt',
+                '%s_P+T_r0.20_p1.0000e+00.txt'%(golden_prs_prefix),
+                prs_file_prefix + '_LDpred-inf.txt',
+                '%s_LDpred-inf.txt'%(golden_prs_prefix),
+                prs_file_prefix + '_LDpred_p1.0000e-01.txt',
+                '%s_LDpred_p1.0000e-01.txt'%(golden_prs_prefix),
+                prs_file_prefix + '_LDpred_p3.0000e-01.txt',
+                '%s_LDpred_p3.0000e-01.txt'%(golden_prs_prefix))
+                
+                
+    def test_mix2(self):
+        t_i = 0
+        label='mix2'
+        for sim_i in range(1,6):
+            td = '%s/test_data/sim%d'%(TEST_DIR, sim_i)
+    
+            file_prefix = '%s_%s_sim%d_%d'%(self.tmp_file_prefix,label,sim_i,t_i)
+            df_prefix = '%s_%d'%(td,t_i)
+            coord_file = file_prefix+'.hdf5'
+            golden_coord_file = 'test_data/goldens/golden_%s_%i_%i.coord.hdf5'%(label,sim_i,t_i)
+             
+            run_test(
+                'Validating results with output file prefix: %s' % self.tmp_file_prefix,
+                'coord --gf=%s_train --vbim=%s_test.bim --z-from-se --ssf=%s_ss.txt --ssf-format=LDPRED --out=%s' % (df_prefix,df_prefix,df_prefix,coord_file),
+                'Problems when coordinating data!',
+                coord_file,
+                golden_coord_file)
+    
+            ld_file = file_prefix+'.ld'
+            weights_file = file_prefix+'.weights'
+            golden_weights_prefix = 'test_data/goldens/golden_%s_%i_%i'%(label, sim_i,t_i)
+            run_test(
+                'Running LDpred with coordinated file prefix: %s ' % golden_coord_file,
+                'gibbs --n-burn-in 5 --n-iter 35 --cf=%s  --ldr=150   --ldf=%s  --f 1 0.1 0.01 0.001 --out=%s' % (golden_coord_file, ld_file, weights_file),
+                'Problems when running LDpred!',
+                weights_file + '_LDpred-inf.txt',
+                '%s_LDpred-inf.txt'%golden_weights_prefix,
+                weights_file + '_LDpred_p1.0000e-01.txt',
+                '%s_LDpred_p1.0000e-01.txt'%golden_weights_prefix,
+                weights_file + '_LDpred_p1.0000e+00.txt',
+                '%s_LDpred_p1.0000e+00.txt'%golden_weights_prefix)
+    
+         
+            run_test(
+                'Running P+T with coordinated file prefix: %s ' % golden_coord_file,
+                'p+t --cf=%s  --ldr=150  --r2 0.5 0.2 0.1 --p 1 0.1 0.01 0.001 0.0001 --out=%s' % (golden_coord_file, weights_file),
+                'Problems when running P+T!',
+                weights_file + '_P+T_r0.20_p1.0000e-01.txt',
+                '%s_P+T_r0.20_p1.0000e-01.txt'%golden_weights_prefix,
+                weights_file + '_P+T_r0.50_p1.0000e-01.txt',
+                '%s_P+T_r0.50_p1.0000e-01.txt'%golden_weights_prefix,
+                weights_file + '_P+T_r0.10_p1.0000e-01.txt',
+                '%s_P+T_r0.10_p1.0000e-01.txt'%golden_weights_prefix,
+                weights_file + '_P+T_r0.10_p1.0000e-03.txt',
+                '%s_P+T_r0.10_p1.0000e-03.txt'%golden_weights_prefix,
+                weights_file + '_P+T_r0.20_p1.0000e+00.txt',
+                '%s_P+T_r0.20_p1.0000e+00.txt'%golden_weights_prefix)
+    
+         
+            prs_file_prefix = file_prefix+'.prs'
+            golden_prs_prefix = 'test_data/goldens/golden_%s_prs_%i_%i'%(label,sim_i,t_i)
+            run_test(
+                'Validating results with output file prefix: %s' % prs_file_prefix,
+                'score --gf=%s_test  --r2 0.5 0.2 0.1 --rf=%s  --out=%s' % (df_prefix, golden_weights_prefix, prs_file_prefix),
+                'Problems with the validation step!',
+                prs_file_prefix + '_P+T_r0.20_p1.0000e-01.txt',
+                '%s_P+T_r0.20_p1.0000e-01.txt'%(golden_prs_prefix),
+                prs_file_prefix + '_P+T_r0.20_p1.0000e+00.txt',
+                '%s_P+T_r0.20_p1.0000e+00.txt'%(golden_prs_prefix),
+                prs_file_prefix + '_LDpred-inf.txt',
+                '%s_LDpred-inf.txt'%(golden_prs_prefix),
+                prs_file_prefix + '_LDpred_p1.0000e-01.txt',
+                '%s_LDpred_p1.0000e-01.txt'%(golden_prs_prefix),
+                prs_file_prefix + '_LDpred_p1.0000e-02.txt',
+                '%s_LDpred_p1.0000e-02.txt'%(golden_prs_prefix))
+                
+
+def update_golden_files_mix1():
+    label = 'mix'
+    tf = tempfile.NamedTemporaryFile()
+    tmp_file_prefix = next(tempfile._get_candidate_names())
+    for sim_i in range(1,6):
+        print('Updating golden results')
+        golden_coord_file = 'test_data/goldens/golden_%s_%i_0.coord.hdf5'%(label,sim_i)
+
+        cmd_str = './LDpred.py --debug coord --gf ./test_data/sim%i_0_train --vbim ./test_data/sim%i_0_test.bim --ssf ./test_data/sim%i_0_ss.txt --ssf-format LDPRED --out=%s' % (sim_i,sim_i,sim_i,golden_coord_file)
+        print(cmd_str + '\n')
+        assert os.system(cmd_str) == 0, 'Problems when updating golden files'
+
+        golden_weights_prefix = 'test_data/goldens/golden_%s_%i_0'%(label,sim_i)
+        ld_prefix = '%s_%i'%(tmp_file_prefix,sim_i)
+        cmd_str = './LDpred.py --debug gibbs --N 5500 --use-gw-h2  --n-burn-in 3 --n-iter 25 --cf %s  --ldr 100   --ldf %s  --f 1 0.3 0.1 --out %s' % (golden_coord_file,ld_prefix,golden_weights_prefix)
+        print(cmd_str + '\n')
+        assert os.system(cmd_str) == 0, 'Problems when updating golden files'
+   
+        cmd_str = './LDpred.py --debug p+t --cf %s  --ldr 100  --p 1 0.3 0.1 --out %s' % (golden_coord_file,golden_weights_prefix)
+        print(cmd_str + '\n')
+        assert os.system(cmd_str) == 0, 'Problems when updating golden files'
+
+        golden_prs_prefix = 'test_data/goldens/golden_%s_prs_%i_0'%(label,sim_i) 
+        cmd_str = './LDpred.py --debug score --gf ./test_data/sim%i_0_test --rf %s  --out %s' % (sim_i,golden_weights_prefix,golden_prs_prefix)
+        print(cmd_str + '\n')
+        assert os.system(cmd_str) == 0, 'Problems when updating golden files'
+
+    print('Cleaning up files.')
+    cmd_str = 'rm %s*' % tmp_file_prefix
+    print(cmd_str + '\n')
+    assert os.system(cmd_str) == 0, 'Problems cleaning up test files!  Testing stopped'
+
+def update_golden_files_mix2():
+    label = 'mix2'
+    tf = tempfile.NamedTemporaryFile()
+    tmp_file_prefix = next(tempfile._get_candidate_names())
+    for sim_i in range(1,6):
+        print('Updating golden results')
+        golden_coord_file = 'test_data/goldens/golden_%s_%i_0.coord.hdf5'%(label,sim_i)
+        cmd_str = './LDpred.py --debug coord --gf ./test_data/sim%i_0_train --vbim ./test_data/sim%i_0_test.bim --z-from-se --ssf ./test_data/sim%i_0_ss.txt --ssf-format LDPRED --out=%s' % (sim_i,sim_i,sim_i,golden_coord_file)
+        print(cmd_str + '\n')
+        assert os.system(cmd_str) == 0, 'Problems when updating golden files'
+
+        golden_weights_prefix = 'test_data/goldens/golden_%s_%i_0'%(label,sim_i)
+        ld_prefix = '%s_%i'%(tmp_file_prefix,sim_i)
+        cmd_str = './LDpred.py --debug gibbs --n-burn-in 5 --n-iter 35 --cf %s  --ldr 150   --ldf %s  --f 1 0.1 0.01 0.001 --out %s' % (golden_coord_file,ld_prefix,golden_weights_prefix)
+        print(cmd_str + '\n')
+        assert os.system(cmd_str) == 0, 'Problems when updating golden files'
+   
+        cmd_str = './LDpred.py --debug p+t --cf %s  --ldr 150  --r2 0.5 0.2 0.1 --p 1 0.1 0.01 0.001 0.0001 --out %s' % (golden_coord_file,golden_weights_prefix)
+        print(cmd_str + '\n')
+        assert os.system(cmd_str) == 0, 'Problems when updating golden files'
+
+        golden_prs_prefix = 'test_data/goldens/golden_%s_prs_%i_0'%(label,sim_i) 
+        cmd_str = './LDpred.py --debug score --gf ./test_data/sim%i_0_test --r2 0.5 0.2 0.1 --rf %s  --out %s' % (sim_i,golden_weights_prefix,golden_prs_prefix)
+        print(cmd_str + '\n')
+        assert os.system(cmd_str) == 0, 'Problems when updating golden files'
+
+    print('Cleaning up files.')
+    cmd_str = 'rm %s*' % tmp_file_prefix
+    print(cmd_str + '\n')
+    assert os.system(cmd_str) == 0, 'Problems cleaning up test files!  Testing stopped'
 
 
 if __name__ == '__main__':
     unittest.main()
 
-# def test_mix(label='mix', td_prefix='./test_data/',num_traits=1):
-#     print("Testing mixed LDpred Workflow")
-    
-#     for sim_i in range(1,6):
-#         td = './test_data/sim%d'%sim_i
-#         for t_i in range(num_traits):
-#             file_prefix = '%s_%s_sim%d_%d'%(tmp_file_prefix,label,sim_i,t_i)
-#             df_prefix = '%s_%d'%(td,t_i)
-            
-#             coord_file = file_prefix+'.hdf5'
-#             print('Coordinating test data into file %s' % coord_file)
-#             cmd_str = 'python LDpred.py --debug coord --gf=%s_train --vbim=%s_test.bim --ssf=%s_ss.txt --ssf-format=LDPRED --out=%s' % (df_prefix,df_prefix,df_prefix,coord_file)
-#             print(cmd_str + '\n')
-#             assert os.system(cmd_str) == 0, 'Problems when coordinating data!'
-        
-#             ld_file = file_prefix+'.ld'
-#             weights_file = file_prefix+'.weights'
-#             print('Running LDpred with coordinated file prefix: %s ' % coord_file)
-#             cmd_str = 'python LDpred.py --debug gibbs --N 5500 --use-gw-h2  --n-burn-in 3 --n-iter 25 --cf=%s  --ldr=100   --ldf=%s  --f 1 0.3 0.1 --out=%s' % (coord_file, ld_file, weights_file)
-#             print(cmd_str + '\n')
-#             assert os.system(cmd_str) == 0, 'Problems when running LDpred!'
-        
-#             print('Running P+T with coordinated file prefix: %s ' % coord_file)
-#             cmd_str = 'python LDpred.py --debug p+t --cf=%s  --ldr=100  --p 1 0.3 0.1 --out=%s' % (coord_file, weights_file)
-#             print(cmd_str + '\n')
-#             assert os.system(cmd_str) == 0, 'Problems when running P+T!'
-        
-#             prs_file_prefix = file_prefix+'.prs'
-#             print('Validating results with output file prefix: %s' % prs_file_prefix)
-#             cmd_str = 'python LDpred.py --debug score --gf=%s_test  --rf=%s  --out=%s' % (df_prefix, weights_file, prs_file_prefix)
-#             print(cmd_str + '\n')
-#             assert os.system(cmd_str) == 0, 'Problems with the validation step!'
-#             print('Test finished successfully!')
-        
-
-# def test_mix2(label='mix2', td_prefix='./test_data/',num_traits=1):
-#     print("Testing mixed LDpred Workflow")
-    
-#     for sim_i in range(1,6):
-#         td = './test_data/sim%d'%sim_i
-#         for t_i in range(num_traits):
-#             file_prefix = '%s_%s_sim%d_%d'%(tmp_file_prefix,label,sim_i,t_i)
-#             df_prefix = '%s_%d'%(td,t_i)
-            
-#             coord_file = file_prefix+'.hdf5'
-#             print('Coordinating test data into file %s' % coord_file)
-#             cmd_str = 'python LDpred.py coord --gf=%s_train --vbim=%s_test.bim --ssf=%s_ss.txt --ssf-format=LDPRED --out=%s' % (df_prefix,df_prefix,df_prefix,coord_file)
-#             print(cmd_str + '\n')
-#             assert os.system(cmd_str) == 0, 'Problems when coordinating data!'
-        
-#             ld_file = file_prefix+'.ld'
-#             weights_file = file_prefix+'.weights'
-#             print('Running LDpred with coordinated file prefix: %s ' % coord_file)
-#             cmd_str = 'python LDpred.py gibbs --n-burn-in 5 --n-iter 35 --cf=%s  --ldr=150   --ldf=%s  --f 1 0.1 0.01 0.001 --out=%s' % (coord_file, ld_file, weights_file)
-#             print(cmd_str + '\n')
-#             assert os.system(cmd_str) == 0, 'Problems when running LDpred!'
-        
-#             print('Running P+T with coordinated file prefix: %s ' % coord_file)
-#             cmd_str = 'python LDpred.py p+t --cf=%s  --ldr=150  --r2 0.5 0.2 0.1 --p 1 0.1 0.01 0.001 0.0001 --out=%s' % (coord_file, weights_file)
-#             print(cmd_str + '\n')
-#             assert os.system(cmd_str) == 0, 'Problems when running P+T!'
-        
-#             prs_file_prefix = file_prefix+'.prs'
-#             print('Validating results with output file prefix: %s' % prs_file_prefix)
-#             cmd_str = 'python LDpred.py score --gf=%s_test  --r2 0.5 0.2 0.1 --rf=%s  --out=%s' % (df_prefix, weights_file, prs_file_prefix)
-#             print(cmd_str + '\n')
-#             assert os.system(cmd_str) == 0, 'Problems with the validation step!'
-#             print('Test finished successfully!')
-        
-# try:
-#     test_coord()
-#     test_simple_pt()
-#     test_LD_pred_inf()    
-#     test_gibbs()
-#     test_mix()
-#     test_mix2()
 
 
 
-# except Exception as e:
-#     print("Test failed: ",e)
-#     print('Cleaning up files.')
-#     cmd_str = 'rm %s*' % tmp_file_prefix
-#     print(cmd_str + '\n')
-#     assert os.system(cmd_str) == 0, 'Problems cleaning up test files!  Testing stopped'
-#     raise Exception('Test failed.')
- 
-# print('Cleaning up files.')
-# cmd_str = 'rm %s*' % tmp_file_prefix
-# print(cmd_str + '\n')
-# assert os.system(cmd_str) == 0, 'Problems cleaning up test files!  Testing stopped'

@@ -12,6 +12,29 @@ from ldpred import reporting
 from ldpred import coord_genotypes
 
 
+
+
+def get_LDpred_sample_size(n,ns,verbose):
+    if n is None:
+        #If coefficient of variation is small, then use one N nevertheless.
+        n_cv = sp.std(ns)/sp.mean(ns)
+        if n_cv<0.1:
+            ldpred_n = sp.mean(ns)
+            if verbose:
+                print ("Sample size does not vary much (CV=%0.4f).  Using a fixed sample size of %0.2f"%(n_cv,ldpred_n))
+        else:
+            if verbose:
+                print ("Using varying sample sizes")
+                print ("Sample size ranges between %d and %d"%(min(ns),max(ns)))
+                print ("Average sample size is %0.2f "%(sp.mean(ns)))
+        ldpred_inf_n = sp.mean(ns)
+        ldpred_n = None
+    else:
+        ldpred_n = float(n)
+        if verbose:
+            print ("Using the given fixed sample size of %d"%(n))
+        ldpred_inf_n = float(n)
+    return ldpred_n,ldpred_inf_n
         
 def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=None, ns= None, ld_radius=100,
                  num_iter=60, burn_in=10, p=None, zero_jump_prob=0.05, tight_sampling=False,
@@ -20,35 +43,21 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=None, n
     """
     LDpred (Gibbs Sampler) 
     """
+    # Set random seed to stabilize results
+    sp.random.seed(42) 
+
     t0 = time.time()
     m = len(beta_hats)
 
 
-    if n is None:
-        #If coefficient of variation is small, then use one N nevertheless.
-        n_cv = sp.std(ns)/sp.mean(ns)
-        if n_cv<0.1:
-            n = sp.mean(ns)
-            if verbose:
-                print ("Sample size does not vary much (CV=%0.4f).  Using a fixed sample size of %0.2f"%(n_cv,n))
-        else:
-            if verbose:
-                print ("Using varying sample sizes")
-                print ("Sample size ranges between %d and %d"%(min(ns),max(ns)))
-                print ("Average sample size is %0.2f "%(sp.mean(ns)))
-        ld_pred_inf_n = sp.mean(ns)
-    else:
-        n = float(n)
-        if verbose:
-            print ("Using the given fixed sample size of %d"%(n))
-        ld_pred_inf_n = float(n)
+    ldpred_n, ldpred_inf_n = get_LDpred_sample_size(n,ns,verbose)
     
     # If no starting values for effects were given, then use the infinitesimal model starting values.
     if start_betas is None and verbose:
         print('Initializing LDpred effects with posterior mean LDpred-inf effects.')
         print('Calculating LDpred-inf effects.')
         start_betas = LDpred_inf.ldpred_inf(beta_hats, genotypes=genotypes, reference_ld_mats=reference_ld_mats,
-                                            h2=h2, n=ld_pred_inf_n, ld_window_size=2 * ld_radius, verbose=False)
+                                            h2=h2, n=ldpred_inf_n, ld_window_size=2 * ld_radius, verbose=False)
     curr_betas = sp.copy(start_betas)
     assert len(curr_betas)==m,'Betas returned by LDpred_inf do not have the same length as expected.'
     curr_post_means = sp.zeros(m)
@@ -62,25 +71,25 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=None, n
     hdmp = (h2 / Mp)
     
     
-    if n is not None:
-        hdmpn = hdmp + 1.0 / n
+    if ldpred_n is not None:
+        hdmpn = hdmp + 1.0 / ldpred_n
         hdmp_hdmpn = (hdmp / hdmpn)
         c_const = (p / sp.sqrt(hdmpn))
-        d_const = (1.0 - p) / (sp.sqrt(1.0 / n))
+        d_const = (1.0 - p) / (sp.sqrt(1.0 / ldpred_n))
 
     for k in range(num_iter):  # Big iteration
 
         # Force an alpha shrink if estimates are way off compared to heritability estimates.  (Improves MCMC convergence.)
         h2_est = max(0.00001, sp.sum(curr_betas ** 2))
         if tight_sampling:
-            alpha = min(1.0 - zero_jump_prob, 1.0 / h2_est, (h2 + 1.0 / sp.sqrt(n)) / h2_est)
+            alpha = min(1.0 - zero_jump_prob, 1.0 / h2_est, (h2 + 1.0 / sp.sqrt(ldpred_n)) / h2_est)
         else:
             alpha = 1.0 - zero_jump_prob
 
         rand_ps = sp.random.random(m)
         
-        if n is not None:
-            rand_norms = stats.norm.rvs(0.0, (hdmp_hdmpn) * (1.0 / n), size=m)
+        if ldpred_n is not None:
+            rand_norms = stats.norm.rvs(0.0, (hdmp_hdmpn) * (1.0 / ldpred_n), size=m)
 
         if ld_boundaries is None:
             for i, snp_i in enumerate(iter_order):
@@ -89,9 +98,9 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=None, n
                 stop_i = min(m, snp_i + ld_radius + 1)
                 
                 #Figure out what sample size to use, and dependent values
-                if n is not None:
+                if ldpred_n is not None:
                     rand_norm =rand_norms[i]
-                    ni = n
+                    ni = ldpred_n
                 else:
                     ni = ns[i]
                     hdmpn = hdmp + 1.0 / ni
@@ -143,9 +152,9 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=None, n
                 focal_i = snp_i - start_i
                 
                 #Figure out what sample size to use, and dependent values
-                if n is not None:
+                if ldpred_n is not None:
                     rand_norm =rand_norms[i]
-                    ni = n
+                    ni = ldpred_n
                 else:
                     ni = ns[i]
                     rand_norm =  stats.norm.rvs(0.0, (hdmp_hdmpn) * (1.0 / ni), size=1)[0]
@@ -241,7 +250,8 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
     print('Calculating LDpred-inf weights')
     for chrom_str in util.chromosomes_list:
         if chrom_str in cord_data_g:
-            print('Calculating SNP weights for Chromosome %s' % ((chrom_str.split('_'))[1]))           
+            if verbose:    
+                print('Calculating SNP weights for Chromosome %s' % ((chrom_str.split('_'))[1]))           
             g = cord_data_g[chrom_str]
 
             # Filter monomorphic SNPs

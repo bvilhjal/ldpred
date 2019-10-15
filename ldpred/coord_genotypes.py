@@ -70,29 +70,19 @@ def get_snp_stds(raw_snps):
 
 
 def get_mean_sample_size(n, cord_data_g):
-    all_ns = []
-    for chrom_str in util.chromosomes_list:
-        if chrom_str in cord_data_g:
-            g = cord_data_g[chrom_str]
-            all_ns.extend(g['ns'][...])
 
     if n is None:
+        all_ns = []
+        for chrom_str in util.chromosomes_list:
+            if chrom_str in cord_data_g:
+                g = cord_data_g[chrom_str]
+                all_ns.extend(g['ns'][...])
         assert all_ns is not None, 'Sample size missing. Please use --N flag, or ensure they are parsed as part of the summary statistics.'
         mean_n = sp.mean(all_ns)
     else:
         mean_n = n
     return mean_n
 
-def has_phenotypes(df):
-    has_phenotypes=False
-    if 'y' in df:
-        #Validation phenotypes found.
-        y = df['y'][...]  # Phenotype
-        num_individs = len(y)
-        risk_scores_pval_derived = sp.zeros(num_individs)
-        return True
-    else: 
-        return False
 
 
 def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
