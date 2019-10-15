@@ -37,9 +37,9 @@ def get_LDpred_sample_size(n,ns,verbose):
     return ldpred_n,ldpred_inf_n
         
 def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=None, ns= None, ld_radius=100,
-                 num_iter=60, burn_in=10, p=None, zero_jump_prob=0.05, tight_sampling=False,
-                 ld_dict=None, reference_ld_mats=None, ld_boundaries=None, verbose=False,
-                 print_progress=True):
+                 num_iter=60, burn_in=10, p=None, zero_jump_prob=0.01, sampl_var_shrink_factor=0.9, 
+                 tight_sampling=False,ld_dict=None, reference_ld_mats=None, ld_boundaries=None, 
+                 verbose=False, print_progress=True):
     """
     LDpred (Gibbs Sampler) 
     """
@@ -89,7 +89,7 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=None, n
         rand_ps = sp.random.random(m)
         
         if ldpred_n is not None:
-            rand_norms = stats.norm.rvs(0.0, (hdmp_hdmpn) * (1.0 / ldpred_n), size=m)
+            rand_norms = stats.norm.rvs(0.0, sampl_var_shrink_factor*sp.sqrt((hdmp_hdmpn) * (1.0 / ldpred_n)), size=m)
 
         if ld_boundaries is None:
             for i, snp_i in enumerate(iter_order):
@@ -107,7 +107,7 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=None, n
                     hdmp_hdmpn = (hdmp / hdmpn)
                     c_const = (p / sp.sqrt(hdmpn))
                     d_const = (1.0 - p) / (sp.sqrt(1.0 / ni))
-                    rand_norm =  stats.norm.rvs(0.0, (hdmp_hdmpn) * (1.0 / ni), size=1)[0]
+                    rand_norm =  stats.norm.rvs(0.0, sampl_var_shrink_factor* sp.sqrt((hdmp_hdmpn) * (1.0 / ni)), size=1)[0]
 
                 # Local LD matrix
                 D_i = ld_dict[snp_i]
@@ -157,7 +157,7 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=None, n
                     ni = ldpred_n
                 else:
                     ni = ns[i]
-                    rand_norm =  stats.norm.rvs(0.0, (hdmp_hdmpn) * (1.0 / ni), size=1)[0]
+                    rand_norm =  stats.norm.rvs(0.0, sampl_var_shrink_factor* sp.sqrt((hdmp_hdmpn) * (1.0 / ni)), size=1)[0]
                     hdmpn = hdmp + 1.0 / ni
                     hdmp_hdmpn = (hdmp / hdmpn)
                     c_const = (p / sp.sqrt(hdmpn))
@@ -218,7 +218,8 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=None, n
 
 def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_prefix=None, 
                       summary_dict=None, ps=None,n=None, h2=None, use_gw_h2=False, 
-                      num_iter=None, verbose=False, zero_jump_prob=0.05, burn_in=5):
+                      sampl_var_shrink_factor=0.9, num_iter=None, verbose=False, zero_jump_prob=0.01, 
+                      burn_in=5):
     """
     Calculate LDpred for a genome
     """    
@@ -332,12 +333,13 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
                     res_dict = ldpred_gibbs(pval_derived_betas, h2=h2_chrom, n=n, ns=ns, p=p, ld_radius=ld_radius,
                                             verbose=verbose, num_iter=num_iter, burn_in=burn_in, ld_dict=chrom_ld_dict[chrom_str],
                                             start_betas=LDpred_inf_chrom_dict[chrom_str], ld_boundaries=ld_boundaries,
-                                            zero_jump_prob=zero_jump_prob,
+                                            zero_jump_prob=zero_jump_prob,sampl_var_shrink_factor=sampl_var_shrink_factor,
                                             print_progress=False)
                 else:
                     res_dict = ldpred_gibbs(pval_derived_betas, h2=h2_chrom, n=n, ns=ns, p=p, ld_radius=ld_radius,
                                             verbose=verbose, num_iter=num_iter, burn_in=burn_in, ld_dict=chrom_ld_dict[chrom_str],
-                                            start_betas=LDpred_inf_chrom_dict[chrom_str], zero_jump_prob=zero_jump_prob,
+                                            start_betas=LDpred_inf_chrom_dict[chrom_str], zero_jump_prob=zero_jump_prob, 
+                                            sampl_var_shrink_factor=sampl_var_shrink_factor,
                                             print_progress=False)
                 
                 updated_betas = res_dict['betas']
