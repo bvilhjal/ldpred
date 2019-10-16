@@ -16,9 +16,9 @@ from ldpred import coord_genotypes
 
 def get_LDpred_sample_size(n,ns,verbose):
     if n is None:
-        #If coefficient of variation is small, then use one N nevertheless.
+        #If coefficient of variation is very small, then use one N nevertheless.
         n_cv = sp.std(ns)/sp.mean(ns)
-        if n_cv<0.1:
+        if n_cv<0.01:
             ldpred_n = sp.mean(ns)
             if verbose:
                 print ("Sample size does not vary much (CV=%0.4f).  Using a fixed sample size of %0.2f"%(n_cv,ldpred_n))
@@ -36,6 +36,48 @@ def get_LDpred_sample_size(n,ns,verbose):
         ldpred_inf_n = float(n)
     return ldpred_n,ldpred_inf_n
         
+        
+def prepare_constants(ldpred_n,ns,m,p,h2,sampl_var_shrink_factor):
+    Mp = m * p
+    hdmp = (h2 / Mp)
+    const_dict = {'Mp':Mp, 'hdmp':hdmp}
+    rv_scalars = sp.zeros(m)
+    if ldpred_n is not None:
+        hdmpn = hdmp + 1.0 / ldpred_n
+        hdmp_hdmpn = (hdmp / hdmpn)
+        c_const = (p / sp.sqrt(hdmpn))
+        d_const = (1.0 - p) / (sp.sqrt(1.0 / ldpred_n))
+        const_dict['n']=ldpred_n
+        const_dict['hdmpn']=hdmpn
+        const_dict['hdmp_hdmpn']=hdmp_hdmpn
+        const_dict['c_const']=c_const
+        const_dict['d_const']=d_const
+        rv_scalars[:]=sampl_var_shrink_factor* sp.sqrt((hdmp_hdmpn) * (1.0 / ldpred_n))
+    else:
+        snp_dict = {}
+        for i in range(m):
+            ni = ns[i]
+            hdmpn_i = hdmp + 1.0 / ni
+            hdmp_hdmpn_i = (hdmp / hdmpn_i)
+            c_const_i = (p / sp.sqrt(hdmpn_i))
+            d_const_i = (1.0 - p) / (sp.sqrt(1.0 / ni))
+            snp_dict[i]={'n':ni, 'hdmpn':hdmpn_i, 
+                           'hdmp_hdmpn':hdmp_hdmpn_i, 
+                           'c_const':c_const_i, 
+                           'd_const':d_const_i}
+            rv_scalars[i]=sampl_var_shrink_factor* sp.sqrt((hdmp_hdmpn_i) * (1.0 / ni))
+        const_dict['snp_dict']=snp_dict
+    const_dict['rv_scalars']=rv_scalars
+    return const_dict
+
+
+def get_constants(snp_i,const_dict):
+    if 'snp_dict' in const_dict:
+        return const_dict['snp_dict'][snp_i]
+    else:
+        return const_dict
+        
+            
 def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=None, ns= None, ld_radius=100,
                  num_iter=60, burn_in=10, p=None, zero_jump_prob=0.01, sampl_var_shrink_factor=0.9, 
                  tight_sampling=False,ld_dict=None, reference_ld_mats=None, ld_boundaries=None, 
@@ -67,137 +109,72 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=None, n
     iter_order = sp.arange(m)
     
     # Setting up the marginal Bayes shrink
-    Mp = m * p
-    hdmp = (h2 / Mp)
-    
-    
-    if ldpred_n is not None:
-        hdmpn = hdmp + 1.0 / ldpred_n
-        hdmp_hdmpn = (hdmp / hdmpn)
-        c_const = (p / sp.sqrt(hdmpn))
-        d_const = (1.0 - p) / (sp.sqrt(1.0 / ldpred_n))
+    const_dict = prepare_constants(ldpred_n,ns,m,p,h2,sampl_var_shrink_factor)
+
 
     for k in range(num_iter):  # Big iteration
-
-        # Force an alpha shrink if estimates are way off compared to heritability estimates.  (Improves MCMC convergence.)
         h2_est = max(0.00001, sp.sum(curr_betas ** 2))
         if tight_sampling:
+            # Force an alpha shrink if estimates are way off compared to heritability estimates.  
+            #(May improve MCMC convergence.)
             alpha = min(1.0 - zero_jump_prob, 1.0 / h2_est, (h2 + 1.0 / sp.sqrt(ldpred_n)) / h2_est)
         else:
             alpha = 1.0 - zero_jump_prob
 
         rand_ps = sp.random.random(m)
         
-        if ldpred_n is not None:
-            rand_norms = stats.norm.rvs(0.0, sampl_var_shrink_factor*sp.sqrt((hdmp_hdmpn) * (1.0 / ldpred_n)), size=m)
+        rand_norms = stats.norm.rvs(0.0, 1, size=m)*const_dict['rv_scalars']
 
-        if ld_boundaries is None:
-            for i, snp_i in enumerate(iter_order):
+        for i, snp_i in enumerate(iter_order):
+            if ld_boundaries is None:
                 start_i = max(0, snp_i - ld_radius)
                 focal_i = min(ld_radius, snp_i)
                 stop_i = min(m, snp_i + ld_radius + 1)
-                
-                #Figure out what sample size to use, and dependent values
-                if ldpred_n is not None:
-                    rand_norm =rand_norms[i]
-                    ni = ldpred_n
-                else:
-                    ni = ns[i]
-                    hdmpn = hdmp + 1.0 / ni
-                    hdmp_hdmpn = (hdmp / hdmpn)
-                    c_const = (p / sp.sqrt(hdmpn))
-                    d_const = (1.0 - p) / (sp.sqrt(1.0 / ni))
-                    rand_norm =  stats.norm.rvs(0.0, sampl_var_shrink_factor* sp.sqrt((hdmp_hdmpn) * (1.0 / ni)), size=1)[0]
-
-                # Local LD matrix
-                D_i = ld_dict[snp_i]
-                
-                # Local (most recently updated) effect estimates
-                local_betas = curr_betas[start_i: stop_i]
-                
-                # Calculate the local posterior mean, used when sampling.
-                local_betas[focal_i] = 0.0
-                res_beta_hat_i = beta_hats[snp_i] - sp.dot(D_i , local_betas)
-                b2 = res_beta_hat_i ** 2
-    
-
-                d_const_b2_exp = d_const * sp.exp(-b2 * ni / 2.0)
-                if sp.isreal(d_const_b2_exp):
-                    numerator = c_const * sp.exp(-b2 / (2.0 * hdmpn))
-                    if sp.isreal(numerator):
-                        if numerator == 0.0:
-                            postp = 0.0
-                        else:
-                            postp = numerator / (numerator + d_const_b2_exp)
-                            assert sp.isreal(postp), 'The posterior mean is not a real number?  Possibly due to problems with summary stats, LD estimates, or parameter settings.' 
-                    else:
-                        postp = 0.0
-                else:
-                    postp = 1.0
-                curr_post_means[snp_i] = hdmp_hdmpn * postp * res_beta_hat_i
-    
-                if rand_ps[i] < postp * alpha:
-                    # Sample from the posterior Gaussian dist.
-                    proposed_beta = rand_norm + hdmp_hdmpn * res_beta_hat_i
-    
-                else:
-                    # Sample 0
-                    proposed_beta = 0.0
-    
-                curr_betas[snp_i] = proposed_beta  # UPDATE BETA
-        else:
-            for i, snp_i in enumerate(iter_order):
+            else:
                 start_i = ld_boundaries[snp_i][0]
                 stop_i = ld_boundaries[snp_i][1]
                 focal_i = snp_i - start_i
                 
-                #Figure out what sample size to use, and dependent values
-                if ldpred_n is not None:
-                    rand_norm =rand_norms[i]
-                    ni = ldpred_n
-                else:
-                    ni = ns[i]
-                    rand_norm =  stats.norm.rvs(0.0, sampl_var_shrink_factor* sp.sqrt((hdmp_hdmpn) * (1.0 / ni)), size=1)[0]
-                    hdmpn = hdmp + 1.0 / ni
-                    hdmp_hdmpn = (hdmp / hdmpn)
-                    c_const = (p / sp.sqrt(hdmpn))
-                    d_const = (1.0 - p) / (sp.sqrt(1.0 / ni))
-                    
-                # Local LD matrix
-                D_i = ld_dict[snp_i]
-                
-                # Local (most recently updated) effect imates
-                local_betas = curr_betas[start_i: stop_i]
-                
-                # Calculate the local posterior mean, used when sampling.
-                local_betas[focal_i] = 0.0
-                res_beta_hat_i = beta_hats[snp_i] - sp.dot(D_i , local_betas)
-                b2 = res_beta_hat_i ** 2
-    
-                d_const_b2_exp = d_const * sp.exp(-b2 * ni / 2.0)
-                if sp.isreal(d_const_b2_exp):
-                    numerator = c_const * sp.exp(-b2 / (2.0 * hdmpn))
-                    if sp.isreal(numerator):
-                        if numerator == 0.0:
-                            postp = 0.0
-                        else:
-                            postp = numerator / (numerator + d_const_b2_exp)
-                            assert sp.isreal(postp), 'Posterior mean is not a real number? Possibly due to problems with summary stats, LD estimates, or parameter settings.' 
-                    else:
+            #Figure out what sample size and constants to use
+            cd = get_constants(snp_i,const_dict)
+
+            # Local LD matrix
+            D_i = ld_dict[snp_i]
+            
+            # Local (most recently updated) effect estimates
+            local_betas = curr_betas[start_i: stop_i]
+            
+            # Calculate the local posterior mean, used when sampling.
+            local_betas[focal_i] = 0.0
+            res_beta_hat_i = beta_hats[snp_i] - sp.dot(D_i , local_betas)
+            b2 = res_beta_hat_i ** 2
+
+
+            d_const_b2_exp = cd['d_const'] * sp.exp(-b2 * cd['n'] / 2.0)
+            if sp.isreal(d_const_b2_exp):
+                numerator = cd['c_const'] * sp.exp(-b2 / (2.0 * cd['hdmpn']))
+                if sp.isreal(numerator):
+                    if numerator == 0.0:
                         postp = 0.0
+                    else:
+                        postp = numerator / (numerator + d_const_b2_exp)
+                        assert sp.isreal(postp), 'The posterior mean is not a real number?  Possibly due to problems with summary stats, LD estimates, or parameter settings.' 
                 else:
-                    postp = 1.0
-                curr_post_means[snp_i] = hdmp_hdmpn * postp * res_beta_hat_i
-    
-                if rand_ps[i] < postp * alpha:
-                    # Sample from the posterior Gaussian dist.
-                    proposed_beta = rand_norms[i] + hdmp_hdmpn * res_beta_hat_i
-    
-                else:
-                    # Sample 0
-                    proposed_beta = 0.0
-    
-                curr_betas[snp_i] = proposed_beta  # UPDATE BETA                
+                    postp = 0.0
+            else:
+                postp = 1.0
+            curr_post_means[snp_i] = cd['hdmp_hdmpn'] * postp * res_beta_hat_i
+
+            if rand_ps[i] < postp * alpha:
+                # Sample from the posterior Gaussian dist.
+                proposed_beta = rand_norms[snp_i] + cd['hdmp_hdmpn'] * res_beta_hat_i
+
+            else:
+                # Sample 0
+                proposed_beta = 0.0
+
+            curr_betas[snp_i] = proposed_beta  # UPDATE BETA
+             
         if verbose and print_progress:
             sys.stdout.write('\b\b\b\b\b\b\b%0.2f%%' % (100.0 * (min(1, float(k + 1) / num_iter))))
             sys.stdout.flush()
@@ -218,7 +195,8 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=None, n
 
 def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_prefix=None, 
                       summary_dict=None, ps=None,n=None, h2=None, use_gw_h2=False, 
-                      sampl_var_shrink_factor=0.9, num_iter=None, verbose=False, zero_jump_prob=0.01, 
+                      sampl_var_shrink_factor=1, 
+                      num_iter=None, verbose=False, zero_jump_prob=0.01, 
                       burn_in=5):
     """
     Calculate LDpred for a genome
@@ -328,19 +306,14 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
         
                 
                 h2_chrom = herit_dict[chrom_str]['h2']
+                ld_boundaries = None
                 if 'chrom_ld_boundaries' in ld_dict:
                     ld_boundaries = ld_dict['chrom_ld_boundaries'][chrom_str]
-                    res_dict = ldpred_gibbs(pval_derived_betas, h2=h2_chrom, n=n, ns=ns, p=p, ld_radius=ld_radius,
-                                            verbose=verbose, num_iter=num_iter, burn_in=burn_in, ld_dict=chrom_ld_dict[chrom_str],
-                                            start_betas=LDpred_inf_chrom_dict[chrom_str], ld_boundaries=ld_boundaries,
-                                            zero_jump_prob=zero_jump_prob,sampl_var_shrink_factor=sampl_var_shrink_factor,
-                                            print_progress=False)
-                else:
-                    res_dict = ldpred_gibbs(pval_derived_betas, h2=h2_chrom, n=n, ns=ns, p=p, ld_radius=ld_radius,
-                                            verbose=verbose, num_iter=num_iter, burn_in=burn_in, ld_dict=chrom_ld_dict[chrom_str],
-                                            start_betas=LDpred_inf_chrom_dict[chrom_str], zero_jump_prob=zero_jump_prob, 
-                                            sampl_var_shrink_factor=sampl_var_shrink_factor,
-                                            print_progress=False)
+                res_dict = ldpred_gibbs(pval_derived_betas, h2=h2_chrom, n=n, ns=ns, p=p, ld_radius=ld_radius,
+                                        verbose=verbose, num_iter=num_iter, burn_in=burn_in, ld_dict=chrom_ld_dict[chrom_str],
+                                        start_betas=LDpred_inf_chrom_dict[chrom_str], ld_boundaries=ld_boundaries,
+                                        zero_jump_prob=zero_jump_prob,sampl_var_shrink_factor=sampl_var_shrink_factor,
+                                        print_progress=False)
                 
                 updated_betas = res_dict['betas']
                 updated_inf_betas = res_dict['inf_betas']
@@ -430,7 +403,8 @@ def main(p_dict):
     summary_dict[1.9]={'name':'dash', 'value':'LDpred Gibbs sampler'}
     ldpred_genomewide(data_file=p_dict['cf'], out_file_prefix=p_dict['out'], ps=p_dict['f'], ld_radius=p_dict['ldr'],
                       ld_dict=ld_dict, n=p_dict['N'], num_iter=p_dict['n_iter'], burn_in=p_dict['n_burn_in'], 
-                      h2=p_dict['h2'], use_gw_h2=p_dict['use_gw_h2'], verbose=p_dict['debug'], summary_dict=summary_dict)
+                      h2=p_dict['h2'], use_gw_h2=p_dict['use_gw_h2'], sampl_var_shrink_factor=1,
+                      verbose=p_dict['debug'], summary_dict=summary_dict)
     t1 = time.time()
     t = (t1 - t0)
     summary_dict[2.2]={'name':'Running time for Gibbs sampler(s):','value':'%d min and %0.2f secs'% (t / 60, t % 60)}
