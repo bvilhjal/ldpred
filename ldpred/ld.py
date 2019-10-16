@@ -20,13 +20,34 @@ except:
 from numpy import linalg 
 from ldpred import util
 
+        
+def shrink_r2_mat(D_i,n):
+    D_i = sp.clip(D_i, -1, 1)
+    D_i[(1.0/(n-1))>sp.absolute(D_i)]=0
+    return D_i
+
+def shrink_r2_mat_2(D_i,n):
+    D_i = sp.clip(D_i, 0, 1)
+    for j in range(len(D_i)):
+        D_i[j]=shrink_r2(D_i[j],n)
+    return D_i
+
+def shrink_r2(r,n):
+    abs_r = sp.absolute(r)
+    if abs_r<0.0001:
+        return 0
+    else:
+        return r * sp.sqrt(max(0,(1.0+1.0/float(n-2))*(r**2-1.0/(1.0+float(n-2)))))/abs_r 
+
+
 
 def _calculate_D(snps, snp_i, snp, start_i, stop_i, ld_dict, ld_scores):
     m, n = snps.shape
     X = snps[start_i: stop_i]
     D_i = sp.dot(snp, X.T) / n
+    D_i_shrunk = shrink_r2_mat(D_i,n)
     r2s = D_i ** 2
-    ld_dict[snp_i] = D_i
+    ld_dict[snp_i] = D_i_shrunk
     lds_i = sp.sum(r2s - (1 - r2s) / (n - 2), dtype='float32')
     ld_scores[snp_i] = lds_i
 
