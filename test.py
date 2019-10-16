@@ -7,7 +7,7 @@ To run all tests:
 $ python test.py
 
 To run a specific test:
-$ python -m unittest test.TestLDpred.test_ldpred_inf
+$ python -m unittest test.SimpleTests.test_ldpred_inf
 """
 
 import LDpred
