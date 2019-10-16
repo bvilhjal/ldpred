@@ -10,7 +10,7 @@ To run a specific test:
 $ python -m unittest test.SimpleTests.test_ldpred_inf
 """
 
-import LDpred
+import ldpred
 import pickle
 import filecmp
 import gzip
@@ -18,6 +18,7 @@ import h5py
 from ldpred import coord_genotypes
 from ldpred import ld
 from ldpred import sum_stats_parsers
+from ldpred import run
 import numpy as np
 import os
 import tempfile
@@ -31,7 +32,7 @@ def run_test(mesg, cmd_str, error_mesg, *actual_and_golden_outputs):
     print(cmd_str + '\n')
     cmd_args = cmd_str.split()
     try:
-        LDpred.main_with_args(cmd_args)
+        run.main_with_args(cmd_args)
         for i in range(0, len(actual_and_golden_outputs), 2):
             actual_output = actual_and_golden_outputs[i]
             golden_output = os.path.join(TEST_DIR, actual_and_golden_outputs[i + 1])
@@ -54,7 +55,7 @@ def h5_node_walker(h5_node, key_prefix=''):
     Yields:
       (child_key, child_value)
     """
-    for k, v in h5_node.iteritems():
+    for k, v in h5_node.items():
         v_type = type(v)
         v_path = key_prefix + '/' + k
         if v_type == h5py.Group:
@@ -117,7 +118,7 @@ def pkl_file_walker(pkl_file):
       (child_key, child_value)
     """
     with gzip.open(pkl_file) as f:
-        pkl_root_node = pickle.load(f)
+        pkl_root_node = pickle.load(f,encoding='latin1')
         for k, v in pkl_node_walker(pkl_root_node):
             yield k, v
 
@@ -148,7 +149,7 @@ def assert_files_equal(file1, file2):
         assert filecmp.cmp(file1, file2), "Mismatch between: %s and %s" % (file1, file2)
 
 def make_p_dict(*args):
-    return vars(LDpred.parser.parse_args(args))
+    return vars(run.parser.parse_args(args))
 
 class SimpleTests(unittest.TestCase):
     @classmethod
@@ -367,7 +368,7 @@ class ComplexTests(unittest.TestCase):
             file_prefix = '%s_%s_sim%d_%d'%(self.tmp_file_prefix,label,sim_i,t_i)
             df_prefix = '%s_%d'%(td,t_i)
             coord_file = file_prefix+'.hdf5'
-            golden_coord_file = 'test_data/goldens/golden_%s_%i_%i.coord.hdf5'%(label,sim_i,t_i)
+            golden_coord_file = '%s/test_data/goldens/golden_%s_%i_%i.coord.hdf5'%(TEST_DIR, label,sim_i,t_i)
              
             run_test(
                 'Validating results with output file prefix: %s' % self.tmp_file_prefix,
@@ -378,7 +379,7 @@ class ComplexTests(unittest.TestCase):
     
             ld_file = file_prefix+'.ld'
             weights_file = file_prefix+'.weights'
-            golden_weights_prefix = 'test_data/goldens/golden_%s_%i_%i'%(label, sim_i,t_i)
+            golden_weights_prefix = '%s/test_data/goldens/golden_%s_%i_%i'%(TEST_DIR, label, sim_i,t_i)
             run_test(
                 'Running LDpred with coordinated file prefix: %s ' % golden_coord_file,
                 '--debug gibbs --N 5500 --use-gw-h2  --n-burn-in 5 --n-iter 50 --cf=%s  --ldr=100   --ldf=%s  --f 1 0.3 0.1 --out=%s' % (golden_coord_file, ld_file, weights_file),
@@ -400,7 +401,7 @@ class ComplexTests(unittest.TestCase):
     
          
             prs_file_prefix = file_prefix+'.prs'
-            golden_prs_prefix = 'test_data/goldens/golden_%s_prs_%i_%i'%(label,sim_i,t_i)
+            golden_prs_prefix = '%s/test_data/goldens/golden_%s_prs_%i_%i'%(TEST_DIR,label,sim_i,t_i)
             run_test(
                 'Validating results with output file prefix: %s' % prs_file_prefix,
                 '--debug score --gf=%s_test  --rf=%s  --out=%s' % (df_prefix, golden_weights_prefix, prs_file_prefix),
@@ -426,7 +427,7 @@ class ComplexTests(unittest.TestCase):
             file_prefix = '%s_%s_sim%d_%d'%(self.tmp_file_prefix,label,sim_i,t_i)
             df_prefix = '%s_%d'%(td,t_i)
             coord_file = file_prefix+'.hdf5'
-            golden_coord_file = 'test_data/goldens/golden_%s_%i_%i.coord.hdf5'%(label,sim_i,t_i)
+            golden_coord_file = '%s/test_data/goldens/golden_%s_%i_%i.coord.hdf5'%(TEST_DIR, label,sim_i,t_i)
              
             run_test(
                 'Validating results with output file prefix: %s' % self.tmp_file_prefix,
@@ -437,7 +438,7 @@ class ComplexTests(unittest.TestCase):
     
             ld_file = file_prefix+'.ld'
             weights_file = file_prefix+'.weights'
-            golden_weights_prefix = 'test_data/goldens/golden_%s_%i_%i'%(label, sim_i,t_i)
+            golden_weights_prefix = '%s/test_data/goldens/golden_%s_%i_%i'%(TEST_DIR,label, sim_i,t_i)
             run_test(
                 'Running LDpred with coordinated file prefix: %s ' % golden_coord_file,
                 'gibbs --n-burn-in 5 --n-iter 50 --cf=%s  --ldr=150   --ldf=%s  --f 1 0.1 0.01 0.001 --out=%s' % (golden_coord_file, ld_file, weights_file),
@@ -467,7 +468,7 @@ class ComplexTests(unittest.TestCase):
     
          
             prs_file_prefix = file_prefix+'.prs'
-            golden_prs_prefix = 'test_data/goldens/golden_%s_prs_%i_%i'%(label,sim_i,t_i)
+            golden_prs_prefix = '%s/test_data/goldens/golden_%s_prs_%i_%i'%(TEST_DIR,label,sim_i,t_i)
             run_test(
                 'Validating results with output file prefix: %s' % prs_file_prefix,
                 'score --gf=%s_test  --r2 0.5 0.2 0.1 --rf=%s  --out=%s' % (df_prefix, golden_weights_prefix, prs_file_prefix),
@@ -490,13 +491,13 @@ def update_golden_files_mix1():
     tmp_file_prefix = next(tempfile._get_candidate_names())
     for sim_i in range(1,6):
         print('Updating golden results')
-        golden_coord_file = 'test_data/goldens/golden_%s_%i_0.coord.hdf5'%(label,sim_i)
+        golden_coord_file = '%s/test_data/goldens/golden_%s_%i_0.coord.hdf5'%(TEST_DIR,label,sim_i)
 
-        cmd_str = './LDpred.py coord --gf ./test_data/sim%i_0_train --vbim ./test_data/sim%i_0_test.bim --ssf ./test_data/sim%i_0_ss.txt --ssf-format LDPRED --out=%s' % (sim_i,sim_i,sim_i,golden_coord_file)
+        cmd_str = './LDpred.py coord --gf %s/test_data/sim%i_0_train --vbim %s/test_data/sim%i_0_test.bim --ssf %s/test_data/sim%i_0_ss.txt --ssf-format LDPRED --out=%s' % (TEST_DIR,sim_i,TEST_DIR,sim_i,TEST_DIR,sim_i,golden_coord_file)
         print(cmd_str + '\n')
         assert os.system(cmd_str) == 0, 'Problems when updating golden files'
 
-        golden_weights_prefix = 'test_data/goldens/golden_%s_%i_0'%(label,sim_i)
+        golden_weights_prefix = '%s/test_data/goldens/golden_%s_%i_0'%(TEST_DIR,label,sim_i)
         ld_prefix = '%s_%i'%(tmp_file_prefix,sim_i)
         cmd_str = './LDpred.py gibbs --N 5500 --use-gw-h2  --n-burn-in 5 --n-iter 50 --cf %s  --ldr 100   --ldf %s  --f 1 0.3 0.1 --out %s' % (golden_coord_file,ld_prefix,golden_weights_prefix)
         print(cmd_str + '\n')
@@ -506,8 +507,8 @@ def update_golden_files_mix1():
         print(cmd_str + '\n')
         assert os.system(cmd_str) == 0, 'Problems when updating golden files'
 
-        golden_prs_prefix = 'test_data/goldens/golden_%s_prs_%i_0'%(label,sim_i) 
-        cmd_str = './LDpred.py score --gf ./test_data/sim%i_0_test --rf %s  --out %s' % (sim_i,golden_weights_prefix,golden_prs_prefix)
+        golden_prs_prefix = '%s/test_data/goldens/golden_%s_prs_%i_0'%(TEST_DIR, label,sim_i) 
+        cmd_str = './LDpred.py score --gf %s/test_data/sim%i_0_test --rf %s  --out %s' % (TEST_DIR, sim_i,golden_weights_prefix,golden_prs_prefix)
         print(cmd_str + '\n')
         assert os.system(cmd_str) == 0, 'Problems when updating golden files'
 

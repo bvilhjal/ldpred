@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 
 import argparse
+
+from . import __version__
+from . import __date__
+
 from ldpred import coord_genotypes
 from ldpred import LDpred_gibbs
 from ldpred import LDpred_inf
@@ -12,15 +16,7 @@ import sys
 import textwrap
 import random
 import scipy
-
-__version__ = '1.0.8'
-__date__ = '16 October 2019'
  
-#Set a random seed to avoid varying results.
-random_seed=42
-random.seed(random_seed)
-scipy.random.seed(random_seed)
-
 title = '\033[96mLDpred v. %s\033[0m'%__version__
 title_len= len(title)-9
 num_dashes = reporting.window_length-title_len-2

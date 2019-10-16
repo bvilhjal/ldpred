@@ -2,11 +2,11 @@ import os
 import scipy as sp
 from scipy import linalg
 import h5py
+import time
+import sys
+from ldpred import reporting
 from ldpred import plinkfiles
 from ldpred import util
-import time
-from ldpred import reporting
-import sys
 
 def get_prs(genotype_file, rs_id_map, phen_map=None, only_score = False, verbose=False):
     plinkf = plinkfiles.plinkfile.PlinkFile(genotype_file)

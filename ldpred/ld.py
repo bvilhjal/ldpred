@@ -8,6 +8,7 @@ import sys, os, gzip
 import time
 import h5py
 import pickle
+from ldpred import util
 
 hickle_available = False
 try:
@@ -17,8 +18,7 @@ except:
     # hickle not found, using pickle instead
     pass
 
-from numpy import linalg 
-from ldpred import util
+from scipy import linalg 
 
         
 def shrink_r2_mat(D_i,n):

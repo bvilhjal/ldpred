@@ -7,7 +7,7 @@ from ldpred import util
 from ldpred import ld
 from ldpred import reporting
 from ldpred import coord_genotypes
-
+ 
 
 
 def ldpred_inf(beta_hats, h2=0.1, n=1000, inf_shrink_matrices=None, 
