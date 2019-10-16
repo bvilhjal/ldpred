@@ -118,10 +118,10 @@ def pkl_file_walker(pkl_file):
     """
     try:
         with gzip.open(pkl_file) as f:
-            pkl_root_node = pickle.load(f,encoding='latin1')
+            pkl_root_node = pickle.load(f)
     except UnicodeDecodeError as e:
         with gzip.open(pkl_file) as f:
-            pkl_root_node = pickle.load(f)
+            pkl_root_node = pickle.load(f,encoding='latin1')
     except Exception as e:
         print('Unable to load data ', pkl_file, ':', e)
         raise
