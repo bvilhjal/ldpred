@@ -10,7 +10,6 @@ To run a specific test:
 $ python -m unittest test.SimpleTests.test_ldpred_inf
 """
 
-import ldpred
 import pickle
 import filecmp
 import gzip
@@ -117,8 +116,15 @@ def pkl_file_walker(pkl_file):
     Yields:
       (child_key, child_value)
     """
-    with gzip.open(pkl_file) as f:
-        pkl_root_node = pickle.load(f,encoding='latin1')
+    try:
+        with gzip.open(pkl_file) as f:
+            pkl_root_node = pickle.load(f,encoding='latin1')
+    except UnicodeDecodeError as e:
+        with gzip.open(pkl_file) as f:
+            pkl_root_node = pickle.load(f)
+    except Exception as e:
+        print('Unable to load data ', pkl_file, ':', e)
+        raise
         for k, v in pkl_node_walker(pkl_root_node):
             yield k, v
 
