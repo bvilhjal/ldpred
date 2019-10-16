@@ -13,8 +13,8 @@ import textwrap
 import random
 import scipy
 
-__version__ = '1.0.7'
-__date__ = '11 October 2019'
+__version__ = '1.0.8'
+__date__ = '16 October 2019'
  
 #Set a random seed to avoid varying results.
 random_seed=42
