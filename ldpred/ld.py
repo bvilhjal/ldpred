@@ -110,6 +110,7 @@ def get_LDpred_ld_tables(snps, ld_radius=100, ld_window_size=0, h2=None, n_train
             curr_window_size = stop_i - start_i
             X = snps[start_i: stop_i]
             D = sp.dot(X, X.T) / n
+            D = shrink_r2_mat(D,n)
             ref_ld_matrices.append(D)
             if h2 != None and n_training != None:
                 A = ((m / h2) * sp.eye(curr_window_size) + (n_training / (1)) * D)
