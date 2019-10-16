@@ -572,6 +572,40 @@ def calc_risk_scores(bed_file, rs_id_map, phen_map, out_file=None,
     return res_dict
 
 
+def parse_covariates(p_dict,phen_map,summary_dict,verbose):
+    with open(p_dict['cov_file'], 'r') as f:
+        num_missing = 0
+        for line in f:
+            l = line.split()
+            iid = l[0]
+            if iid in phen_map:
+                covariates = list(map(float, l[1:]))
+                phen_map[iid]['covariates'] = covariates
+            else:
+                num_missing += 1
+        if num_missing > 0:
+            summary_dict[2.1]={'name':'Individuals w missing covariate information:','value':num_missing}
+            if verbose:
+                print('Unable to find %d iids in phen file!' % num_missing)
+    summary_dict[2]={'name':'Parsed covariates file:','value':p_dict['cov_file']}
+
+
+def parse_pcs(p_dict,phen_map,summary_dict,verbose):
+    with open(p_dict['pcs_file'], 'r') as f:
+        num_missing = 0
+        for line in f:
+            l = line.split()
+            iid = l[1]
+            if iid in phen_map:
+                pcs = list(map(float, l[2:]))
+                phen_map[iid]['pcs'] = pcs
+            else:
+                num_missing += 1
+        if num_missing > 0:
+            summary_dict[3.1]={'name':'Individuals w missing PCs:','value':num_missing}
+            if verbose:
+                print('Unable to find %d iids in phen file!' % num_missing)
+    summary_dict[3]={'name':'Parsed PCs file:','value':p_dict['pcs_file']}
 
 def main(p_dict):
     summary_dict = {}
@@ -589,7 +623,8 @@ def main(p_dict):
 
     if not p_dict['only_score']:
         summary_dict[0.9]={'name':'dash', 'value':'Phenotypes'}
-        print('Parsing phenotypes')
+        if verbose:
+            print('Parsing phenotypes')
         if p_dict['pf'] is None:
             if p_dict['gf'] is not None:
                 phen_map = parse_phen_file(p_dict['gf'] + '.fam', 'FAM', verbose=verbose, summary_dict=summary_dict)
@@ -606,43 +641,15 @@ def main(p_dict):
             adjust_for_covs=True
             if verbose:
                 print('Parsing additional covariates')
-    
-            with open(p_dict['cov_file'], 'r') as f:
-                num_missing = 0
-                for line in f:
-                    l = line.split()
-                    iid = l[0]
-                    if iid in phen_map:
-                        covariates = list(map(float, l[1:]))
-                        phen_map[iid]['covariates'] = covariates
-                    else:
-                        num_missing += 1
-                if num_missing > 0:
-                    summary_dict[2.1]={'name':'Individuals w missing covariate information:','value':num_missing}
-                    if verbose:
-                        print('Unable to find %d iids in phen file!' % num_missing)
-            summary_dict[2]={'name':'Parsed covariates file:','value':p_dict['cov_file']}
+            parse_covariates(p_dict, phen_map, summary_dict, verbose)
+
     
         if p_dict['pcs_file']:
             adjust_for_pcs=True
             if verbose:
                 print('Parsing PCs')
-    
-            with open(p_dict['pcs_file'], 'r') as f:
-                num_missing = 0
-                for line in f:
-                    l = line.split()
-                    iid = l[1]
-                    if iid in phen_map:
-                        pcs = list(map(float, l[2:]))
-                        phen_map[iid]['pcs'] = pcs
-                    else:
-                        num_missing += 1
-                if num_missing > 0:
-                    summary_dict[3.1]={'name':'Individuals w missing PCs:','value':num_missing}
-                    if verbose:
-                        print('Unable to find %d iids in phen file!' % num_missing)
-            summary_dict[3]={'name':'Parsed PCs file:','value':p_dict['pcs_file']}
+            parse_pcs(p_dict,phen_map,summary_dict,verbose)
+
     
         num_individs = len(phen_map)
         assert num_individs > 0, 'No phenotypes were found!'
