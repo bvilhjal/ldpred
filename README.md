@@ -108,6 +108,7 @@ You can run two tests to see if LDpred work on your system by running the follow
 and
 
 `ldpred-inttest`
+
 The latter one may take up to 10 minutes. Note that passing these tests may not guarantee that LDpred work in all situations.
 
 ### Citation ###

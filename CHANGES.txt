@@ -7,6 +7,8 @@ Oct 16th, 2019:
 
 - Improved testing framework, and refactoring.
 
+- Enabled testing when installed via pip, using ldpred-unittest and ldpred-inttest commands
+
 - Fixed a bug in LDpred that could improve convergence for gibbs.
 
 - Other minor improvments
