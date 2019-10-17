@@ -11,11 +11,13 @@ described in Vilhjalmsson et al. (AJHG 2015) [http://www.cell.com/ajhg/abstract/
 ## Getting Started ##
 ### News ###
 
-Oct 16th, 2019: Version 1.0.8 released and is available on pip using 
+Oct 17th, 2019: Version 1.0.8 released and is available on pip using 
 
 `pip install ldpred`
 
 And it should actually work now :)
+
+Also, tests have been markedly improved.
 
 
 ### Requirements ###
@@ -42,7 +44,7 @@ As with most Python packages, configurating LDpred is simple.  You can use **pip
 
 `pip install ldpred`
 
-This should automatically take care of dependencies.
+This should automatically take care of dependencies.  The examples below assume ldpred has been installed using pip.
 
 Alternatively you can use **git** (which is installed on most systems) and clone this repository using the following git command:
 
@@ -72,21 +74,21 @@ A typical LDpred workflow consists of 3 steps:
 ### Step 1: Coordinate data ###
 The first step is a data synchronization step, where two or three data sets, genotypes and summary statistics are synchronized.  This generates a HDF5 file which contains the synchronized genotypes.  This step can be done by running 
 
-`python -m ldpred coord`
+`ldpred coord`
 
 use --help for detailed options.  This step requires at least one genotype file (the LD reference genotypes), where we recommend at least 1000 unrelated individuals with the same ancestry make-up as the individuals for which summary statistics datasets are obtained from.  Another genotype file can also be given if the user intends to validate the predictions using a separate set of genotypes.
 
 ### Step 2: Generate LDpred SNP weights ###
 After generating the coordinated data file then the one can apply LDpred and run it on the synchronized dataset.  This step can be done by running 
 
-`python -m ldpred gibbs`
+`ldpred gibbs`
 
 use --help for detailed options.  This step generates two files, a LD file with LD information for the given LD radius, and the re-weighted effect estimates.  The LD file enables the user to not have to generate the LD file again when trying, e.g., different values of **p** (the fraction of causal variants). However, it is re-generated if a different LD radius is given.  The other file that LDpred generates contains the LDpred-adjusted effect estimates.
 
 ### Step 3: Generating individual risk scores ###
 Individual risk scores can be generated using the following command
 
-`python -m ldpred score`
+`ldpred score`
 
 use --help for detailed options.  It calculates polygenic risk scores for the individuals in the validation data if given, otherwise it treats the LD reference genotypes as validation genotypes.  A phenotype file can be provided, covariate file, as well as plink-formatted principal components file.
 
@@ -94,9 +96,19 @@ use --help for detailed options.  It calculates polygenic risk scores for the in
 ### Additional methods: LD-pruning + Thresholding ###
 In addition to the LDpred gibbs sampler and infinitesimal model methods, the package also implements LD-pruning + Thresholding as an alternative method. You can run this using the following command
 
-`python -m ldpred p+t`
+`ldpred p+t`
 
 This method often yields better predictions than LDpred when the LD reference panel is small, or when the training data is very large (due to problems with gibbs sampler convergence).
+
+### Tests###
+You can run two tests to see if LDpred work on your system by running the following tests
+
+`ldpred-unittest`
+
+and
+
+`ldpred-inttest`
+The latter one may take up to 10 minutes. Note that passing these tests may not guarantee that LDpred work in all situations.
 
 ### Citation ###
 Please cite [this paper](https://doi.org/10.1016/j.ajhg.2015.09.001)

@@ -98,7 +98,7 @@ setup(
                  './test_data/sim*_0_test.bed',
                 './test_data/sim*_0_ss.txt',
                 './test_data/sim*_parameters.json',
-                './test_data/golden/*'
+                './test_data/goldens/*'
                 ], 
                 'ldpred':['./reference/hm3_sids.txt.gz']
                 },
@@ -114,7 +114,9 @@ setup(
     # pip to create the appropriate form of executable for the target platform.
     entry_points={
         'console_scripts': [
-            'ldpred=run:main',
+            'ldpred=ldpred.run:main',
+            'ldpred-inttest=tests.test:run_integration_tests',
+            'ldpred-unittest=tests.test:run_unit_tests',
         ],
     },
 )

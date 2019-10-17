@@ -3,7 +3,10 @@
 import argparse
 
 from . import __version__
-from . import __date__
+from . import __update_date__
+from . import __author__
+from . import __contact__
+from . import __url__
 
 from ldpred import coord_genotypes
 from ldpred import LDpred_gibbs
@@ -26,24 +29,26 @@ title_string = '\n'+left_dashes  + ' '+title+' '+right_dashes +'\n'
 
 description_string = """
 Typicial workflow:
-    1. Use\033[1m LDpred coord\033[0m to parse summary statistics and genotypes 
+    1. Use\033[1m ldpred coord\033[0m to parse summary statistics and genotypes 
        and coordinate data. See LDpred coord --help for further usage 
        description and options.
        
-    2. Use\033[1m LDpred gibbs|inf|p+t\033[0m to obtain SNP weights for polygenic
+    2. Use\033[1m ldpred gibbs|inf|p+t\033[0m to obtain SNP weights for polygenic
        scoring using one or more methods. See LDpred gibbs|inf|p+t --help for 
        further usage description and options.
     
-    3. Use\033[1m LDpred score\033[0m to calculate polygenic scores using SNP
+    3. Use\033[1m ldpred score\033[0m to calculate polygenic scores using SNP
        weights from previous step. See LDpred score --help for further usage 
        description and options.
-         
-Thank you for using\033[1m LDpred\033[0m!
+
+More information and code is available on GitHub: %s       
 
 %s 
-(c) Bjarni J Vilhjalmsson: bjarni.vilhjalmsson@gmail.com
+(c) %s
+%s
 
-"""%(__date__)
+Thank you for using\033[1m LDpred\033[0m!
+"""%(__url__,__update_date__,__author__,__contact__)
 description_string += '='*reporting.window_length
 
 parser = argparse.ArgumentParser(prog='LDpred',
@@ -294,9 +299,11 @@ parser_score.add_argument('--r2', default=[1,0.2], nargs='+', type=float,
 
 def main_with_args(args):
     print(title_string)
-    if len(args)==1:
-        parser.print_help(sys.stderr)
-        sys.exit(1)
+    if len(args)<1:
+        parser.print_usage()
+        print(description_string)
+        return
+        
     parameters = parser.parse_args(args)
     p_dict= vars(parameters)
     if p_dict['debug']:
@@ -316,6 +323,9 @@ def main_with_args(args):
         validate.main(p_dict)
     elif action=='all':
         pass
+    else:
+        parser.print_help(sys.stderr)
+        sys.exit(1)
     
 def main():
     main_with_args(sys.argv[1:])
