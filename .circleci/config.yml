@@ -47,7 +47,7 @@ jobs:
           name: run tests
           command: |
             . venv/bin/activate
-            python -m unittest tests.test.ComplexTests.test_mix1
+            python -m unittest tests.test.SimpleTests
 
       - store_artifacts:
           path: test-reports

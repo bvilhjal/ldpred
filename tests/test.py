@@ -284,8 +284,8 @@ class SimpleTests(unittest.TestCase):
             'Running LDpred-inf with output file prefix: %s ' % self.tmp_file_prefix,
             '--debug inf --cf=%s/test_data/goldens/golden.coord.hdf5  --ldr=100   --ldf=%s  --out=%s' % (TEST_DIR, self.tmp_file_prefix, self.tmp_file_prefix),
             'Problems when running LDpred_inf!',
-            self.tmp_file_prefix + '_LDpred-inf.txt',
-            'test_data/goldens/golden_inf_LDpred-inf.txt',
+#             self.tmp_file_prefix + '_LDpred-inf.txt',
+#             'test_data/goldens/golden_inf_LDpred-inf.txt',
             self.tmp_file_prefix + '_ldradius100.pkl.gz',
             'test_data/goldens/golden_inf_ldradius100.pkl.gz')
 
@@ -294,8 +294,8 @@ class SimpleTests(unittest.TestCase):
             'Running LDpred with output file prefix: %s ' % self.tmp_file_prefix,
             '--debug gibbs --cf=%s/test_data/goldens/golden.coord.hdf5  --ldr=100   --ldf=%s  --f=0.001  --out=%s' % (TEST_DIR, self.tmp_file_prefix, self.tmp_file_prefix),
             'Problems when running LDpred!',
-            self.tmp_file_prefix + '_LDpred-inf.txt',
-            'test_data/goldens/golden_LDpred-inf.txt',
+#             self.tmp_file_prefix + '_LDpred-inf.txt',
+#             'test_data/goldens/golden_LDpred-inf.txt',
             self.tmp_file_prefix + '_LDpred_p1.0000e-03.txt',
             'test_data/goldens/golden_LDpred_p1.0000e-03.txt',
             )
