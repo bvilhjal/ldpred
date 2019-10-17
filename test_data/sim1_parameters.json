@@ -1,1 +1,0 @@
-{"chrom_parameters": {"1": {"m_ld_chunk_size": 100, "effect_prior": "gaussian", "h2": 0.1, "adj_r2": 0.9, "m": 2000, "p": 0.5}}, "diploid": true, "liability_thres": null, "test_frac": 0.2, "frac_0_pval": 0, "num_traits": 5, "train_n_fracs": null, "n": 10000}
