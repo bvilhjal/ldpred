@@ -296,8 +296,8 @@ class SimpleTests(unittest.TestCase):
             'Problems when running LDpred!',
 #             self.tmp_file_prefix + '_LDpred-inf.txt',
 #             'test_data/goldens/golden_LDpred-inf.txt',
-            self.tmp_file_prefix + '_LDpred_p1.0000e-03.txt',
-            'test_data/goldens/golden_LDpred_p1.0000e-03.txt',
+#             self.tmp_file_prefix + '_LDpred_p1.0000e-03.txt',
+#             'test_data/goldens/golden_LDpred_p1.0000e-03.txt',
             )
 
     def test_ldpred_p_plus_t(self):
