@@ -162,7 +162,7 @@ def calc_ld_table(snps, max_ld_dist=2000, min_r2=0.2, verbose=True, normalize=Fa
         if verbose:
             if i % 1000 == 0:
                 sys.stdout.write('.')
-#                 sys.stdout.write('\b\b\b\b\b\b\b%0.2f%%' % (100.0 * (min(1, float(i + 1) / (num_snps - 1)))))
+#                 sys.stdout.write('\r%0.2f%%' % (100.0 * (min(1, float(i + 1) / (num_snps - 1)))))
                 sys.stdout.flush()
     if verbose:
         sys.stdout.write('Done.\n')

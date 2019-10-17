@@ -176,13 +176,13 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=None, n
             curr_betas[snp_i] = proposed_beta  # UPDATE BETA
              
         if verbose and print_progress:
-            sys.stdout.write('\b\b\b\b\b\b\b%0.2f%%' % (100.0 * (min(1, float(k + 1) / num_iter))))
+            sys.stdout.write('\r%0.2f%%' % (100.0 * (min(1, float(k + 1) / num_iter))))
             sys.stdout.flush()
 
         if k >= burn_in:
             avg_betas += curr_post_means  # Averaging over the posterior means instead of samples.
     if verbose and print_progress:
-        sys.stdout.write('\b\b\b\b\b\b\b%0.2f%%\n' % (100.0))
+        sys.stdout.write('\r%0.2f%%\n' % (100.0))
         sys.stdout.flush()
 
     avg_betas = avg_betas / float(num_iter - burn_in)
@@ -326,7 +326,7 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
                 if verbose:
                     print('Calculating SNP weights for Chromosome %s' % ((chrom_str.split('_'))[1]))
                 else:
-                    sys.stdout.write('\b\b\b\b\b\b\b%0.2f%%' % (100.0 * (min(1, float(chrom_i) / num_chrom))))
+                    sys.stdout.write('\r%0.2f%%' % (100.0 * (min(1, float(chrom_i) / num_chrom))))
                     sys.stdout.flush()
 
                 updated_betas = updated_betas / (snp_stds.flatten())
@@ -341,7 +341,7 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
                     print('The R2 prediction accuracy of PRS using %s was: %0.4f' % (chrom_str, r2))
         
         if not verbose:
-            sys.stdout.write('\b\b\b\b\b\b\b%0.2f%%\n' % (100.0))
+            sys.stdout.write('\r%0.2f%%\n' % (100.0))
             sys.stdout.flush()
         if verbose and has_phenotypes:
             num_indivs = len(y)
