@@ -30,15 +30,15 @@ title_string = '\n'+left_dashes  + ' '+title+' '+right_dashes +'\n'
 description_string = """
 Typicial workflow:
     1. Use\033[1m ldpred coord\033[0m to parse summary statistics and genotypes 
-       and coordinate data. See LDpred coord --help for further usage 
+       and coordinate data. See ldpred coord --help for further usage 
        description and options.
        
     2. Use\033[1m ldpred gibbs|inf|p+t\033[0m to obtain SNP weights for polygenic
-       scoring using one or more methods. See LDpred gibbs|inf|p+t --help for 
+       scoring using one or more methods. See ldpred gibbs|inf|p+t --help for 
        further usage description and options.
     
     3. Use\033[1m ldpred score\033[0m to calculate polygenic scores using SNP
-       weights from previous step. See LDpred score --help for further usage 
+       weights from previous step. See ldpred score --help for further usage 
        description and options.
 
 More information and code is available on GitHub: %s       
