@@ -98,7 +98,13 @@ setup(
                  './test_data/sim*_0_test.bed',
                 './test_data/sim*_0_ss.txt',
                 './test_data/sim*_parameters.json',
-                './test_data/goldens/*'
+                './test_data/goldens/golden_inf*',
+                './test_data/goldens/golden_LD*',
+                './test_data/goldens/golden_ld*',
+                './test_data/goldens/golden_P*',
+                './test_data/goldens/golden.coord*',
+                './test_data/goldens/goldenprs*',
+                './test_data/goldens/ld_data*',
                 ], 
                 'ldpred':['./reference/hm3_sids.txt.gz']
                 },
@@ -115,7 +121,6 @@ setup(
     entry_points={
         'console_scripts': [
             'ldpred=ldpred.run:main',
-            'ldpred-inttest=tests.test:run_integration_tests',
             'ldpred-unittest=tests.test:run_unit_tests',
         ],
     },
