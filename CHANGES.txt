@@ -1,0 +1,30 @@
+===================== Brief and incoplete release notes =====================
+
+
+
+Oct 17th, 2019: v 1.0.8
+
+- Changed package structure to fix pip issue.
+
+- Improved testing framework, and refactoring.
+
+- Enabled testing when installed via pip, using ldpred-unittest and ldpred-inttest commands
+
+- Fixed a bug in LDpred that could improve convergence for gibbs.
+
+- Other minor improvments
+
+
+Oct 11th, 2019: v 1.0.7
+
+- Improved handling of variants with p-values rounded down to 0.  
+
+- Added options to enable effect estimate inference from standard errors (--z-from-se) in coordination step. 
+
+- Fixed a serious bug that caused sample sizes in summary stats file not always be used correctly when provided.
+
+- LDpred gibbs can now handle differing sample sizes per variant effects, if they are parsed in summary stats.  This can improves convergence and accuracy subtantially, but slows the gibbs sampler (approx 5x).  It can be avoided by setting --N flag.
+
+- If the heritability is not provided when running LDpred gibbs and inf it now estimates it separately for each chromosome, which can improve accuracy if summary stats sample size is large.  To avoid this behavior, either set --h2 flag, or use --use-gw-h2 flag.
+
+- Improved reporting and other things.

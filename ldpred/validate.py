@@ -2,11 +2,11 @@ import os
 import scipy as sp
 from scipy import linalg
 import h5py
+import time
+import sys
+from ldpred import reporting
 from ldpred import plinkfiles
 from ldpred import util
-import time
-from ldpred import reporting
-import sys
 
 def get_prs(genotype_file, rs_id_map, phen_map=None, only_score = False, verbose=False):
     plinkf = plinkfiles.plinkfile.PlinkFile(genotype_file)
@@ -142,7 +142,7 @@ def get_prs(genotype_file, rs_id_map, phen_map=None, only_score = False, verbose
     
     if len(found_loci)<0.99*len(rs_id_map):
         perc_missing = 1 - float(len(found_loci))/float(len(rs_id_map))
-        raise Warning('More than 0.2f% %% of variants for which weights were calculated were not found in '
+        raise Warning('More than %0.2f %% of variants for which weights were calculated were not found in '
                         'validation data.  This can lead to poor prediction accuracies.  Please consider '
                         'using the --vbim flag in the coord step to identify overlapping SNPs.'
                         '\n'%(perc_missing*100)) 
@@ -572,6 +572,40 @@ def calc_risk_scores(bed_file, rs_id_map, phen_map, out_file=None,
     return res_dict
 
 
+def parse_covariates(p_dict,phen_map,summary_dict,verbose):
+    with open(p_dict['cov_file'], 'r') as f:
+        num_missing = 0
+        for line in f:
+            l = line.split()
+            iid = l[0]
+            if iid in phen_map:
+                covariates = list(map(float, l[1:]))
+                phen_map[iid]['covariates'] = covariates
+            else:
+                num_missing += 1
+        if num_missing > 0:
+            summary_dict[2.1]={'name':'Individuals w missing covariate information:','value':num_missing}
+            if verbose:
+                print('Unable to find %d iids in phen file!' % num_missing)
+    summary_dict[2]={'name':'Parsed covariates file:','value':p_dict['cov_file']}
+
+
+def parse_pcs(p_dict,phen_map,summary_dict,verbose):
+    with open(p_dict['pcs_file'], 'r') as f:
+        num_missing = 0
+        for line in f:
+            l = line.split()
+            iid = l[1]
+            if iid in phen_map:
+                pcs = list(map(float, l[2:]))
+                phen_map[iid]['pcs'] = pcs
+            else:
+                num_missing += 1
+        if num_missing > 0:
+            summary_dict[3.1]={'name':'Individuals w missing PCs:','value':num_missing}
+            if verbose:
+                print('Unable to find %d iids in phen file!' % num_missing)
+    summary_dict[3]={'name':'Parsed PCs file:','value':p_dict['pcs_file']}
 
 def main(p_dict):
     summary_dict = {}
@@ -589,7 +623,8 @@ def main(p_dict):
 
     if not p_dict['only_score']:
         summary_dict[0.9]={'name':'dash', 'value':'Phenotypes'}
-        print('Parsing phenotypes')
+        if verbose:
+            print('Parsing phenotypes')
         if p_dict['pf'] is None:
             if p_dict['gf'] is not None:
                 phen_map = parse_phen_file(p_dict['gf'] + '.fam', 'FAM', verbose=verbose, summary_dict=summary_dict)
@@ -606,43 +641,15 @@ def main(p_dict):
             adjust_for_covs=True
             if verbose:
                 print('Parsing additional covariates')
-    
-            with open(p_dict['cov_file'], 'r') as f:
-                num_missing = 0
-                for line in f:
-                    l = line.split()
-                    iid = l[0]
-                    if iid in phen_map:
-                        covariates = list(map(float, l[1:]))
-                        phen_map[iid]['covariates'] = covariates
-                    else:
-                        num_missing += 1
-                if num_missing > 0:
-                    summary_dict[2.1]={'name':'Individuals w missing covariate information:','value':num_missing}
-                    if verbose:
-                        print('Unable to find %d iids in phen file!' % num_missing)
-            summary_dict[2]={'name':'Parsed covariates file:','value':p_dict['cov_file']}
+            parse_covariates(p_dict, phen_map, summary_dict, verbose)
+
     
         if p_dict['pcs_file']:
             adjust_for_pcs=True
             if verbose:
                 print('Parsing PCs')
-    
-            with open(p_dict['pcs_file'], 'r') as f:
-                num_missing = 0
-                for line in f:
-                    l = line.split()
-                    iid = l[1]
-                    if iid in phen_map:
-                        pcs = list(map(float, l[2:]))
-                        phen_map[iid]['pcs'] = pcs
-                    else:
-                        num_missing += 1
-                if num_missing > 0:
-                    summary_dict[3.1]={'name':'Individuals w missing PCs:','value':num_missing}
-                    if verbose:
-                        print('Unable to find %d iids in phen file!' % num_missing)
-            summary_dict[3]={'name':'Parsed PCs file:','value':p_dict['pcs_file']}
+            parse_pcs(p_dict,phen_map,summary_dict,verbose)
+
     
         num_individs = len(phen_map)
         assert num_individs > 0, 'No phenotypes were found!'
@@ -709,8 +716,8 @@ def main(p_dict):
                     print('Calculating P+T risk scores using p-value threshold of %0.3e, and r2 threshold of %0.2f' % (p_thres, max_r2))
                     rs_id_map, non_zero_chromosomes = parse_pt_res(weights_file)
                     if len(rs_id_map)>0:
-                        out_file = '%s_P+T_p%0.4e.txt' % (p_dict['out'], p_thres)
-                        method_str = 'P+T_p%0.4e' % (p_thres)
+                        out_file = '%s_P+T_r%0.2f_p%0.4e.txt' % (p_dict['out'], max_r2, p_thres)
+                        method_str = 'P+T_r%0.2f_p%0.4e' % (max_r2,p_thres)
                         res_dict[method_str] = calc_risk_scores(p_dict['gf'], rs_id_map, phen_map, out_file=out_file,
                                                                 split_by_chrom=p_dict['split_by_chrom'],
                                                                 non_zero_chromosomes=non_zero_chromosomes, 

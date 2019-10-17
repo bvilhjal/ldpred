@@ -1,6 +1,5 @@
 import scipy as sp
 from scipy import stats
-from scipy import isinf
 from scipy import isfinite
 import gzip
 from ldpred import util
@@ -86,6 +85,54 @@ def parse_sum_stats(h5f, p_dict, bimfile, summary_dict):
     summary_dict[14]={'name':'Run time for parsing summary stats:','value': '%d min and %0.2f sec'%(t / 60, t % 60)}
 
 
+def parse_sample_size(line_dict,n,ncol,case_n,control_n,header_dict,):
+    if n is None:
+        if ncol not in header_dict:
+            case_N = float(line_dict[header_dict[case_n]])
+            control_N = float(line_dict[header_dict[control_n]])
+            N = case_N + control_N
+        else:
+            N = float(line_dict[header_dict[ncol]])
+    else:
+        N = n
+    return N
+
+
+def parse_nucleotides(line_dict, header_dict, A1, A2):
+    return [line_dict[header_dict[A1]].upper(), line_dict[header_dict[A2]].upper()]
+                
+def parse_freq(line_dict, header_dict, reffreq, control_freq, case_freq, control_n, case_n):
+    
+    if reffreq is not None and reffreq in header_dict:
+        if line_dict[header_dict[reffreq]] == '.' or line_dict[header_dict[reffreq]] == 'NA':
+            return -1
+        else:
+            return float(line_dict[header_dict[reffreq]])
+    elif (case_freq is not None and control_freq is not None 
+          and case_freq in header_dict and control_freq in header_dict):
+        if (case_n is not None and control_n is not None 
+              and case_n in header_dict and control_n in header_dict) :
+            if (line_dict[header_dict[control_n]] == '.' or line_dict[header_dict[control_n]] == 'NA' 
+                or line_dict[header_dict[case_n]] == '.' or line_dict[header_dict[case_n]] == 'NA' 
+                or line_dict[header_dict[control_freq]] == '.' or line_dict[header_dict[control_freq]] == 'NA' 
+                or line_dict[header_dict[case_freq]] == '.' or line_dict[header_dict[case_freq]] == 'NA'):
+                return -1
+            else:
+                case_N = float(line_dict[header_dict[case_n]])
+                control_N = float(line_dict[header_dict[control_n]])
+                tot_N = case_N + control_N
+                a_scalar = case_N / float(tot_N)
+                u_scalar = control_N / float(tot_N)
+                freq = float(line_dict[header_dict[case_freq]]) * a_scalar + float(line_dict[header_dict[control_freq]]) * u_scalar
+                return freq
+        else:
+            if (line_dict[header_dict[case_freq]] == '.' or line_dict[header_dict[case_freq]] == 'NA' 
+                or line_dict[header_dict[control_freq]] == '.' or line_dict[header_dict[control_freq]] == 'NA'):
+                return -1
+            else:
+                return (float(line_dict[header_dict[case_freq]]) + float(line_dict[header_dict[control_freq]]))/2.0
+    else:  
+        return -1
 
 def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_file=None, n=None, ch=None, pos=None,
                     A1=None, A2=None, reffreq=None, case_freq=None, control_freq=None, case_n=None,
@@ -250,64 +297,19 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
                     else:               
                         abs_beta = stats.norm.ppf(pval_read / 2.0)
                         
-
                 if not chrom in chrom_dict:
                     chrom_dict[chrom] = {'ps':[], 'log_odds':[], 'infos':[], 'freqs':[],
                              'betas':[], 'nts': [], 'sids': [], 'positions': [], 'ns':[]}
                 chrom_dict[chrom]['sids'].append(sid)
                 chrom_dict[chrom]['positions'].append(pos_read)
-                # Check the frequency
-                if reffreq is not None and reffreq in header_dict:
-                    if l[header_dict[reffreq]] == '.' or l[header_dict[reffreq]] == 'NA':
-                        chrom_dict[chrom]['freqs'].append(-1)
-                    else:
-                        chrom_dict[chrom]['freqs'].append(float(l[header_dict[reffreq]]))
-                elif (case_freq is not None and control_freq is not None 
-                      and case_freq in header_dict and control_freq in header_dict):
-                    if (case_n is not None and control_n is not None 
-                          and case_n in header_dict and control_n in header_dict) :
-                        if (l[header_dict[control_n]] == '.' or l[header_dict[control_n]] == 'NA' 
-                            or l[header_dict[case_n]] == '.' or l[header_dict[case_n]] == 'NA' 
-                            or l[header_dict[control_freq]] == '.' or l[header_dict[control_freq]] == 'NA' 
-                            or l[header_dict[case_freq]] == '.' or l[header_dict[case_freq]] == 'NA'):
-                            chrom_dict[chrom]['freqs'].append(-1)
-                        else:
-                            case_N = float(l[header_dict[case_n]])
-                            control_N = float(l[header_dict[control_n]])
-                            tot_N = case_N + control_N
-                            a_scalar = case_N / float(tot_N)
-                            u_scalar = control_N / float(tot_N)
-                            freq = float(l[header_dict[case_freq]]) * a_scalar + float(l[header_dict[control_freq]]) * u_scalar
-                            chrom_dict[chrom]['freqs'].append(freq)
-                    else:
-                        if (l[header_dict[case_freq]] == '.' or l[header_dict[case_freq]] == 'NA' 
-                            or l[header_dict[control_freq]] == '.' or l[header_dict[control_freq]] == 'NA'):
-                            chrom_dict[chrom]['freqs'].append(-1)
-                        else:
-                            freq = (float(l[header_dict[case_freq]]) + float(l[header_dict[control_freq]]))/2.0
-                            chrom_dict[chrom]['freqs'].append(freq)
-                else:  
-                    chrom_dict[chrom]['freqs'].append(-1)
-                # Get the INFO score
-                info_sc = -1
-                if info is not None and info in header_dict:
-                    info_sc = float(l[header_dict[info]])
-                chrom_dict[chrom]['infos'].append(info_sc)
                 chrom_dict[chrom]['ps'].append(pval_read)
-                nt = [l[header_dict[A1]].upper(), l[header_dict[A2]].upper()]
-                chrom_dict[chrom]['nts'].append(nt)
-                raw_beta = float(l[header_dict[eff]])
-                
-                if n is None:
-                    if ncol not in header_dict:
-                        case_N = float(l[header_dict[case_n]])
-                        control_N = float(l[header_dict[control_n]])
-                        N = case_N + control_N
-                    else:
-                        N = float(l[header_dict[ncol]])
-                else:
-                    N = n
+
+                #Get the sample size
+                N = parse_sample_size(l,n,ncol,case_n,control_n,header_dict)
                 chrom_dict[chrom]['ns'].append(N)
+                
+                #parse the effect size
+                raw_beta = float(l[header_dict[eff]])
                 if not input_is_beta:
                     raw_beta = sp.log(raw_beta)
                 beta = sp.sign(raw_beta) * abs_beta/ sp.sqrt(N)
@@ -316,6 +318,20 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
                 else:
                     chrom_dict[chrom]['log_odds'].append(raw_beta)
                 chrom_dict[chrom]['betas'].append(beta)
+                
+                # Get the INFO score
+                info_sc = -1
+                if info is not None and info in header_dict:
+                    info_sc = float(l[header_dict[info]])
+                chrom_dict[chrom]['infos'].append(info_sc)
+                
+                #Parse nucleotides
+                nt = parse_nucleotides(l, header_dict, A1, A2)
+                chrom_dict[chrom]['nts'].append(nt)
+                
+                # Parse the frequency
+                freq = parse_freq(l, header_dict, reffreq, control_freq, case_freq, control_n, case_n)  
+                chrom_dict[chrom]['freqs'].append(freq)
 
         if len(bad_chromosomes) > 0:
             if debug:

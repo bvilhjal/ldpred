@@ -65,6 +65,26 @@ def write_coord_data(cord_data_g, coord_dict, debug=False):
         ofg.create_dataset('genetic_map', data=coord_dict['genetic_map'])
 
                    
+def get_snp_stds(raw_snps):
+    return sp.std(raw_snps, axis=1, dtype='float32')
+
+
+def get_mean_sample_size(n, cord_data_g):
+
+    if n is None:
+        all_ns = []
+        for chrom_str in util.chromosomes_list:
+            if chrom_str in cord_data_g:
+                g = cord_data_g[chrom_str]
+                all_ns.extend(g['ns'][...])
+        assert all_ns is not None, 'Sample size missing. Please use --N flag, or ensure they are parsed as part of the summary statistics.'
+        mean_n = sp.mean(all_ns)
+    else:
+        mean_n = n
+    return mean_n
+
+
+
 def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
                         validation_genotype_file=None,
                         genetic_map_dir=None,
@@ -94,7 +114,7 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
     chromosomes = sp.unique(gf_chromosomes)
     chromosomes.sort()
 
-    chr_dict = plinkfiles.get_chrom_dict(loci, chromosomes)
+    chr_dict = plinkfiles.get_chrom_dict(loci, chromosomes, debug)
     
     if validation_genotype_file is not None:
         if debug:
@@ -108,7 +128,7 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
         plinkf_val.close()
         summary_dict[5]={'name':'SNPs in Validation data:','value':len(loci_val)}
 
-        chr_dict_val = plinkfiles.get_chrom_dict(loci_val, chromosomes)
+        chr_dict_val = plinkfiles.get_chrom_dict(loci_val, chromosomes, debug)
 
         # Open HDF5 file and prepare out data
         assert not 'iids' in hdf5_file, 'Something is wrong with the HDF5 file, no individuals IDs were found.'
@@ -126,7 +146,6 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
     ssf = hdf5_file['sum_stats']
     cord_data_g = hdf5_file.create_group('cord_data')
 
-    num_common_snps = 0
     # corr_list = []
 
 
@@ -383,8 +402,8 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
         snp_indices = snp_indices[ok_indices['g']]
         raw_snps, freqs = plinkfiles.parse_plink_snps(
             reference_genotype_file, snp_indices)
-        snp_stds = sp.sqrt(2 * freqs * (1 - freqs))
-        snp_means = freqs * 2
+        snp_stds = get_snp_stds(raw_snps)
+        snp_means = sp.mean(raw_snps, axis=1, dtype='float32')
 
         betas = betas[ok_indices['ss']]  
         log_odds = log_odds[ok_indices['ss']]  
@@ -403,7 +422,7 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
             raw_snps_val, freqs_val = plinkfiles.parse_plink_snps(
                 validation_genotype_file, snp_indices_val)
     
-            snp_stds_val = sp.sqrt(2 * freqs_val * (1 - freqs_val))
+            snp_stds_val = get_snp_stds(raw_snps_val)
             snp_means_val = freqs_val * 2
 
         # Check SNP frequencies, screen for possible problems..
@@ -579,4 +598,4 @@ def main(p_dict):
                         debug=p_dict['debug'])
     h5f.close()
     reporting.print_summary(summary_dict, 'Summary of coordination step')
-    
+    return summary_dict
