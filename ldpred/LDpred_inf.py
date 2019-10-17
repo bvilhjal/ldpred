@@ -6,6 +6,9 @@ from scipy import linalg
 from ldpred import util
 from ldpred import ld
 from ldpred import reporting
+from ldpred import coord_genotypes
+ 
+
 
 def ldpred_inf(beta_hats, h2=0.1, n=1000, inf_shrink_matrices=None, 
                reference_ld_mats=None, genotypes=None, ld_window_size=100, verbose=False):
@@ -62,13 +65,11 @@ def ldpred_inf_genomewide(data_file=None, ld_radius = None, ld_dict=None, out_fi
     """    
     
     df = h5py.File(data_file,'r')
-    has_phenotypes=False
-    if 'y' in df:
-        'Validation phenotypes found.'
+    has_phenotypes = 'y' in df
+    if has_phenotypes:
         y = df['y'][...]  # Phenotype
         num_individs = len(y)
         risk_scores_pval_derived = sp.zeros(num_individs)
-        has_phenotypes=True
 
     ld_scores_dict = ld_dict['ld_scores_dict']
     chrom_ref_ld_mats = ld_dict['chrom_ref_ld_mats']
@@ -77,8 +78,10 @@ def ldpred_inf_genomewide(data_file=None, ld_radius = None, ld_dict=None, out_fi
     results_dict = {}
     cord_data_g = df['cord_data']
 
+    mean_n = coord_genotypes.get_mean_sample_size(n, cord_data_g)
+
     #Calculating genome-wide heritability using LD score regression, and partition heritability by chromsomes
-    herit_dict = ld.get_chromosome_herits(cord_data_g, ld_scores_dict, n, h2=h2, use_gw_h2=use_gw_h2, 
+    herit_dict = ld.get_chromosome_herits(cord_data_g, ld_scores_dict, mean_n, h2=h2, use_gw_h2=use_gw_h2, 
                                           debug=verbose,summary_dict=summary_dict)
 
     if out_file_prefix:
@@ -112,9 +115,10 @@ def ldpred_inf_genomewide(data_file=None, ld_radius = None, ld_dict=None, out_fi
         
             h2_chrom = herit_dict[chrom_str]['h2'] 
             updated_betas = ldpred_inf(pval_derived_betas, genotypes=None, reference_ld_mats=chrom_ref_ld_mats[chrom_str], 
-                                                h2=h2_chrom, n=n, ld_window_size=2*ld_radius, verbose=False)
+                                                h2=h2_chrom, n=mean_n, ld_window_size=2*ld_radius, verbose=False)
                     
-            print('Calculating scores for Chromosome %s'%((chrom_str.split('_'))[1]))
+            if verbose:
+                print('Calculating scores for Chromosome %s'%((chrom_str.split('_'))[1]))
             updated_betas = updated_betas / (snp_stds.flatten())
             ldpred_effect_sizes.extend(updated_betas)
             if has_phenotypes:
@@ -122,7 +126,8 @@ def ldpred_inf_genomewide(data_file=None, ld_radius = None, ld_dict=None, out_fi
                 risk_scores_pval_derived += prs
                 corr = sp.corrcoef(y, prs)[0, 1]
                 r2 = corr ** 2
-                print('The R2 prediction accuracy of PRS using %s was: %0.4f' %(chrom_str, r2))
+                if verbose:
+                    print('The R2 prediction accuracy of PRS using %s was: %0.4f' %(chrom_str, r2))
 
                 
     if has_phenotypes:
@@ -159,6 +164,7 @@ def ldpred_inf_genomewide(data_file=None, ld_radius = None, ld_dict=None, out_fi
 
 
 def main(p_dict):
+    
     summary_dict = {}
     summary_dict[0]={'name':'Coordinated data filename','value':p_dict['cf']}
     summary_dict[0.1]={'name':'SNP weights output file (prefix)', 'value':p_dict['out']}
@@ -166,13 +172,13 @@ def main(p_dict):
     summary_dict[1]={'name':'LD radius used','value':str(p_dict['ldr'])}
     t0 = time.time()
     summary_dict[1.09]={'name':'dash', 'value':'LD information'}
-    ld_dict = ld.get_ld_dict(p_dict['cf'], p_dict['ldf'], p_dict['ldr'], verbose=p_dict['debug'], 
-                             compressed=not p_dict['no_ld_compression'], use_hickle=p_dict['hickle_ld'], summary_dict=summary_dict)
+    ld_dict = ld.get_ld_dict_using_p_dict(p_dict, summary_dict={})
     t1 = time.time()
     t = (t1 - t0)
     summary_dict[1.2]={'name':'Running time for calculating LD information:','value':'%d min and %0.2f secs'% (t / 60, t % 60)}
     t0 = time.time()
     summary_dict[1.9]={'name':'dash', 'value':'LDpred infinitesimal model'}
+
     ldpred_inf_genomewide(data_file=p_dict['cf'], out_file_prefix=p_dict['out'], ld_radius=p_dict['ldr'], 
                           ld_dict = ld_dict, n=p_dict['N'], h2=p_dict['h2'], use_gw_h2=p_dict['use_gw_h2'],
                           verbose=p_dict['debug'], summary_dict=summary_dict)
