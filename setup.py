@@ -92,33 +92,15 @@ setup(
     # If there are data files included in your packages that need to be
     # installed, specify them here.  If using Python 2.6 or less, then these
     # have to be included in MANIFEST.in as well.
-    package_data={'test_data':
-                ['./test_data/sim1_0_test.fam',
-                 './test_data/sim1_0_test.bim',
-                 './test_data/sim1_0_test.bed',
-                './test_data/sim1_0_ss.txt',
-                './test_data/sim1_parameters.json',
-                './test_data/sim2_0_test.fam',
-                 './test_data/sim2_0_test.bim',
-                 './test_data/sim2_0_test.bed',
-                './test_data/sim2_0_ss.txt',
-                './test_data/sim2_parameters.json',
-                './test_data/sim3_0_test.fam',
-                 './test_data/sim3_0_test.bim',
-                 './test_data/sim3_0_test.bed',
-                './test_data/sim3_0_ss.txt',
-                './test_data/sim3_parameters.json',
-                './test_data/sim4_0_test.fam',
-                 './test_data/sim4_0_test.bim',
-                 './test_data/sim4_0_test.bed',
-                './test_data/sim4_0_ss.txt',
-                './test_data/sim4_parameters.json',
-                './test_data/sim5_0_test.fam',
-                 './test_data/sim5_0_test.bim',
-                 './test_data/sim5_0_test.bed',
-                './test_data/sim5_0_ss.txt',
-                './test_data/sim5_parameters.json',
-                './reference/hm3_sids.txt.gz']
+    package_data={'tests':
+                ['./test_data/sim*_0_test.fam',
+                 './test_data/sim*_0_test.bim',
+                 './test_data/sim*_0_test.bed',
+                './test_data/sim*_0_ss.txt',
+                './test_data/sim*_parameters.json',
+                './test_data/golden/*'
+                ], 
+                'ldpred':['./reference/hm3_sids.txt.gz']
                 },
     include_package_data=True,
     # Although 'package_data' is the preferred approach, in some case you may
@@ -126,14 +108,13 @@ setup(
     # http://docs.python.org/3.4/distutils/setupscript.html#installing-additional-files # noqa
     # In this case, 'data_file' will be installed into '<sys.prefix>/my_data'
 
-#     scripts=['ldpred/LDpred.py', 'ldpred/LDpred_inf.py', 'ldpred/LD_pruning_thres.py', 
-#              'ldpred/validate.py', 'ldpred/coord_genotypes.py'],
+    scripts=['ldpred/run.py'],
     # To provide executable scripts, use entry points in preference to the
     # "scripts" keyword. Entry points provide cross-platform support and allow
     # pip to create the appropriate form of executable for the target platform.
     entry_points={
         'console_scripts': [
-            'ldpred=LDpred:main',
+            'ldpred=run:main',
         ],
     },
 )

@@ -317,6 +317,8 @@ def main_with_args(args):
     elif action=='all':
         pass
     
-    
+def main():
+    main_with_args(sys.argv[1:])
+
 if __name__ == '__main__':
     main_with_args(sys.argv[1:])
