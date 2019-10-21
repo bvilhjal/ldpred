@@ -100,9 +100,11 @@ parser_coord.add_argument('--ilist', type=str,
 parser_coord.add_argument('--skip-coordination', default=False, action='store_true',
                     help="Assumes that the alleles have already been coordinated between LD reference, "
                          "validation samples, and the summary statistics files")
-parser_coord.add_argument('--beta', default=False, action='store_true',
-                    help='Assumes the summary statistics are BETA (linear regression) instead of OR (logistic '
-                         'regression)')
+parser_coord.add_argument('--eff_type', type=str, default="OR", choices={'LINREG','OR','LOGOR'},
+                    help='The type of effect estimates reported in the summary statistics.  LDpred support three '
+                         'types. LINREG: effect estimates estimated using linear regression. OR: odd ratios '
+                         'estimated using logistic regression.  LOGOR: log odds ratios.  Misspecification of '
+                         'these can lead to wrong results or yield negated PRS (negative correlations).' )
 parser_coord.add_argument('--match-genomic-pos', default=False, action='store_true',
                     help='Excludes SNPs from sum stats file if their genomics positions differ from validation '
                     'data.  These will also differ if reference genome differ, e.g. hg19 vs hg38.')
@@ -294,7 +296,8 @@ parser_score.add_argument('--p', default=[1,0.3,0.1,0.03,0.01,0.003,0.001,3*1E-4
                     help="P value thresholds (P+T)")
 parser_score.add_argument('--r2', default=[1,0.2], nargs='+', type=float,
                     help="LD R2 thresholds (P+T)")
-
+parser_score.add_argument('--summary-file', type=str, default=None,
+                    help='A file where the prediction accuracy is reported for each tested model.')
 
 
 def main_with_args(args):

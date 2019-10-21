@@ -6,12 +6,12 @@ LDpred is a Python based software package that adjusts GWAS summary statistics
 for the effects of linkage disequilibrium (LD).  The details of the method is
 described in Vilhjalmsson et al. (AJHG 2015) [http://www.cell.com/ajhg/abstract/S0002-9297(15)00365-1]
 
-* The current version is 1.0.8
+* The current version is 1.0.9
 
 ## Getting Started ##
 ### News ###
 
-Oct 17th, 2019: Version 1.0.8 released and is available on pip using 
+Oct 21th, 2019: Version 1.0.9 released and is available on pip using 
 
 `pip install ldpred`
 
@@ -101,11 +101,11 @@ In addition to the LDpred gibbs sampler and infinitesimal model methods, the pac
 This method often yields better predictions than LDpred when the LD reference panel is small, or when the training data is very large (due to problems with gibbs sampler convergence).
 
 ### Tests###
-You can run two tests to see if LDpred work on your system by running the following tests
+You can run a test to see if LDpred work on your system by running the following tests
 
 `ldpred-unittest`
 
-Note that passing these tests may not guarantee that LDpred work in all situations.
+Note that passing this test does not guarantee that LDpred work in all situations.
 
 ### Citation ###
 Please cite [this paper](https://doi.org/10.1016/j.ajhg.2015.09.001)

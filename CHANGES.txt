@@ -1,5 +1,12 @@
 ===================== Brief and incoplete release notes =====================
 
+Oct 21th, 2019: v 1.0.9
+
+- Fixed a negative correlation bug, and now the user must define on what scale the reported effects are.
+
+- Added --summary-file flag in score, so that prediction results for all methods could be written out into a file
+
+- Updated integration tests, so that they can be included via pip.
 
 
 Oct 17th, 2019: v 1.0.8

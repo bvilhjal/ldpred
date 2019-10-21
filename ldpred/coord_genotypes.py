@@ -159,6 +159,7 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
     tot_num_freq_discrep_filtered_snps = 0
     tot_num_maf_filtered_snps = 0
     tot_g_ss_nt_concord_count = 0
+    tot_num_flipped_nts = 0
     if validation_genotype_file is not None:
         tot_g_vg_nt_concord_count = 0
         tot_vg_ss_nt_concord_count = 0
@@ -314,6 +315,7 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
                                 os_g_nt[1] == ss_nt[0] and os_g_nt[0] == ss_nt[1])
                             # Try flipping the SS nt
                             if flip_nts:
+                                tot_num_flipped_nts +=1
                                 betas[ss_i] = -betas[ss_i]
                                 log_odds[ss_i] = -log_odds[ss_i]
                                 if 'freqs' in ssg:
@@ -371,6 +373,7 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
                         
                         # Try flipping the SS nt
                         if flip_nts:
+                            tot_num_flipped_nts +=1
                             betas[ss_i] = -betas[ss_i]
                             log_odds[ss_i] = -log_odds[ss_i]
                             if 'freqs' in ssg and ss_freqs[ss_i]>0:
@@ -544,16 +547,18 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
     
     summary_dict[7]={'name':'Num chromosomes used:','value':len(chromosomes_found)}
     summary_dict[8]={'name':'SNPs common across datasets:','value':num_snps_common_before_filtering}
+    if tot_num_non_supported_nts>0 or debug:
+        summary_dict[8.1]={'name':'SNPs w flipped alleles','value':tot_num_flipped_nts}
     summary_dict[9]={'name':'SNPs retained after filtering:','value':num_snps_common_after_filtering}
-    if tot_num_ambig_nts>0:
+    if tot_num_ambig_nts>0 or debug:
         summary_dict[10]={'name':'SNPs w ambiguous nucleotides filtered:','value':tot_num_ambig_nts}
-    if tot_num_non_supported_nts>0:
+    if tot_num_non_supported_nts>0 or debug:
         summary_dict[10.1]={'name':'SNPs w unknown/unsupported nucleotides filtered:','value':tot_num_non_supported_nts}
-    if tot_num_non_matching_nts>0:
+    if tot_num_non_matching_nts>0 or debug:
         summary_dict[11]={'name':'SNPs w other nucleotide discrepancies filtered:','value':tot_num_non_matching_nts}
-    if min_maf>0:
+    if min_maf>0 or debug:
         summary_dict[12]={'name':'SNPs w MAF<%0.3f filtered:'%min_maf,'value':tot_num_maf_filtered_snps}
-    if max_freq_discrep<0.5:
+    if max_freq_discrep<0.5 or debug:
         summary_dict[13]={'name':'SNPs w allele freq discrepancy > %0.3f filtered:'%max_freq_discrep,'value':tot_num_freq_discrep_filtered_snps}
 
     t1 = time.time()

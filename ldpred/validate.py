@@ -76,7 +76,7 @@ def get_prs(genotype_file, rs_id_map, phen_map=None, only_score = False, verbose
     found_loci = set()
     for locus, row in zip(locus_list, plinkf):
         loci_i += 1
-        if loci_i%1000==0 and not verbose:
+        if loci_i%1000==0:
             sys.stdout.write('\r%0.2f%%' % (100.0 * (float(loci_i) / (num_loci-1.0))))
             sys.stdout.flush()            
         upd_pval_beta = 0
@@ -121,27 +121,22 @@ def get_prs(genotype_file, rs_id_map, phen_map=None, only_score = False, verbose
             mode_v = sp.argmax(bin_counts[:2])
             snp[snp == 3] = mode_v
 
-
         # Update scores and move on.
-        pval_derived_effects_prs += snp * upd_pval_beta
+        pval_derived_effects_prs += -1*snp * upd_pval_beta
         assert not sp.any(sp.isnan(pval_derived_effects_prs)
                           ), 'Some individual weighted effects risk scores are NANs (not a number).  They are corrupted.'
 
-        if snp_i > 0 and snp_i % 100000 == 0:
+        if loci_i % 100000 == 0:
             if verbose:
-                print('%0.2f%% of genotype file read' % (100.0 * (float(loci_i) / (num_loci-1.0))))
-                print('%d SNPs parsed'%snp_i)
                 print('Number of non-matching NTs: %d' % num_non_matching_nts)
             if not only_score:
                 pval_eff_r2 = (sp.corrcoef(
                     pval_derived_effects_prs, true_phens)[0, 1]) ** 2
-                if verbose:
-                    print('Current PRS r2: %0.4f' % pval_eff_r2)
 
-        snp_i += 1
+        snp_i +=1
     
-    if len(found_loci)<0.99*len(rs_id_map):
-        perc_missing = 1 - float(len(found_loci))/float(len(rs_id_map))
+    perc_missing = 1 - float(len(found_loci))/float(len(rs_id_map))
+    if perc_missing>0.01:
         raise Warning('More than %0.2f %% of variants for which weights were calculated were not found in '
                         'validation data.  This can lead to poor prediction accuracies.  Please consider '
                         'using the --vbim flag in the coord step to identify overlapping SNPs.'
@@ -153,7 +148,6 @@ def get_prs(genotype_file, rs_id_map, phen_map=None, only_score = False, verbose
         sys.stdout.flush()            
 
     if verbose:
-        print("DONE!")
         print('Number of non-matching NTs: %d' % num_non_matching_nts)
         print('Number of flipped NTs: %d' % num_flipped_nts)
     if not only_score:
@@ -165,7 +159,10 @@ def get_prs(genotype_file, rs_id_map, phen_map=None, only_score = False, verbose
             print('Current PRS r2: %0.4f' % pval_eff_r2)
     
         ret_dict = {'pval_derived_effects_prs': pval_derived_effects_prs,
-                    'true_phens': true_phens[:], 'iids': iids, 'prs_r2':pval_eff_r2, 'prs_corr':pval_eff_corr}
+                    'true_phens': true_phens[:], 'iids': iids, 'prs_r2':pval_eff_r2, 'prs_corr':pval_eff_corr,
+                    'num_snps':snp_i, 'num_non_matching_nts':num_non_matching_nts, 
+                    'num_flipped_nts':num_flipped_nts, 'perc_missing':perc_missing, 
+                    'duplicated_snps':duplicated_snps}
     
         if len(pcs) > 0:
             ret_dict['pcs'] = pcs
@@ -175,7 +172,11 @@ def get_prs(genotype_file, rs_id_map, phen_map=None, only_score = False, verbose
             ret_dict['covariates'] = covariates
 
     else:    
-        ret_dict = {'pval_derived_effects_prs': pval_derived_effects_prs,'iids': iids}
+        ret_dict = {'pval_derived_effects_prs': pval_derived_effects_prs,'iids': iids, 
+                    'num_snps':snp_i, 'num_non_matching_nts':num_non_matching_nts, 
+                    'num_flipped_nts':num_flipped_nts, 'perc_missing':perc_missing, 
+                    'duplicated_snps':duplicated_snps
+                    }
 
     
     return ret_dict
@@ -393,7 +394,6 @@ def calc_risk_scores(bed_file, rs_id_map, phen_map, out_file=None,
                      verbose=False, summary_dict=None):
     if verbose:
         print('Parsing PLINK bed file: %s' % bed_file)
-
     if split_by_chrom:
         num_individs = len(phen_map)
         assert num_individs > 0, 'No individuals found.  Problems parsing the phenotype file?'
@@ -415,15 +415,20 @@ def calc_risk_scores(bed_file, rs_id_map, phen_map, out_file=None,
         prs_dict = get_prs(bed_file, rs_id_map, phen_map, only_score=only_score, verbose=verbose)
         num_individs = len(prs_dict['iids'])
         pval_derived_effects_prs = prs_dict['pval_derived_effects_prs']
-
+        
+    
+    res_dict = {'num_snps':prs_dict['num_snps'], 'num_non_matching_nts':prs_dict['num_non_matching_nts'], 
+                'num_flipped_nts':prs_dict['num_flipped_nts'], 'perc_missing':prs_dict['perc_missing'], 
+                'duplicated_snps':prs_dict['duplicated_snps']}
         
     if only_score:
         write_only_scores_file(out_file, prs_dict, pval_derived_effects_prs)
-        res_dict = {}
+        
     elif sp.std(prs_dict['true_phens'])==0:
         if verbose:
             print('No variance left to explain in phenotype.')
-        res_dict = {'pred_r2': 0}
+        res_dict['pred_r2'] = 0
+        res_dict['corr_r2'] = 0
     else:
         # Report prediction accuracy
         assert len(phen_map) > 0, 'No individuals found.  Problems parsing the phenotype file?'
@@ -435,13 +440,16 @@ def calc_risk_scores(bed_file, rs_id_map, phen_map, out_file=None,
 
         #If there is no prediction, then output 0s.
         if sp.std(pval_derived_effects_prs)==0:
-            res_dict = {'pred_r2': 0}
+            res_dict['pred_r2'] = 0
+            res_dict['corr_r2'] = 0
+
             weights_dict['unadjusted'] = {'Intercept': 0, 'ldpred_prs_effect': 0}
         else:
             pval_eff_corr = sp.corrcoef(pval_derived_effects_prs, prs_dict['true_phens'])[0, 1]
             pval_eff_r2 = pval_eff_corr ** 2
         
-            res_dict = {'pred_r2': pval_eff_r2}
+            res_dict['pred_r2'] = pval_eff_r2
+            res_dict['corr_r2'] = pval_eff_corr
         
             pval_derived_effects_prs.shape = (len(pval_derived_effects_prs), 1)
             true_phens = sp.array(prs_dict['true_phens'])
@@ -458,8 +466,7 @@ def calc_risk_scores(bed_file, rs_id_map, phen_map, out_file=None,
                 'Intercept': betas[1][0], 'ldpred_prs_effect': betas[0][0]}
         
             if verbose:
-                print('PRS correlation: %0.4f' % pval_eff_corr)
-            print('Variance explained (Pearson R2) by PRS: %0.4f' % pred_r2)
+                print('PRS trait correlation: %0.4f  R2: %0.4f' % (pval_eff_corr,pred_r2))
         
             # Adjust for sex
             if adjust_for_sex and 'sex' in prs_dict and len(prs_dict['sex']) > 0:
@@ -608,6 +615,8 @@ def parse_pcs(p_dict,phen_map,summary_dict,verbose):
     summary_dict[3]={'name':'Parsed PCs file:','value':p_dict['pcs_file']}
 
 def main(p_dict):
+    assert p_dict['summary_file'] is None or not p_dict['only_score'], 'Prediction summary file cannot be produced when the --only-score flag is set.'
+    
     summary_dict = {}
     non_zero_chromosomes = set()
     verbose = p_dict['debug']
@@ -738,7 +747,17 @@ def main(p_dict):
     # Plot results?
     assert not prs_file_is_missing, 'No SNP weights file was found.  A prefix to these should be provided via the --rf flag. Note that the prefix should exclude the _LDpred_.. extension or file ending. '
 
-    
+    res_summary_file = p_dict['summary_file']
+    if res_summary_file is not None and not p_dict['only_score']:
+        with open(res_summary_file,'w') as f:
+            if verbose:
+                print ('Writing Results Summary to file %s'%res_summary_file)
+            out_str = 'Pred_Method    Pred_corr    Pred_R2    SNPs_used\n'
+            f.write(out_str)
+            for method_str in sorted(res_dict):
+                out_str = '%s    %0.4f    %0.4f    %i\n'%(method_str, res_dict[method_str]['corr_r2'], res_dict[method_str]['pred_r2'], res_dict[method_str]['num_snps'])
+                f.write(out_str)
+                
     #Identifying the best prediction
     if not p_dict['only_score']:
         best_pred_r2 = 0
@@ -747,11 +766,18 @@ def main(p_dict):
             if len(res_dict[method_str]) and (res_dict[method_str]['pred_r2']) >best_pred_r2:
                 best_pred_r2 = res_dict[method_str]['pred_r2']
                 best_method_str = method_str
+                
         if best_method_str is not None:
             print('The highest (unadjusted) Pearson R2 was %0.4f, and provided by %s'%(best_pred_r2,best_method_str))
             summary_dict[5.99]={'name':'dash', 'value':'Optimal polygenic score'}
             summary_dict[6]={'name':'Method with highest (unadjusted) Pearson R2:','value':best_method_str}
             summary_dict[6.1]={'name':'Best (unadjusted) Pearson R2:','value':'%0.4f'%best_pred_r2}
+            if verbose:
+                summary_dict[6.2]={'name':'Number of SNPs used','value':'%d'%res_dict[best_method_str]['num_snps']}
+                summary_dict[6.3]={'name':'Number of SNPs flipped','value':'%d'%res_dict[best_method_str]['num_flipped_nts']}
+                summary_dict[6.4]={'name':'Fraction of SNPs not found in validation data','value':'%0.4f'%res_dict[best_method_str]['perc_missing']}
+                summary_dict[6.5]={'name':'Number of duplicated SNPs','value':'%d'%res_dict[best_method_str]['duplicated_snps']}
+                summary_dict[6.6]={'name':'Number of non-matching nucleotides SNPs','value':'%d'%res_dict[best_method_str]['num_non_matching_nts']}
     t1 = time.time()
     t = (t1 - t0)
     summary_dict[4.9]={'name':'dash', 'value':'Scoring'}

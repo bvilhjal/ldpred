@@ -20,7 +20,7 @@ def parse_sum_stats(h5f, p_dict, bimfile, summary_dict):
         chr1    1020428    rs6687776    C       T       0.85083    0.0587  -0.0100048507289348    0.0100    8000
         """
         parse_sum_stats_custom(ch='CHR', pos='POS', A1='REF', A2='ALT', reffreq='REF_FRQ', info='info',
-                    rs='SNP_ID', pval='PVAL', eff='BETA', se='SE', ncol='N', input_is_beta=True, **ss_args)   
+                    rs='SNP_ID', pval='PVAL', eff='BETA', se='SE', ncol='N', eff_type='LINREG', **ss_args)   
     elif p_dict['ssf_format'] == 'STANDARD':
         if p_dict['N'] is None: 
             raise Exception('This summary statistics format requires summary statistics sample size to be given, i.e. set --N flag.')        
@@ -29,7 +29,7 @@ def parse_sum_stats(h5f, p_dict, bimfile, summary_dict):
         chr1    1020428 C       T       0.85083 0.98732 rs6687776    0.0587  -0.0100048507289348
         """        
         parse_sum_stats_custom(ch='chr', pos='pos', A1='ref', A2='alt', reffreq='reffrq', info='info',
-                    rs='rs', pval='pval', eff='effalt', input_is_beta=True, **ss_args)      
+                    rs='rs', pval='pval', eff='effalt', eff_type='LINREG', **ss_args)      
     elif p_dict['ssf_format'] == 'PGC_OLD':
         if p_dict['N'] is None: 
             raise Exception('This summary statistics format requires summary statistics sample size to be given, i.e. set --N flag.')        
@@ -38,7 +38,7 @@ def parse_sum_stats(h5f, p_dict, bimfile, summary_dict):
         chr1    rs4951859       C       G       729679  0.631   0.97853 0.0173  0.2083  0    
         """
         parse_sum_stats_custom(ch='hg19chrc', pos='bp', A1='a1', A2='a2', info='info', rs='snpid', pval='p', eff='or', se='se',
-                    input_is_beta=False, **ss_args)
+                    eff_type='OR', **ss_args)
     elif p_dict['ssf_format'] == 'BASIC':
         if p_dict['N'] is None: 
             raise Exception('This summary statistics format requires summary statistics sample size to be given, i.e. set --N flag.')        
@@ -47,7 +47,7 @@ def parse_sum_stats(h5f, p_dict, bimfile, summary_dict):
         chr1    rs4951859    C    G    729679    0.97853    0.2083      
         """
         parse_sum_stats_custom(ch='hg19chrc', pos='bp', A1='a1', A2='a2', info='info', rs='snpid', pval='p',
-                    eff='or', input_is_beta=False, **ss_args)
+                    eff='or', eff_type='OR', **ss_args)
     elif p_dict['ssf_format'] == 'PGC':
         """    
         CHR    SNP    BP    A1    A2    FRQ_A_30232    FRQ_U_40578    INFO    OR    SE    P    ngt    Direction    HetISqt    HetChiSq    HetDf    HetPVa
@@ -56,26 +56,26 @@ def parse_sum_stats(h5f, p_dict, bimfile, summary_dict):
         parse_sum_stats_custom(ch='CHR', pos='BP', A1='A1', A2='A2', reffreq='Freq.Hapmap.Ceu',
                     case_freq='FRQ_A_34129', control_freq='FRQ_U_45512', case_n='Nca',
                     control_n='Nco', info='INFO', rs='SNP', pval='P', eff='OR', se='SE',
-                    input_is_beta=False, **ss_args)
+                    eff_type='OR', **ss_args)
     elif p_dict['ssf_format'] == 'GIANT':
         """
         MarkerName Allele1 Allele2 Freq.Allele1.HapMapCEU p N
         rs10 a c 0.0333 0.8826 78380    
         """
         parse_sum_stats_custom(A1='Allele1', A2='Allele2', reffreq='Freq.Allele1.HapMapCEU', rs='MarkerName',
-                    pval='p', eff='b', ncol='N', input_is_beta=True, **ss_args)
+                    pval='p', eff='b', ncol='N', eff_type='LINREG', **ss_args)
     elif p_dict['ssf_format'] == 'GIANT2':
         """
         MarkerName A1 A2 Freq.Hapmap.Ceu BETA SE.2gc P.2gc N
         rs4747841 a g 0.55 0.0025 0.0061 0.68 60558.2
         """
         parse_sum_stats_custom(ncol='N', A1='A1', A2='A2', reffreq='Freq.Hapmap.Ceu', rs='MarkerName',
-                    pval='P.2gc', eff='BETA', se='SE.2gc', input_is_beta=True, **ss_args)
+                    pval='P.2gc', eff='BETA', se='SE.2gc', eff_type='LINREG', **ss_args)
     elif p_dict['ssf_format'] == 'CUSTOM':
         parse_sum_stats_custom(ch=p_dict['chr'],
                     A1=p_dict['A1'], A2=p_dict['A2'], reffreq=p_dict['reffreq'], info=p_dict['info'],
                     rs=p_dict['rs'], pval=p_dict['pval'], eff=p_dict['eff'], ncol=p_dict['ncol'],
-                    pos=p_dict['pos'], input_is_beta=p_dict['beta'], case_freq=p_dict['case_freq'], 
+                    pos=p_dict['pos'], eff_type=p_dict['eff_type'], case_freq=p_dict['case_freq'], 
                     control_freq=p_dict['control_freq'], case_n=p_dict['case_n'], se=p_dict['se'],
                     control_n=p_dict['control_n'], **ss_args)
     else:
@@ -134,10 +134,55 @@ def parse_freq(line_dict, header_dict, reffreq, control_freq, case_freq, control
     else:  
         return -1
 
+def get_raw_beta(beta_read, eff_type):
+    if eff_type=='OR':
+        raw_beta = sp.log(beta_read)
+    elif eff_type=='LINREG' or eff_type=='LOGOR':
+        raw_beta = beta_read
+    else: 
+        raise Exception('Unknown effect type')
+    return raw_beta
+
+def get_beta_from_se(beta_read, se_read, eff_type, raw_beta, N):
+    if se_read==0:
+        return 
+    if eff_type=='LINREG' or eff_type=='LOGOR':
+        abs_beta = sp.absolute(beta_read)/se_read
+    elif eff_type=='OR':
+        abs_beta = sp.absolute(1-beta_read)/se_read
+    else: 
+        raise Exception('Unknown effect type')      
+    return sp.sign(raw_beta) * abs_beta/ sp.sqrt(N)
+
+
+def get_beta(pval_read, raw_beta, beta_read, line_dict, header_dict, se, 
+             z_from_se, N, eff_type, se_inferred_zscores):
+    if z_from_se:
+        assert se in header_dict, "SE was not specified in summary statistics provided, which is necessary when the 'z_from_se' flag is used."
+        se_read = float(line_dict[header_dict[se]])
+        if se_read==0 or not isfinite(se_read):
+            return None
+        se_inferred_zscores += 1
+        return get_beta_from_se(beta_read, se_read, eff_type, raw_beta, N)
+    else:
+        if pval_read==0 or not isfinite(stats.norm.ppf(pval_read)):
+            #Attempt to Parse SEs to infer Z-score
+            if not se in header_dict:
+                return None
+            else:
+                se_read = float(line_dict[header_dict[se]])
+                if se_read==0 or not isfinite(se_read):
+                    return None
+
+                se_inferred_zscores += 1
+                return get_beta_from_se(beta_read, se_read, eff_type, raw_beta, N)
+        else:               
+            return sp.sign(raw_beta) * stats.norm.ppf(pval_read / 2.0)/ sp.sqrt(N) 
+
 def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_file=None, n=None, ch=None, pos=None,
                     A1=None, A2=None, reffreq=None, case_freq=None, control_freq=None, case_n=None,
                     control_n=None, info=None, rs=None, pval=None, eff=None, ncol=None, se=None,
-                    input_is_beta=False, match_genomic_pos=False, debug=False, 
+                    eff_type='OR', match_genomic_pos=False, debug=False, 
                     z_from_se=False, summary_dict = None):
     # Check required fields are here
     assert not A2 is None, 'Require header for non-effective allele'
@@ -251,6 +296,7 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
                     chrom = snps_pos_map[sid]['chrom']
                 
     
+                #Parse position
                 pos_read = 0
                 if not pos is None and pos in header_dict:
                     pos_read = int(l[header_dict[pos]])
@@ -261,62 +307,36 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
                 else:
                     pos_read = snps_pos_map[sid]['pos']
 
+                #Parse raw beta
                 beta_read = float(l[header_dict[eff]])
                 if not isfinite(beta_read):
                     invalid_beta += 1
                     continue
+                raw_beta = get_raw_beta(beta_read, eff_type)
 
+                #Parse p-value and effect size
                 pval_read = float(l[header_dict[pval]])
-                if z_from_se:
-                    se_read = float(l[header_dict[se]])
-                    if not isfinite(se_read):
-                        continue
-                    se_inferred_zscores += 1
-                    if input_is_beta:
-                        abs_beta = sp.absolute(beta_read)/se_read
-                    else:
-                        #Assuming that the reported effects are odds ratios (ORs)
-                        abs_beta = sp.absolute(1-beta_read)/se_read
-                else:
-                    if pval_read==0 or not isfinite(stats.norm.ppf(pval_read)):
-                        #Attempt to Parse SEs to infer Z-score
-                        invalid_p += 1
-                        if se is None:
-                            continue
-                        else:
-                            se_read = float(l[header_dict[se]])
-                            if not isfinite(se_read):
-                                continue
+                if pval_read==0 or not isfinite(stats.norm.ppf(pval_read)):
+                    invalid_p += 1
 
-                            se_inferred_zscores += 1
-                            if input_is_beta:
-                                abs_beta = sp.absolute(beta_read)/se_read
-                            else:
-                                #Assuming that the reported effects are odds ratios (ORs)
-                                abs_beta = sp.absolute(1-beta_read)/se_read
-                    else:               
-                        abs_beta = stats.norm.ppf(pval_read / 2.0)
-                        
+                #Get the sample size
+                N = parse_sample_size(l,n,ncol,case_n,control_n,header_dict)
+
+                beta = get_beta(pval_read, raw_beta, beta_read, l, header_dict, se, 
+                                z_from_se, N, eff_type, se_inferred_zscores)
+                if beta==None:
+                    continue
+                
+                #All necessary information was found, so we should store things
+                
                 if not chrom in chrom_dict:
                     chrom_dict[chrom] = {'ps':[], 'log_odds':[], 'infos':[], 'freqs':[],
                              'betas':[], 'nts': [], 'sids': [], 'positions': [], 'ns':[]}
                 chrom_dict[chrom]['sids'].append(sid)
                 chrom_dict[chrom]['positions'].append(pos_read)
                 chrom_dict[chrom]['ps'].append(pval_read)
-
-                #Get the sample size
-                N = parse_sample_size(l,n,ncol,case_n,control_n,header_dict)
                 chrom_dict[chrom]['ns'].append(N)
-                
-                #parse the effect size
-                raw_beta = float(l[header_dict[eff]])
-                if not input_is_beta:
-                    raw_beta = sp.log(raw_beta)
-                beta = sp.sign(raw_beta) * abs_beta/ sp.sqrt(N)
-                if input_is_beta:
-                    chrom_dict[chrom]['log_odds'].append(beta)
-                else:
-                    chrom_dict[chrom]['log_odds'].append(raw_beta)
+                chrom_dict[chrom]['log_odds'].append(raw_beta)
                 chrom_dict[chrom]['betas'].append(beta)
                 
                 # Get the INFO score
@@ -401,26 +421,17 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
         g.create_dataset('positions', data=positions)
         g.create_dataset('ns', data=ns)
         hdf5_file.flush()
-    if debug:
-        print('%d SNPs excluded due to invalid chromosome' % invalid_chr)
-        if match_genomic_pos:
-            print('%d SNPs excluded due to invalid genomic positions' % invalid_pos)
-        else:
-            print('%d SNPs with non-matching genomic positions (not excluded)' % invalid_pos)
-        print('%d SNPs excluded due to invalid P-values ' % invalid_p)
-        print('%d SNPs excluded due to invalid effect sizes' % invalid_p)
-        print('%d SNPs parsed from summary statistics file' % num_snps)
     summary_dict[3.09]={'name':'dash', 'value':'Summary statistics'}
     summary_dict[3.1]={'name':'Num SNPs parsed from sum stats file','value':num_snps}
-    if invalid_p>0:
+    if invalid_p>0 or debug:
         summary_dict[3.2]={'name':'Num invalid P-values in sum stats','value':invalid_p}
-    if invalid_beta>0:
+    if invalid_beta>0 or debug:
         summary_dict[3.21]={'name':'Num invalid betas in sum stats','value':invalid_beta}
-    if se_inferred_zscores>0:
+    if se_inferred_zscores>0 or debug:
         summary_dict[3.22]={'name':'Num z-scores inferred from SEs and effects','value':se_inferred_zscores}
-    if invalid_chr>0:
+    if invalid_chr>0 or debug:
             summary_dict[3.4]={'name':'SNPs w non-matching chromosomes excluded','value':invalid_chr}
-    if invalid_pos>0:
+    if invalid_pos>0 or debug:
         if match_genomic_pos:
             summary_dict[3.3]={'name':'SNPs w non-matching positions excluded','value':invalid_pos}
         else:
