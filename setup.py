@@ -106,7 +106,8 @@ setup(
                 './test_data/goldens/goldenprs*',
                 './test_data/goldens/ld_data*',
                 ], 
-                'ldpred':['./reference/hm3_sids.txt.gz']
+                'ldpred':['./reference/hm3_sids.txt.gz',
+                          './reference/long-range-ld-price-2008hg38.txt']
                 },
     include_package_data=True,
     # Although 'package_data' is the preferred approach, in some case you may

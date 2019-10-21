@@ -1,6 +1,6 @@
 ===================== Brief and incoplete release notes =====================
 
-Oct 21th, 2019: v 1.0.9
+Oct 21th, 2019: v 1.0.10
 
 - LDpred-gibbs now reports LDpred-inf effects for SNPs in long-range LD regions (Price et al., AJHG 2008).  This 
   improves convergence of the algorithm substantially when applied to large datasets.
