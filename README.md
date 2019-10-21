@@ -100,7 +100,7 @@ In addition to the LDpred gibbs sampler and infinitesimal model methods, the pac
 
 This method often yields better predictions than LDpred when the LD reference panel is small, or when the training data is very large (due to problems with gibbs sampler convergence).
 
-### Tests###
+### Tests ###
 You can run a test to see if LDpred work on your system by running the following tests
 
 `ldpred-unittest`
