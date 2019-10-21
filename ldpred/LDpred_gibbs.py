@@ -81,7 +81,7 @@ def get_constants(snp_i,const_dict):
 def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=None, ns= None, ld_radius=100,
                  num_iter=60, burn_in=10, p=None, zero_jump_prob=0.01, sampl_var_shrink_factor=0.9, 
                  tight_sampling=False,ld_dict=None, reference_ld_mats=None, ld_boundaries=None, 
-                 verbose=False, print_progress=True):
+                 snp_lrld=None, verbose=False, print_progress=True):
     """
     LDpred (Gibbs Sampler) 
     """
@@ -134,6 +134,10 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=None, n
                 start_i = ld_boundaries[snp_i][0]
                 stop_i = ld_boundaries[snp_i][1]
                 focal_i = snp_i - start_i
+                
+            if snp_lrld is not None:
+                if snp_lrld[snp_i]:
+                    continue
                 
             #Figure out what sample size and constants to use
             cd = get_constants(snp_i,const_dict)
@@ -195,7 +199,7 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=None, n
 
 def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_prefix=None, 
                       summary_dict=None, ps=None,n=None, h2=None, use_gw_h2=False, 
-                      sampl_var_shrink_factor=1, 
+                      sampl_var_shrink_factor=1, incl_long_range_ld=False,
                       num_iter=None, verbose=False, zero_jump_prob=0.01, 
                       burn_in=5):
     """
@@ -245,6 +249,9 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
                                                 h2=h2_chrom, n=mean_n, ld_window_size=2 * ld_radius, verbose=verbose)
             LDpred_inf_chrom_dict[chrom_str] = start_betas
 
+    if not incl_long_range_ld:
+        lrld_dict = util.load_lrld_dict()
+        num_snps_in_lrld = 0
     
     convergence_report = {}
     for p in ps:
@@ -304,16 +311,21 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
                     raw_effect_sizes.extend(log_odds)
                     out_nts.extend(nts)
         
-                
                 h2_chrom = herit_dict[chrom_str]['h2']
+                
+                snp_lrld = None
+                if not incl_long_range_ld:
+                    snp_lrld = util.get_snp_lrld_status(chrom_i, positions, lrld_dict)      
+                    num_snps_in_lrld +=sp.sum(snp_lrld)
+                    
                 ld_boundaries = None
                 if 'chrom_ld_boundaries' in ld_dict:
                     ld_boundaries = ld_dict['chrom_ld_boundaries'][chrom_str]
-                res_dict = ldpred_gibbs(pval_derived_betas, h2=h2_chrom, n=n, ns=ns, p=p, ld_radius=ld_radius,
+                res_dict = ldpred_gibbs(pval_derived_betas,h2=h2_chrom, n=n, ns=ns, p=p, ld_radius=ld_radius,
                                         verbose=verbose, num_iter=num_iter, burn_in=burn_in, ld_dict=chrom_ld_dict[chrom_str],
                                         start_betas=LDpred_inf_chrom_dict[chrom_str], ld_boundaries=ld_boundaries,
                                         zero_jump_prob=zero_jump_prob,sampl_var_shrink_factor=sampl_var_shrink_factor,
-                                        print_progress=False)
+                                        snp_lrld=snp_lrld, print_progress=False)
                 
                 updated_betas = res_dict['betas']
                 updated_inf_betas = res_dict['inf_betas']
@@ -339,6 +351,9 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
                     corr = sp.corrcoef(y, prs)[0, 1]
                     r2 = corr ** 2
                     print('The R2 prediction accuracy of PRS using %s was: %0.4f' % (chrom_str, r2))
+
+        if not incl_long_range_ld:
+            summary_dict[2.3]={'name':'SNPs in long-range LD regions','value':'%d'%num_snps_in_lrld}
         
         if not verbose:
             sys.stdout.write('\r%0.2f%%\n' % (100.0))
@@ -403,11 +418,11 @@ def main(p_dict):
     summary_dict[1.9]={'name':'dash', 'value':'LDpred Gibbs sampler'}
     ldpred_genomewide(data_file=p_dict['cf'], out_file_prefix=p_dict['out'], ps=p_dict['f'], ld_radius=p_dict['ldr'],
                       ld_dict=ld_dict, n=p_dict['N'], num_iter=p_dict['n_iter'], burn_in=p_dict['n_burn_in'], 
-                      h2=p_dict['h2'], use_gw_h2=p_dict['use_gw_h2'], sampl_var_shrink_factor=1,
-                      verbose=p_dict['debug'], summary_dict=summary_dict)
+                      h2=p_dict['h2'], use_gw_h2=p_dict['use_gw_h2'], incl_long_range_ld=p_dict['incl_long_range_ld'], 
+                      sampl_var_shrink_factor=1, verbose=p_dict['debug'], summary_dict=summary_dict)
     t1 = time.time()
     t = (t1 - t0)
-    summary_dict[2.2]={'name':'Running time for Gibbs sampler(s):','value':'%d min and %0.2f secs'% (t / 60, t % 60)}
+    summary_dict[3]={'name':'Running time for Gibbs sampler(s):','value':'%d min and %0.2f secs'% (t / 60, t % 60)}
     reporting.print_summary(summary_dict, 'Summary of LDpred Gibbs')
 
         

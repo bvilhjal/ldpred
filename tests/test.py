@@ -265,7 +265,7 @@ class SimpleTests(unittest.TestCase):
         coord_file = self.tmp_file_prefix + '.coord0.hdf5'
         run_test(
             'Coordinating test data into file %s' % coord_file,
-            'coord --gf=%s/test_data/sim1_0_test --vgf=%s/test_data/sim1_0_test --ssf=%s/test_data/sim1_0_ss.txt --ssf-format=LDPRED --out=%s' % (TEST_DIR, TEST_DIR, TEST_DIR, coord_file),
+            'coord --gf=%s/test_data/sim1_0_test --vgf=%s/test_data/sim1_0_test --ssf=%s/test_data/sim1_0_ss.txt --ssf-format=LDPRED --eff_type LINREG --out=%s' % (TEST_DIR, TEST_DIR, TEST_DIR, coord_file),
             'Problems when coordinating data!',
             coord_file,
             'test_data/goldens/golden.coord0.hdf5'
@@ -275,7 +275,7 @@ class SimpleTests(unittest.TestCase):
         coord_file = self.tmp_file_prefix + '.coord.hdf5'
         run_test(
             'Coordinating test data into file %s' % coord_file,
-            '--debug coord --gf=%s/test_data/sim2_0_test --vbim=%s/test_data/sim2_0_test.bim --ssf=%s/test_data/sim2_0_ss.txt --ssf-format=LDPRED  --beta  --out=%s' % (TEST_DIR, TEST_DIR, TEST_DIR, coord_file),
+            '--debug coord --gf=%s/test_data/sim2_0_test --vbim=%s/test_data/sim2_0_test.bim --ssf=%s/test_data/sim2_0_ss.txt --ssf-format=LDPRED  --eff_type LINREG  --out=%s' % (TEST_DIR, TEST_DIR, TEST_DIR, coord_file),
             'Problems when coordinating data!',
             coord_file,
             'test_data/goldens/golden.coord.hdf5')

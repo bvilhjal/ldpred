@@ -199,6 +199,9 @@ parser_gibbs.add_argument('--hickle-ld', default=False, action='store_true',
                     help='Use hickle instead of pickle for storing LD files.  This saves memory, but generally'
                     'takes more time to write and load. Requires hickle to be installed on your system, '
                     'see http://telegraphic.github.io/hickle/ for how to install.')
+parser_gibbs.add_argument('--incl-long-range-ld', default=False, action='store_true',
+                    help='Includes SNPs that are located in long-range LD regions in the Gibbs sampler. The '
+                    'LD-pred inf effect estimates are used for these by default. ')
 
 # parser_gibbs.add_argument('--gm-ldr', type=float, default=None, 
 #                     help='If this option is set, then a genetic map will be used to calculate LD-radius. '

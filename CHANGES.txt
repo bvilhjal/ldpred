@@ -2,6 +2,9 @@
 
 Oct 21th, 2019: v 1.0.9
 
+- LDpred-gibbs now reports LDpred-inf effects for SNPs in long-range LD regions (Price et al., AJHG 2008).  This 
+  improves convergence of the algorithm substantially when applied to large datasets.
+
 - Fixed a negative correlation bug, and now the user must define on what scale the reported effects are.
 
 - Added --summary-file flag in score, so that prediction results for all methods could be written out into a file

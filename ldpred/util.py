@@ -15,12 +15,14 @@ import re
 # LDpred currently ignores the Y and MT chromosomes.
 ok_chromosomes = set(range(1, 24))
 chromosomes_list = ['chrom_%d' % (chrom) for chrom in ok_chromosomes]
-chrom_name_map = {'X':'23','chr_X':'23','chrom_X':'23'}
+
+chrom_name_map = {'X':23,'chr_X':23,'chrom_X':23}
 for chrom in ok_chromosomes:
     chrom_name_map['%d' % (chrom)]=chrom
     chrom_name_map['chrom_%d' % (chrom)]=chrom
     chrom_name_map['chr_%d' % (chrom)]=chrom
-    
+
+
 def get_chrom_num(chrom):
     return chrom_name_map.get(re.sub("chr", "", chrom),0)
 
@@ -50,6 +52,7 @@ nts_u_dtype = '<U1'
 
 my_path = os.path.dirname(os.path.abspath(__file__))
 hm3_file = os.path.join(my_path, 'reference','hm3_sids.txt.gz')
+lrld_file = os.path.join(my_path, 'reference','long-range-ld-price-2008hg38.txt')
 
 def check_chromosomes(missing_chromosomes):
         if len(missing_chromosomes) > 0:
@@ -153,6 +156,36 @@ def load_hapmap_SNPs():
     f.close()
     return hm3_sids
 
+
+def load_lrld_dict():
+    #Load Price et al. AJHG 2008 long range LD table.
+    d = {}
+    for chrom in ok_chromosomes:
+        d[chrom] = {'reg_dict':{}}
+    with open(lrld_file, 'r') as f:
+        for line in f:
+            l = line.split()
+            d[chrom_name_map[l[0]]][l[3]] = {'start_pos':int(l[1]), 'end_pos':int(l[2])}
+    return d
+
+
+def is_in_lrld(chrom, pos, lrld_dict):
+    if len(lrld_dict[chrom]['reg_dict'])==0:
+        return False
+    else:
+        for lrld_reg in lrld_dict[chrom]['reg_dict']:
+            if lrld_reg['start_pos'] < pos < lrld_reg['end_pos']:
+                return True
+        else:
+            False
+
+
+def get_snp_lrld_status(chromosome, positions, lrld_dict):
+    snp_lrld = sp.zeros(len(positions))
+    for snp_i in range(len(positions)):
+        snp_lrld[snp_i] = is_in_lrld(chromosome, positions[snp_i], lrld_dict)
+    return snp_lrld
+    
 def is_gz(name):
     return name.lower().endswith(('.gz', '.gzip'))
 
