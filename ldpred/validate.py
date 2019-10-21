@@ -419,7 +419,7 @@ def calc_risk_scores(bed_file, rs_id_map, phen_map, out_file=None,
     
     res_dict = {'num_snps':prs_dict['num_snps'], 'num_non_matching_nts':prs_dict['num_non_matching_nts'], 
                 'num_flipped_nts':prs_dict['num_flipped_nts'], 'perc_missing':prs_dict['perc_missing'], 
-                'duplicated_snps':prs_dict['duplicated_snps']}
+                'duplicated_snps':prs_dict['duplicated_snps'], 'pred_r2': 0, 'corr_r2':0}
         
     if only_score:
         write_only_scores_file(out_file, prs_dict, pval_derived_effects_prs)
@@ -427,8 +427,6 @@ def calc_risk_scores(bed_file, rs_id_map, phen_map, out_file=None,
     elif sp.std(prs_dict['true_phens'])==0:
         if verbose:
             print('No variance left to explain in phenotype.')
-        res_dict['pred_r2'] = 0
-        res_dict['corr_r2'] = 0
     else:
         # Report prediction accuracy
         assert len(phen_map) > 0, 'No individuals found.  Problems parsing the phenotype file?'
@@ -440,8 +438,6 @@ def calc_risk_scores(bed_file, rs_id_map, phen_map, out_file=None,
 
         #If there is no prediction, then output 0s.
         if sp.std(pval_derived_effects_prs)==0:
-            res_dict['pred_r2'] = 0
-            res_dict['corr_r2'] = 0
 
             weights_dict['unadjusted'] = {'Intercept': 0, 'ldpred_prs_effect': 0}
         else:
