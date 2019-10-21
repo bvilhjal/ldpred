@@ -17,7 +17,7 @@ Oct 21th, 2019: Version 1.0.9 released and is available on pip using
 
 And it should actually work now :)
 
-Also, tests have been markedly improved.
+Also, gibbs sample convergence and tests have been markedly improved.
 
 
 ### Requirements ###
