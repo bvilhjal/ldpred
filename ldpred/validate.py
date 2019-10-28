@@ -76,7 +76,7 @@ def get_prs(genotype_file, rs_id_map, phen_map=None, only_score = False, verbose
     found_loci = set()
     for locus, row in zip(locus_list, plinkf):
         loci_i += 1
-        if loci_i%1000==0:
+        if loci_i%100==0:
             sys.stdout.write('\r%0.2f%%' % (100.0 * (float(loci_i) / (num_loci-1.0))))
             sys.stdout.flush()            
         upd_pval_beta = 0
@@ -125,13 +125,6 @@ def get_prs(genotype_file, rs_id_map, phen_map=None, only_score = False, verbose
         pval_derived_effects_prs += -1*snp * upd_pval_beta
         assert not sp.any(sp.isnan(pval_derived_effects_prs)
                           ), 'Some individual weighted effects risk scores are NANs (not a number).  They are corrupted.'
-
-        if loci_i % 100000 == 0:
-            if verbose:
-                print('Number of non-matching NTs: %d' % num_non_matching_nts)
-            if not only_score:
-                pval_eff_r2 = (sp.corrcoef(
-                    pval_derived_effects_prs, true_phens)[0, 1]) ** 2
 
         snp_i +=1
     

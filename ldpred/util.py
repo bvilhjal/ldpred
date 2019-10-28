@@ -177,7 +177,7 @@ def is_in_lrld(chrom, pos, lrld_dict):
             if lrld_reg['start_pos'] < pos < lrld_reg['end_pos']:
                 return True
         else:
-            False
+            return False
 
 
 def get_snp_lrld_status(chromosome, positions, lrld_dict):

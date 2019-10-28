@@ -229,6 +229,11 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
     herit_dict = ld.get_chromosome_herits(cord_data_g, ld_scores_dict, mean_n, h2=h2, use_gw_h2=use_gw_h2, 
                                           debug=verbose, summary_dict=summary_dict)
 
+
+    if herit_dict['gw_h2_ld_score_est']>ld_radius/10.0:
+        print ('\033[93m Warning: LD radius seems small in comparison to the average LD score. '
+               'Please consider a larger one, or a smaller number of SNPs used in the analysis. \033[0m')
+
     LDpred_inf_chrom_dict = {}
     print('Calculating LDpred-inf weights')
     for chrom_str in util.chromosomes_list:
@@ -321,6 +326,8 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
                 ld_boundaries = None
                 if 'chrom_ld_boundaries' in ld_dict:
                     ld_boundaries = ld_dict['chrom_ld_boundaries'][chrom_str]
+                if verbose:
+                    print('Calculating SNP weights for Chromosome %s' % ((chrom_str.split('_'))[1]))
                 res_dict = ldpred_gibbs(pval_derived_betas,h2=h2_chrom, n=n, ns=ns, p=p, ld_radius=ld_radius,
                                         verbose=verbose, num_iter=num_iter, burn_in=burn_in, ld_dict=chrom_ld_dict[chrom_str],
                                         start_betas=LDpred_inf_chrom_dict[chrom_str], ld_boundaries=ld_boundaries,
@@ -335,9 +342,7 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
                     print('This suggests that the Gibbs sampler did not convergence.')
                     convergence_report[p] = True
                 
-                if verbose:
-                    print('Calculating SNP weights for Chromosome %s' % ((chrom_str.split('_'))[1]))
-                else:
+                if not verbose:
                     sys.stdout.write('\r%0.2f%%' % (100.0 * (min(1, float(chrom_i) / num_chrom))))
                     sys.stdout.flush()
 
@@ -353,7 +358,7 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
                     print('The R2 prediction accuracy of PRS using %s was: %0.4f' % (chrom_str, r2))
 
         if not incl_long_range_ld:
-            summary_dict[2.3]={'name':'SNPs in long-range LD regions','value':'%d'%num_snps_in_lrld}
+            summary_dict[1.3]={'name':'SNPs in long-range LD regions','value':'%d'%num_snps_in_lrld}
         
         if not verbose:
             sys.stdout.write('\r%0.2f%%\n' % (100.0))
@@ -398,7 +403,9 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
 
     summary_dict[2.0]={'name':'Gibbs sampler fractions used','value':str(ps)}
     ['Yes' if convergence_report[p] else 'No' for p in ps]
-    summary_dict[2.1]={'name':'Convergence issues (for each fraction)','value':str(['Yes' if convergence_report[p] else 'No' for p in ps])}
+    summary_dict[2.1]={'name':'Number of burn-iterations used','value':'%i'%burn_in}
+    summary_dict[2.2]={'name':'Number of iterations used','value':'%i'%num_iter}
+    summary_dict[2.3]={'name':'Convergence issues (for each fraction)','value':str(['Yes' if convergence_report[p] else 'No' for p in ps])}
 
 
 def main(p_dict):
@@ -407,9 +414,9 @@ def main(p_dict):
     summary_dict[0]={'name':'Coordinated data filename','value':p_dict['cf']}
     summary_dict[0.1]={'name':'SNP weights output file (prefix)', 'value':p_dict['out']}
     summary_dict[0.2]={'name':'LD data filename (prefix)', 'value':p_dict['ldf']}
-    summary_dict[1]={'name':'LD radius used','value':str(p_dict['ldr'])}
+    summary_dict[1.01]={'name':'LD radius used','value':str(p_dict['ldr'])}
     t0 = time.time()
-    summary_dict[1.09]={'name':'dash', 'value':'LD information'}
+    summary_dict[1]={'name':'dash', 'value':'LD information'}
     ld_dict = ld.get_ld_dict_using_p_dict(p_dict, summary_dict)
     t1 = time.time()
     t = (t1 - t0)

@@ -178,9 +178,9 @@ parser_gibbs.add_argument('--f', default=[1,0.3,0.1,0.03,0.01,0.003,0.001], narg
 
 parser_gibbs.add_argument('--N', type=int, default=None,
                     help='Number of individuals on which the summary statistics are assumed to be based on.')
-parser_gibbs.add_argument('--n-iter', type=int, default=60,
+parser_gibbs.add_argument('--n-iter', type=int, default=100,
                     help='The number of iterations used by the Gibbs sampler. The default is 60.')
-parser_gibbs.add_argument('--n-burn-in', type=int, default=5,
+parser_gibbs.add_argument('--n-burn-in', type=int, default=10,
                     help='The number of burn-in iterations used by the Gibbs sampler. The default is 5.')
 parser_gibbs.add_argument('--h2', type=float, default=None, 
                     help='The genome-wide heritability assumed by LDpred, which is then partitioned '
