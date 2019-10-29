@@ -62,7 +62,41 @@ def write_coord_data(cord_data_g, coord_dict, debug=False):
     if coord_dict['genetic_map'] is not None:
         ofg.create_dataset('genetic_map', data=coord_dict['genetic_map'])
 
-                   
+
+def write_parameter_data(p_dict, h5f, debug=False):
+    if debug:
+        print('Storing parameter information in coordinated file.')
+    pg = h5f.create_group('parameters')
+    pg.create_dataset('gf', data=p_dict['gf'])
+    pg.create_dataset('ssf', data=p_dict['ssf'])
+    pg.create_dataset('N', data=p_dict['N'])
+    pg.create_dataset('vbim', data=p_dict['vbim'])
+    pg.create_dataset('vgf', data=p_dict['vgf'])
+    pg.create_dataset('only_hm3', data=p_dict['only_hm3'])
+    pg.create_dataset('ilist', data=p_dict['ilist'])
+    pg.create_dataset('eff_type', data=p_dict['eff_type'])
+    pg.create_dataset('skip_coordination', data=p_dict['skip_coordination'])
+    pg.create_dataset('match_genomic_pos', data=p_dict['match_genomic_pos'])
+    pg.create_dataset('maf', data=p_dict['maf'])
+    pg.create_dataset('max_freq_discrep', data=p_dict['max_freq_discrep'])
+    pg.create_dataset('ssf_format', data=p_dict['ssf_format'])
+    pg.create_dataset('rs', data=p_dict['rs'])
+    pg.create_dataset('A1', data=p_dict['A1'])
+    pg.create_dataset('A2', data=p_dict['A2'])
+    pg.create_dataset('pos', data=p_dict['pos'])
+    pg.create_dataset('info', data=p_dict['info'])
+    pg.create_dataset('chr', data=p_dict['chr'])
+    pg.create_dataset('reffreq', data=p_dict['reffreq'])
+    pg.create_dataset('pval', data=p_dict['pval'])
+    pg.create_dataset('eff', data=p_dict['eff'])
+    pg.create_dataset('se', data=p_dict['se'])
+    pg.create_dataset('ncol', data=p_dict['ncol'])
+    pg.create_dataset('case_freq', data=p_dict['case_freq'])
+    pg.create_dataset('control_freq', data=p_dict['control_freq'])
+    pg.create_dataset('case_n', data=p_dict['case_n'])
+    pg.create_dataset('control_n', data=p_dict['control_n'])
+    pg.create_dataset('z_from_se', data=p_dict['z_from_se'])
+
 def get_snp_stds(raw_snps):
     return sp.std(raw_snps, axis=1, dtype='float32')
 
@@ -579,6 +613,9 @@ def main(p_dict):
                         min_maf=p_dict['maf'], 
                         skip_coordination=p_dict['skip_coordination'], 
                         debug=p_dict['debug'])
+    
+    write_parameter_data(p_dict, h5f, debug=False)
+    
     h5f.close()
     reporting.print_summary(summary_dict, 'Summary of coordination step')
     return summary_dict
