@@ -137,7 +137,7 @@ def parse_freq(line_dict, header_dict, reffreq, control_freq, case_freq, control
 def get_raw_beta(beta_read, eff_type):
     if eff_type=='OR':
         raw_beta = sp.log(beta_read)
-    elif eff_type=='LINREG' or eff_type=='LOGOR':
+    elif eff_type=='LINREG' or eff_type=='LOGOR' or eff_type=='BLUP':
         raw_beta = beta_read
     else: 
         raise Exception('Unknown effect type')
@@ -157,6 +157,8 @@ def get_beta_from_se(beta_read, se_read, eff_type, raw_beta, N):
 
 def get_beta(pval_read, raw_beta, beta_read, line_dict, header_dict, se, 
              z_from_se, N, eff_type, se_inferred_zscores):
+    if eff_type=='BLUP':
+        return raw_beta
     if z_from_se:
         assert se in header_dict, "SE was not specified in summary statistics provided, which is necessary when the 'z_from_se' flag is used."
         se_read = float(line_dict[header_dict[se]])
@@ -178,6 +180,8 @@ def get_beta(pval_read, raw_beta, beta_read, line_dict, header_dict, se,
                 return get_beta_from_se(beta_read, se_read, eff_type, raw_beta, N)
         else:               
             return sp.sign(raw_beta) * stats.norm.ppf(pval_read / 2.0)/ sp.sqrt(N) 
+
+
 
 def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_file=None, n=None, ch=None, pos=None,
                     A1=None, A2=None, reffreq=None, case_freq=None, control_freq=None, case_n=None,
@@ -307,11 +311,15 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
                 else:
                     pos_read = snps_pos_map[sid]['pos']
 
-                #Parse raw beta
+                #Get the sample size
+                N = parse_sample_size(l,n,ncol,case_n,control_n,header_dict)
+
+                #Parse raw beta      
                 beta_read = float(l[header_dict[eff]])
                 if not isfinite(beta_read):
                     invalid_beta += 1
                     continue
+
                 raw_beta = get_raw_beta(beta_read, eff_type)
 
                 #Parse p-value and effect size
@@ -319,19 +327,19 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
                 if pval_read==0 or not isfinite(stats.norm.ppf(pval_read)):
                     invalid_p += 1
 
-                #Get the sample size
-                N = parse_sample_size(l,n,ncol,case_n,control_n,header_dict)
 
                 beta = get_beta(pval_read, raw_beta, beta_read, l, header_dict, se, 
                                 z_from_se, N, eff_type, se_inferred_zscores)
+                    
                 if beta==None:
                     continue
                 
                 #All necessary information was found, so we should store things
                 
                 if not chrom in chrom_dict:
-                    chrom_dict[chrom] = {'ps':[], 'log_odds':[], 'infos':[], 'freqs':[],
-                             'betas':[], 'nts': [], 'sids': [], 'positions': [], 'ns':[]}
+                    chrom_dict[chrom] = {'ps':[], 'infos':[], 'freqs':[],
+                                         'nts': [], 'sids': [], 'positions': [], 'ns':[],
+                                          'log_odds':[], 'betas':[]}
                 chrom_dict[chrom]['sids'].append(sid)
                 chrom_dict[chrom]['positions'].append(pos_read)
                 chrom_dict[chrom]['ps'].append(pval_read)
@@ -421,6 +429,7 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
         g.create_dataset('positions', data=positions)
         g.create_dataset('ns', data=ns)
         hdf5_file.flush()
+    
     summary_dict[3.09]={'name':'dash', 'value':'Summary statistics'}
     summary_dict[3.1]={'name':'Num SNPs parsed from sum stats file','value':num_snps}
     if invalid_p>0 or debug:
