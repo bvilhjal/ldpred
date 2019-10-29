@@ -497,13 +497,23 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
                     print('Filtered %d SNPs due to frequency discrepancies'%num_freq_discrep_filtered_snps)
 
         # Filter minor allele frequency SNPs.
-        maf_filter = (freqs > min_maf) * (freqs < (1 - min_maf))
-        num_maf_filtered_snps = len(maf_filter)-sp.sum(maf_filter)
-        assert num_maf_filtered_snps>=0, "Problems when filtering SNPs with low minor allele frequencies"
-        if num_maf_filtered_snps>0:
-            filter_coord_data(coord_data_dict, maf_filter)
+        if min_maf>0:
+            maf_filter = (freqs > min_maf) * (freqs < (1 - min_maf))
+            num_maf_filtered_snps = len(maf_filter)-sp.sum(maf_filter)
+            assert num_maf_filtered_snps>=0, "Problems when filtering SNPs with low minor allele frequencies"
+            if num_maf_filtered_snps>0:
+                filter_coord_data(coord_data_dict, maf_filter)
+                if debug:
+                    print('Filtered %d SNPs due to low MAF'%num_maf_filtered_snps)
+
+        # Filter any monomorphic SNPs
+        monomorphic_filter = coord_data_dict['snp_stds_ref'] > 0
+        num_monomorphic_filtered_snps = len(monomorphic_filter)-sp.sum(monomorphic_filter)
+        assert num_monomorphic_filtered_snps>=0, "Problems when filtering monomorphic SNPs"
+        if num_monomorphic_filtered_snps>0:
+            filter_coord_data(coord_data_dict, monomorphic_filter)
             if debug:
-                print('Filtered %d SNPs due to low MAF'%num_maf_filtered_snps)
+                print('Filtered %d SNPs due to being monomorphic in LD reference'%num_monomorphic_filtered_snps)
 
 
         if validation_genotype_file is not None:

@@ -12,8 +12,6 @@ from ldpred import reporting
 from ldpred import coord_genotypes
 
 
-
-
 def get_LDpred_sample_size(n,ns,verbose):
     if n is None:
         #If coefficient of variation is very small, then use one N nevertheless.
@@ -205,10 +203,11 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
     """
     Calculate LDpred for a genome
     """    
+    print('Applying LDpred with LD radius: %d' % ld_radius)
+
     df = h5py.File(data_file, 'r')
     has_phenotypes = False
     if 'y' in df:
-        'Validation phenotypes found.'
         y = df['y'][...]  # Phenotype
         num_individs = len(y)
         risk_scores_pval_derived = sp.zeros(num_individs)
@@ -219,10 +218,7 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
     chrom_ld_dict = ld_dict['chrom_ld_dict']
     chrom_ref_ld_mats = ld_dict['chrom_ref_ld_mats']
         
-    print('Applying LDpred with LD radius: %d' % ld_radius)
-    results_dict = {}
     cord_data_g = df['cord_data']
-
     mean_n = coord_genotypes.get_mean_sample_size(n, cord_data_g)
 
     #Calculating genome-wide heritability using LD score regression, and partition heritability by chromsomes
@@ -258,6 +254,8 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
         lrld_dict = util.load_lrld_dict()
         num_snps_in_lrld = 0
     
+    
+    results_dict = {}
     convergence_report = {}
     for p in ps:
         convergence_report[p] = False
@@ -287,35 +285,20 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
                     else:
                         raw_snps = g['raw_snps_ref'][...]
                 
-                # Filter monomorphic SNPs
-                snp_stds = g['snp_stds_ref'][...]
-                snp_stds = snp_stds.flatten()
-                pval_derived_betas = g['betas'][...]
-                ns = g['ns'][...]
-                positions = g['positions'][...]
-                sids = (g['sids'][...]).astype(util.sids_u_dtype)
-                log_odds = g['log_odds'][...]
-                nts = (g['nts'][...]).astype(util.nts_u_dtype)
-                ok_snps_filter = snp_stds > 0
-                if not sp.all(ok_snps_filter):
-                    snp_stds = snp_stds[ok_snps_filter]
-                    pval_derived_betas = pval_derived_betas[ok_snps_filter]
-                    positions = positions[ok_snps_filter]
-                    sids = sids[ok_snps_filter]
-                    log_odds = log_odds[ok_snps_filter]
-                    nts = nts[ok_snps_filter]
-                    ns = ns[ok_snps_filter]
-                    if verbose and has_phenotypes:
-                        raw_snps = raw_snps[ok_snps_filter]
-
-
                 if out_file_prefix:
-                    chromosomes.extend([chrom_str] * len(pval_derived_betas))
+                    positions = g['positions'][...]
+                    sids = (g['sids'][...]).astype(util.sids_u_dtype)
+                    log_odds = g['log_odds'][...]
+                    nts = (g['nts'][...]).astype(util.nts_u_dtype)
+                    
+                    chromosomes.extend([chrom_str] * len(positions))
                     out_positions.extend(positions)
                     out_sids.extend(sids)
                     raw_effect_sizes.extend(log_odds)
                     out_nts.extend(nts)
         
+                pval_derived_betas = g['betas'][...]
+                ns = g['ns'][...]
                 h2_chrom = herit_dict[chrom_str]['h2']
                 
                 snp_lrld = None
@@ -346,8 +329,10 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
                     sys.stdout.write('\r%0.2f%%' % (100.0 * (min(1, float(chrom_i) / num_chrom))))
                     sys.stdout.flush()
 
-                updated_betas = updated_betas / (snp_stds.flatten())
-                updated_inf_betas = updated_inf_betas / (snp_stds.flatten())
+                snp_stds = g['snp_stds_ref'][...]
+                snp_stds = snp_stds.flatten()
+                updated_betas = updated_betas / snp_stds
+                updated_inf_betas = updated_inf_betas / snp_stds
                 ldpred_effect_sizes.extend(updated_betas)
                 ldpred_inf_effect_sizes.extend(updated_inf_betas)
                 if verbose and has_phenotypes:
