@@ -279,11 +279,6 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
             chrom_i+=1
             if chrom_str in cord_data_g:
                 g = cord_data_g[chrom_str]
-                if verbose and has_phenotypes:
-                    if 'raw_snps_val' in g:
-                        raw_snps = g['raw_snps_val'][...]
-                    else:
-                        raw_snps = g['raw_snps_ref'][...]
                 
                 if out_file_prefix:
                     positions = g['positions'][...]
@@ -336,6 +331,10 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
                 ldpred_effect_sizes.extend(updated_betas)
                 ldpred_inf_effect_sizes.extend(updated_inf_betas)
                 if verbose and has_phenotypes:
+                    if 'raw_snps_val' in g:
+                        raw_snps = g['raw_snps_val'][...]
+                    else:
+                        raw_snps = g['raw_snps_ref'][...]
                     prs = sp.dot(updated_betas, raw_snps)
                     risk_scores_pval_derived += prs
                     corr = sp.corrcoef(y, prs)[0, 1]
@@ -416,7 +415,5 @@ def main(p_dict):
     t = (t1 - t0)
     summary_dict[3]={'name':'Running time for Gibbs sampler(s):','value':'%d min and %0.2f secs'% (t / 60, t % 60)}
     reporting.print_summary(summary_dict, 'Summary of LDpred Gibbs')
-
-        
 
         
