@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import os
 import scipy as sp
 import gzip
@@ -149,14 +147,9 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
 
         maf_adj_risk_scores = sp.zeros(plinkf_dict_val['num_individs'])
 
-    
     # Now summary statistics
     ssf = hdf5_file['sum_stats']
     cord_data_g = hdf5_file.create_group('cord_data')
-
-    # corr_list = []
-
-
 
     chromosomes_found = set()
     num_snps_common_before_filtering =0
@@ -184,10 +177,10 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
             ssg = ssf[chr_str]
                     
         except Exception as err_str:
-                print(err_str)
-                print('Did not find chromosome %d in SS dataset.'%chrom)
-                print('Continuing.')
-                continue
+                if debug:
+                    print(err_str)
+                    print('Did not find chromosome %d in SS dataset.'%chrom)
+                    continue
         
         if debug:
             print('Coordinating data for chromosome %s' % chr_str)
