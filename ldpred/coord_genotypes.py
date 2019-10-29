@@ -84,6 +84,14 @@ def get_mean_sample_size(n, cord_data_g):
     return mean_n
 
 
+def filter_coord_data(cd, filter_mask):
+    data_keys = ['raw_snps', 'snp_stds', 'snp_means', 'freqs' ,'ps', 'ns', 'positions', 'nts', 'sids','betas','log_odds']
+    if 'raw_snps_val' in cd.keys():
+        data_keys.extend(['raw_snps_val', 'snp_stds_val', 'snp_means_val', 'freqs_val'])
+    for k in data_keys:
+        cd[k] = cd[k][filter_mask]
+
+
 
 def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
                         validation_genotype_file=None,
@@ -417,79 +425,7 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
         sids = (ssg['sids'][...]).astype(util.sids_u_dtype)
         sids = sids[ok_indices['ss']]
 
-        #Parse validation genotypes, if available
-        if validation_genotype_file is not None:
-            snp_indices_val = sp.array(chrom_d_val['snp_indices'])
-            # Pinpoint where the SNPs are in the file.
-            snp_indices_val = snp_indices_val[ok_indices['vg']]
-            raw_snps_val, freqs_val = plinkfiles.parse_plink_snps(
-                validation_genotype_file, snp_indices_val)
-    
-            snp_stds_val = get_snp_stds(raw_snps_val)
-            snp_means_val = freqs_val * 2
-
-        # Check SNP frequencies, screen for possible problems..
-        if max_freq_discrep<1 and 'freqs' in ssg:
-            ss_freqs = ss_freqs[ok_indices['ss']]
-            ok_freq_snps = sp.logical_or(sp.absolute(ss_freqs - freqs) < max_freq_discrep,sp.absolute(ss_freqs + freqs-1) < max_freq_discrep) #Array of np.bool values
-            ok_freq_snps = sp.logical_or(ok_freq_snps,ss_freqs<=0) #Only consider SNPs that actually have frequencies
-            num_freq_discrep_filtered_snps = len(ok_freq_snps)- sp.sum(ok_freq_snps)
-            assert num_freq_discrep_filtered_snps>=0, "Problems when filtering SNPs with frequency discrepencies"
-            if num_freq_discrep_filtered_snps>0:
-                # Filter freq_discrepancy_snps
-                raw_snps = raw_snps[ok_freq_snps]
-                snp_stds = snp_stds[ok_freq_snps]
-                snp_means = snp_means[ok_freq_snps]
-                freqs = freqs[ok_freq_snps]
-                ps = ps[ok_freq_snps]
-                ns = ns[ok_freq_snps]
-                positions = positions[ok_freq_snps]
-                nts = nts[ok_freq_snps]
-                sids = sids[ok_freq_snps]
-                betas = betas[ok_freq_snps]
-                log_odds = log_odds[ok_freq_snps]
-                if validation_genotype_file is not None:
-                    raw_snps_val = raw_snps_val[ok_freq_snps]
-                    snp_stds_val = snp_stds_val[ok_freq_snps]
-                    snp_means_val = snp_means_val[ok_freq_snps]
-                    freqs_val = freqs_val[ok_freq_snps]
-            if debug:
-                print('Filtered %d SNPs due to frequency discrepancies'%num_freq_discrep_filtered_snps)
-
-        # Filter minor allele frequency SNPs.
-        maf_filter = (freqs > min_maf) * (freqs < (1 - min_maf))
-        num_maf_filtered_snps = len(maf_filter)-sp.sum(maf_filter)
-        assert num_maf_filtered_snps>=0, "Problems when filtering SNPs with low minor allele frequencies"
-        if num_maf_filtered_snps>0:
-            raw_snps = raw_snps[maf_filter]
-            snp_stds = snp_stds[maf_filter]
-            snp_means = snp_means[maf_filter]
-            freqs = freqs[maf_filter]
-            ps = ps[maf_filter]
-            ns = ns[maf_filter]
-            positions = positions[maf_filter]
-            nts = nts[maf_filter]
-            sids = sids[maf_filter]
-            betas = betas[maf_filter]
-            log_odds = log_odds[maf_filter]
-            if validation_genotype_file is not None:
-                raw_snps_val = raw_snps_val[maf_filter]
-                snp_stds_val = snp_stds_val[maf_filter]
-                snp_means_val = snp_means_val[maf_filter]
-                freqs_val = freqs_val[maf_filter]
-            if debug:
-                print('Filtered %d SNPs due to low MAF'%num_maf_filtered_snps)
-
-        genetic_map = []
-        if genetic_map_dir is not None:
-            with gzip.open(genetic_map_dir + 'chr%d.interpolated_genetic_map.gz' % chrom) as f:
-                for line in f:
-                    l = line.split()
-#                     if l[0] in sid_set:
-#                         genetic_map.append(l[0])
-        else:
-            genetic_map = None
-
+        #Storing everything in a dictionary
         coord_data_dict = {'chrom': 'chrom_%d' % chrom, 
                            'raw_snps_ref': raw_snps, 
                            'snp_stds_ref': snp_stds, 
@@ -500,27 +436,75 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
                            'positions': positions,
                            'nts': nts,
                            'sids': sids,
-                           'genetic_map': genetic_map,
                            'betas': betas,
                            'log_odds': log_odds}
+        
+        #Parse validation genotypes, if available
+        if validation_genotype_file is not None:            
+            snp_indices_val = sp.array(chrom_d_val['snp_indices'])
+            # Pinpoint where the SNPs are in the file.
+            snp_indices_val = snp_indices_val[ok_indices['vg']]
+            raw_snps_val, freqs_val = plinkfiles.parse_plink_snps(
+                validation_genotype_file, snp_indices_val)
+    
+            snp_stds_val = get_snp_stds(raw_snps_val)
+            snp_means_val = freqs_val * 2
+            
+            coord_data_dict['raw_snps_val']=raw_snps_val
+            coord_data_dict['snp_stds_val']=snp_stds_val
+            coord_data_dict['snp_means_val']=snp_means_val
+            coord_data_dict['freqs_val']=freqs_val
+
+
+        # Check SNP frequencies, screen for possible problems..
+        if max_freq_discrep<1 and 'freqs' in ssg:
+            ss_freqs = ss_freqs[ok_indices['ss']]
+            ok_freq_snps = sp.logical_or(sp.absolute(ss_freqs - freqs) < max_freq_discrep,sp.absolute(ss_freqs + freqs-1) < max_freq_discrep) #Array of np.bool values
+            ok_freq_snps = sp.logical_or(ok_freq_snps,ss_freqs<=0) #Only consider SNPs that actually have frequencies
+            num_freq_discrep_filtered_snps = len(ok_freq_snps)- sp.sum(ok_freq_snps)
+            assert num_freq_discrep_filtered_snps>=0, "Problems when filtering SNPs with frequency discrepencies"
+            if num_freq_discrep_filtered_snps>0:
+                # Filter freq_discrepancy_snps
+                filter_coord_data(coord_data_dict, ok_freq_snps)
+                if debug:
+                    print('Filtered %d SNPs due to frequency discrepancies'%num_freq_discrep_filtered_snps)
+
+        # Filter minor allele frequency SNPs.
+        maf_filter = (freqs > min_maf) * (freqs < (1 - min_maf))
+        num_maf_filtered_snps = len(maf_filter)-sp.sum(maf_filter)
+        assert num_maf_filtered_snps>=0, "Problems when filtering SNPs with low minor allele frequencies"
+        if num_maf_filtered_snps>0:
+            filter_coord_data(coord_data_dict, maf_filter)
+            if debug:
+                print('Filtered %d SNPs due to low MAF'%num_maf_filtered_snps)
+
+
         if validation_genotype_file is not None:
             maf_adj_prs = sp.dot(log_odds, raw_snps_val)
             if debug and plinkf_dict_val['has_phenotype']:
                 maf_adj_corr = sp.corrcoef(plinkf_dict_val['phenotypes'], maf_adj_prs)[0, 1]
                 print('Log odds, per genotype PRS correlation w phenotypes for chromosome %d was %0.4f' % (chrom, maf_adj_corr))
-            coord_data_dict['raw_snps_val']=raw_snps_val
-            coord_data_dict['snp_stds_val']=snp_stds_val
-            coord_data_dict['snp_means_val']=snp_means_val
-            coord_data_dict['freqs_val']=freqs_val
-            coord_data_dict['log_odds_prs']=maf_adj_prs
             maf_adj_risk_scores += maf_adj_prs
+            coord_data_dict['log_odds_prs']=maf_adj_prs
+            
+        genetic_map = []
+        if genetic_map_dir is not None:
+            with gzip.open(genetic_map_dir + 'chr%d.interpolated_genetic_map.gz' % chrom) as f:
+                for line in f:
+                    l = line.split()
+#                     if l[0] in sid_set:
+#                         genetic_map.append(l[0])
+        else:
+            genetic_map = None
+            
+        coord_data_dict['genetic_map'] = genetic_map 
          
          
         write_coord_data(cord_data_g, coord_data_dict, debug=debug)
         if debug:
             print('%d SNPs were retained on chromosome %d.' % (len(sids), chrom))
         
-        
+        #Update counters
         num_snps_common_before_filtering += len(common_sids)
         num_snps_common_after_filtering += len(sids)
         tot_num_ambig_nts += num_ambig_nts
@@ -529,6 +513,7 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
         tot_num_freq_discrep_filtered_snps += num_freq_discrep_filtered_snps
         tot_num_maf_filtered_snps += num_maf_filtered_snps
 
+    cord_data_g.create('eff_type', data=ssf['eff_type'])
     if not debug:
         sys.stdout.write('\r%0.2f%%\n' % (100.0))
         sys.stdout.flush()                        
