@@ -100,11 +100,11 @@ parser_coord.add_argument('--ilist', type=str,
 parser_coord.add_argument('--skip-coordination', default=False, action='store_true',
                     help="Assumes that the alleles have already been coordinated between LD reference, "
                          "validation samples, and the summary statistics files")
-parser_coord.add_argument('--eff_type', type=str, default="OR", choices={'LINREG','OR','LOGOR'},
+parser_coord.add_argument('--eff_type', type=str, default="OR", choices={'LINREG','OR','LOGOR','BLUP'},
                     help='The type of effect estimates reported in the summary statistics.  LDpred support three '
                          'types. LINREG: effect estimates estimated using linear regression. OR: odd ratios '
-                         'estimated using logistic regression.  LOGOR: log odds ratios.  Misspecification of '
-                         'these can lead to wrong results or yield negated PRS (negative correlations).' )
+                         'estimated using logistic regression.  LOGOR: log odds ratios.  BLUP: BLUP betas, e.g. '
+                         'output by BOLT-LMM. Misspecification of these can lead to wrong or poor results.' )
 parser_coord.add_argument('--match-genomic-pos', default=False, action='store_true',
                     help='Excludes SNPs from sum stats file if their genomics positions differ from validation '
                     'data.  These will also differ if reference genome differ, e.g. hg19 vs hg38.')

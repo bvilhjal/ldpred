@@ -102,7 +102,6 @@ def ldpred_inf_genomewide(data_file=None, ld_radius = None, ld_dict=None, out_fi
                 else:
                     raw_snps = g['raw_snps_ref'][...]
             
-            snp_stds = g['snp_stds_ref'][...]
             pval_derived_betas = g['betas'][...]
             if out_file_prefix:
                 chromosomes.extend([chrom_str]*len(pval_derived_betas))
@@ -119,6 +118,7 @@ def ldpred_inf_genomewide(data_file=None, ld_radius = None, ld_dict=None, out_fi
                     
             if verbose:
                 print('Calculating scores for Chromosome %s'%((chrom_str.split('_'))[1]))
+            snp_stds = g['snp_stds_ref'][...]
             updated_betas = updated_betas / (snp_stds.flatten())
             ldpred_effect_sizes.extend(updated_betas)
             if has_phenotypes:
