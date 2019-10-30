@@ -320,26 +320,28 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
                     print('This suggests that the Gibbs sampler did not convergence.')
                     convergence_report[p] = True
                 
-                if not verbose:
-                    sys.stdout.write('\r%0.2f%%' % (100.0 * (min(1, float(chrom_i) / num_chrom))))
-                    sys.stdout.flush()
-
                 snp_stds = g['snp_stds_ref'][...]
                 snp_stds = snp_stds.flatten()
                 updated_betas = updated_betas / snp_stds
                 updated_inf_betas = updated_inf_betas / snp_stds
                 ldpred_effect_sizes.extend(updated_betas)
                 ldpred_inf_effect_sizes.extend(updated_inf_betas)
-                if verbose and has_phenotypes:
-                    if 'raw_snps_val' in g:
-                        raw_snps = g['raw_snps_val'][...]
-                    else:
-                        raw_snps = g['raw_snps_ref'][...]
-                    prs = sp.dot(updated_betas, raw_snps)
-                    risk_scores_pval_derived += prs
-                    corr = sp.corrcoef(y, prs)[0, 1]
-                    r2 = corr ** 2
-                    print('The R2 prediction accuracy of PRS using %s was: %0.4f' % (chrom_str, r2))
+                
+                if not verbose:
+                    sys.stdout.write('\r%0.2f%%' % (100.0 * (min(1, float(chrom_i) / num_chrom))))
+                    sys.stdout.flush()
+
+                else:
+                    if has_phenotypes:
+                        if 'raw_snps_val' in g:
+                            raw_snps = g['raw_snps_val'][...]
+                        else:
+                            raw_snps = g['raw_snps_ref'][...]
+                        prs = sp.dot(updated_betas, raw_snps)
+                        risk_scores_pval_derived += prs
+                        corr = sp.corrcoef(y, prs)[0, 1]
+                        r2 = corr ** 2
+                        print('The R2 prediction accuracy of PRS using %s was: %0.4f' % (chrom_str, r2))
 
         if not incl_long_range_ld:
             summary_dict[1.3]={'name':'SNPs in long-range LD regions','value':'%d'%num_snps_in_lrld}
@@ -370,6 +372,7 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
             regression_slope = (numerator / denominator)  # [0][0]
             print('The slope for predictions with P-value derived  effects is: %0.4f' % regression_slope)
             results_dict[p_str]['slope_pd'] = regression_slope
+            
         
         weights_out_file = '%s_LDpred_p%0.4e.txt' % (out_file_prefix, p)
         with open(weights_out_file, 'w') as f:
