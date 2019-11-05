@@ -309,7 +309,7 @@ def get_ld_dict(cord_data_file, local_ld_file_prefix, ld_radius,
         ld_dict = {'ld_scores_dict':ld_scores_dict, 'chrom_ld_dict':chrom_ld_dict, 'chrom_ref_ld_mats':chrom_ref_ld_mats}
         if gm_ld_radius is not None:
             ld_dict['chrom_ld_boundaries'] = chrom_ld_boundaries 
-        _serialize_ld_info_(local_ld_dict_file, ld_dict, verbose=verbose, compressed=compressed)
+        _serialize_ld_info_(local_ld_dict_file, ld_dict, verbose=verbose, compressed=compressed, use_hickle=use_hickle)
         if verbose:
             print('LD information has now been serialized (written to disk).')
     else:
