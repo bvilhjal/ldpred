@@ -259,7 +259,7 @@ def get_ld_dict(cord_data_file, local_ld_file_prefix, ld_radius,
             print ('See http://telegraphic.github.io/hickle/ for how to install.')
             use_hickle = False
     
-    local_ld_dict_file = _get_ld_filename_(local_ld_file_prefix, ld_radius, compressed=compressed)
+    local_ld_dict_file = _get_ld_filename_(local_ld_file_prefix, ld_radius, compressed=compressed, use_hickle=use_hickle)
     
     if not os.path.isfile(local_ld_dict_file):             
         t0 = time.time()
