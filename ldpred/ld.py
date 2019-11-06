@@ -315,7 +315,7 @@ def get_ld_dict(cord_data_file, local_ld_file_prefix, ld_radius,
     else:
         if verbose:
             print('Loading LD information from file: %s' % local_ld_dict_file)
-        ld_dict = _load_ld_info_(local_ld_dict_file, verbose=verbose, compressed=compressed)
+        ld_dict = _load_ld_info_(local_ld_dict_file, verbose=verbose, compressed=compressed, use_hickle=use_hickle)
         
         num_raw_snps=0
         #Verify LD data
