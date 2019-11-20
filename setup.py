@@ -104,6 +104,7 @@ setup(
                 './test_data/goldens/golden_P*',
                 './test_data/goldens/golden.coord*',
                 './test_data/goldens/goldenprs*',
+                './test_data/goldens/golden_mix*',
                 './test_data/goldens/ld_data*',
                 ], 
                 'ldpred':['./reference/hm3_sids.txt.gz',
@@ -123,6 +124,7 @@ setup(
         'console_scripts': [
             'ldpred=ldpred.run:main',
             'ldpred-unittest=tests.test:run_unit_tests',
+            'ldpred-inttest=tests.test:run_integration_tests',
         ],
     },
 )
