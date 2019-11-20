@@ -6,15 +6,30 @@ LDpred is a Python based software package that adjusts GWAS summary statistics
 for the effects of linkage disequilibrium (LD).  The details of the method is
 described in Vilhjalmsson et al. (AJHG 2015) [http://www.cell.com/ajhg/abstract/S0002-9297(15)00365-1]
 
-* The current version is 1.0.10
+* The current version is 1.0.11
 
-## Getting Started ##
 ### News ###
 
-Nov 20th, 2019: Version 1.0.11 released and is available on pip using 
+Recent improvements have focused on making LDpred more robust, addressing issues highlighted by recent publications (Ge et al., Nat Comm 2019; Choi and O'Reilly, GigaScience 2019; Privé et al., AJHG 2019).
+
+- Nov 20th, 2019, v. 1.0.11: Implemented LDpred-fast Joel Mefford's sparsified BLUP prediction (Mefford, thesis 2018). LDpred-fast is suitable for polygenic diseases/traits when LDpred-gibbs fails to converge or is too slow.
+
+- Oct 21st, 2019, v. 1.0.10: LDpred-gibbs now reports LDpred-inf effects for SNPs in long-range LD regions (Price et al., AJHG 2008). This improves convergence of the algorithm substantially when applied to large datasets.
+
+- Oct 17st, 2019, v. 1.0.9: Fixed a bug in LDpred that could improve convergence for gibbs.
+
+- Oct 11th, 2019, v. 1.0.9: Improved accuracy and robustness.
+  - Now able to handle variants with p-values rounded down to 0. 
+  - Fixed a serious bug that caused sample sizes in summary stats file not always being used correctly when provided. 
+  - LDpred gibbs can now handle differing sample sizes per variant effects, if they are parsed in summary stats. 
+  - LDpred now estimates the heritabiliy it separately for each chromosome by default. 
+
+
+
+## Getting Started ##
+LDpred can be installed using pip on most systems by typing
 
 `pip install ldpred`
-
 
 ### Requirements ###
 LDpred currently requires three Python packages to be installed and in path.  These
