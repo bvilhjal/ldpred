@@ -68,17 +68,9 @@ def write_parameter_data(p_dict, h5f, debug=False):
         print('Storing parameter information in coordinated file.')
     print (p_dict)
     pg = h5f.create_group('parameters')
-    pg.create_dataset('gf', data=p_dict['gf'])
-    pg.create_dataset('ssf', data=p_dict['ssf'])
     if p_dict['N'] is not None:
         pg.create_dataset('N', data=p_dict['N'])
-    if p_dict['vbim'] is not None:
-        pg.create_dataset('vbim', data=p_dict['vbim'])
-    if p_dict['vgf'] is not None:
-        pg.create_dataset('vgf', data=p_dict['vgf'])
     pg.create_dataset('only_hm3', data=p_dict['only_hm3'])
-    if p_dict['ilist'] is not None:
-        pg.create_dataset('ilist', data=p_dict['ilist'])
     pg.create_dataset('eff_type', data=p_dict['eff_type'])
     pg.create_dataset('skip_coordination', data=p_dict['skip_coordination'])
     pg.create_dataset('match_genomic_pos', data=p_dict['match_genomic_pos'])

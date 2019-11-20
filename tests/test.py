@@ -144,7 +144,7 @@ def assert_deep_equals(walker1, walker2):
             if np.issubdtype(v1.dtype, np.number):
                 assert np.allclose(v1, v2), 'ndarray number mismatch in key %s' % k1
             else:
-                assert np.array_equal(v1, v2), 'ndarray non-number mismatch in key %s' % k1
+                assert np.array_equal(v1, v2), 'ndarray non-number mismatch in key %s: v1=%s ; v2=%s' % (k1,str(v1),str(v2))
 
 
 def assert_files_equal(file1, file2):

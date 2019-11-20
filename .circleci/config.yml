@@ -47,16 +47,7 @@ jobs:
           name: run tests
           command: |
             . venv/bin/activate
-            python -m unittest tests.test.SimpleTests.test_parse_sum_stats
-            python -m unittest tests.test.SimpleTests.test_ld_calculation
-            python -m unittest tests.test.SimpleTests.test_ldpred_inf
-            python -m unittest tests.test.SimpleTests.test_ldpred_fast
-            python -m unittest tests.test.SimpleTests.test_ldpred_gibbs
-            python -m unittest tests.test.SimpleTests.test_ldpred_p_plus_t
-            python -m unittest tests.test.SimpleTests.test_ldpred_score_1
-            python -m unittest tests.test.SimpleTests.test_ldpred_score_2
-            python -m unittest tests.test.SimpleTests.test_ldpred_score_3
-            python -m unittest tests.test.SimpleTests.test_ldpred_score_4
+            python -m unittest tests.test.SimpleTests
             python -m unittest tests.test.ComplexTests.test_mix1
 
       - store_artifacts:
