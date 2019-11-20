@@ -66,14 +66,19 @@ def write_coord_data(cord_data_g, coord_dict, debug=False):
 def write_parameter_data(p_dict, h5f, debug=False):
     if debug:
         print('Storing parameter information in coordinated file.')
+    print (p_dict)
     pg = h5f.create_group('parameters')
     pg.create_dataset('gf', data=p_dict['gf'])
     pg.create_dataset('ssf', data=p_dict['ssf'])
-    pg.create_dataset('N', data=p_dict['N'])
-    pg.create_dataset('vbim', data=p_dict['vbim'])
-    pg.create_dataset('vgf', data=p_dict['vgf'])
+    if p_dict['N'] is not None:
+        pg.create_dataset('N', data=p_dict['N'])
+    if p_dict['vbim'] is not None:
+        pg.create_dataset('vbim', data=p_dict['vbim'])
+    if p_dict['vgf'] is not None:
+        pg.create_dataset('vgf', data=p_dict['vgf'])
     pg.create_dataset('only_hm3', data=p_dict['only_hm3'])
-    pg.create_dataset('ilist', data=p_dict['ilist'])
+    if p_dict['ilist'] is not None:
+        pg.create_dataset('ilist', data=p_dict['ilist'])
     pg.create_dataset('eff_type', data=p_dict['eff_type'])
     pg.create_dataset('skip_coordination', data=p_dict['skip_coordination'])
     pg.create_dataset('match_genomic_pos', data=p_dict['match_genomic_pos'])
@@ -91,10 +96,14 @@ def write_parameter_data(p_dict, h5f, debug=False):
     pg.create_dataset('eff', data=p_dict['eff'])
     pg.create_dataset('se', data=p_dict['se'])
     pg.create_dataset('ncol', data=p_dict['ncol'])
-    pg.create_dataset('case_freq', data=p_dict['case_freq'])
-    pg.create_dataset('control_freq', data=p_dict['control_freq'])
-    pg.create_dataset('case_n', data=p_dict['case_n'])
-    pg.create_dataset('control_n', data=p_dict['control_n'])
+    if p_dict['case_freq'] is not None:
+        pg.create_dataset('case_freq', data=p_dict['case_freq'])
+    if p_dict['control_freq'] is not None:
+        pg.create_dataset('control_freq', data=p_dict['control_freq'])
+    if p_dict['case_n'] is not None:
+        pg.create_dataset('case_n', data=p_dict['case_n'])
+    if p_dict['control_n'] is not None:
+        pg.create_dataset('control_n', data=p_dict['control_n'])
     pg.create_dataset('z_from_se', data=p_dict['z_from_se'])
 
 def get_snp_stds(raw_snps):
@@ -550,7 +559,6 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
         tot_num_freq_discrep_filtered_snps += num_freq_discrep_filtered_snps
         tot_num_maf_filtered_snps += num_maf_filtered_snps
 
-    cord_data_g.create('eff_type', data=ssf['eff_type'])
     if not debug:
         sys.stdout.write('\r%0.2f%%\n' % (100.0))
         sys.stdout.flush()                        
@@ -629,3 +637,5 @@ def main(p_dict):
     h5f.close()
     reporting.print_summary(summary_dict, 'Summary of coordination step')
     return summary_dict
+
+

@@ -10,6 +10,7 @@ from . import __url__
 
 from ldpred import coord_genotypes
 from ldpred import LDpred_gibbs
+from ldpred import LDpred_fast
 from ldpred import LDpred_inf
 from ldpred import LD_pruning_thres
 from ldpred import validate
@@ -59,6 +60,7 @@ parser = argparse.ArgumentParser(prog='LDpred',
 subparsers = parser.add_subparsers(help='Select ldpred action among the following options: ', dest='ldpred_action')
 parser_coord = subparsers.add_parser('coord', help='Parse and coordinate summary statistics and genotypes.')
 parser_gibbs = subparsers.add_parser('gibbs', help='Estimate LDpred (Gibbs sampler) SNP weights. (Requires a coordinated dataset.)')
+parser_fast = subparsers.add_parser('fast', help='Estimate LDpred-fast SNP weights using a rough analytical approximation. (Requires a coordinated dataset.)')
 parser_inf = subparsers.add_parser('inf', help='Estimate LDpred-inf SNP weights. (Requires a coordinated dataset.)')
 parser_pt = subparsers.add_parser('p+t', help='Obtain pruning+thresholding SNP weights. (Requires a coordinated dataset.)')
 parser_score = subparsers.add_parser('score', help='Calculate polygenic scores using given SNP weights.')
@@ -208,6 +210,45 @@ parser_gibbs.add_argument('--incl-long-range-ld', default=False, action='store_t
 #                     'A value around 1 is arguably reasonable.')
 
 
+#fast arguments 
+parser_fast.add_argument('--cf', type=str, required=True,
+                    help='Coordinated file (generated using ldpred coord). '
+                         'Should be a (full path) filename. ')
+parser_fast.add_argument('--ldr', type=int, required=True,
+                    help='LD radius.  An integer number which denotes the number of SNPs on each side '  
+                    'of the focal SNP for which LD should be adjusted. A value corresponding M/3000, '
+                    'where M is the number of SNPs in the genome is recommended')
+parser_fast.add_argument('--ldf', type=str, required=True,
+                    help='LD file (prefix). A path and filename prefix for the LD file. If it does not '
+                    'exist, it will be generated.  This can take up to several hours, depending on '
+                    'LD radius used.')
+parser_fast.add_argument('--out', type=str, required=True,
+                    help='Output Prefix for SNP weights')
+parser_fast.add_argument('--f', default=[1,0.3,0.1,0.03,0.01,0.003,0.001], nargs='+', type=float,
+                    help="Fraction of causal variants used in the Gibbs sampler")
+
+parser_fast.add_argument('--N', type=int, default=None,
+                    help='Number of individuals on which the summary statistics are assumed to be based on.')
+parser_fast.add_argument('--h2', type=float, default=None, 
+                    help='The genome-wide heritability assumed by LDpred, which is then partitioned '
+                    'proportional to the number of SNPs on each chromosome.  By default it estimates the '
+                    'heritability for each chromosome from the GWAS summary statistics using LD score '
+                    'regression (Bulik-Sullivan et al., Nat Genet 2015).')
+parser_fast.add_argument('--use-gw-h2', default=False, action='store_true',
+                    help='Estimate heritability genome-wide and partition it proportional to the number of SNPs on each chromsome '
+                    'instead of estimating it for each chromosome separately.  This is like a likely good choice if '
+                    'the summary statistics used are based on small sample sizes (approx <50K), or if the trait is '
+                    'not very heritable.')
+parser_fast.add_argument('--no-ld-compression', default=False, action='store_true',
+                    help='Do not compress LD information.  Saves storing and loading time of LD information, '
+                    'but takes more space on disk.')
+parser_fast.add_argument('--hickle-ld', default=False, action='store_true',
+                    help='Use hickle instead of pickle for storing LD files.  This saves memory, but generally'
+                    'takes more time to write and load. Requires hickle to be installed on your system, '
+                    'see http://telegraphic.github.io/hickle/ for how to install.')
+
+
+
 #inf arguments 
 parser_inf.add_argument('--cf', type=str, required=True,
                     help='Coordinated file (generated using ldpred coord). '
@@ -321,6 +362,8 @@ def main_with_args(args):
         coord_genotypes.main(p_dict)
     elif action=='gibbs':
         LDpred_gibbs.main(p_dict)
+    elif action=='fast':
+        LDpred_fast.main(p_dict)
     elif action=='inf':
         LDpred_inf.main(p_dict)
     elif action=='p+t':

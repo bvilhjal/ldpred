@@ -11,13 +11,9 @@ described in Vilhjalmsson et al. (AJHG 2015) [http://www.cell.com/ajhg/abstract/
 ## Getting Started ##
 ### News ###
 
-Oct 21th, 2019: Version 1.0.10 released and is available on pip using 
+Nov 20th, 2019: Version 1.0.11 released and is available on pip using 
 
 `pip install ldpred`
-
-And it should actually work now :)
-
-Also, gibbs sample convergence and tests have been markedly improved.
 
 
 ### Requirements ###

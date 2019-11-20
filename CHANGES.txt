@@ -1,5 +1,13 @@
 ===================== Brief and incoplete release notes =====================
 
+Nov 20th, 2019, v 1.0.11
+
+- Implemented Joel Mefford's sparsified BLUP prediction (Mefford, thesis 2018), which we dub LDpred-fast. LDpred-fast may be 
+  suitable for polygenic diseases/traits when LDpred-gibbs fails to converge or is too slow.
+
+- Other minor fixes and updates.
+
+
 Oct 21th, 2019: v 1.0.10
 
 - LDpred-gibbs now reports LDpred-inf effects for SNPs in long-range LD regions (Price et al., AJHG 2008).  This 
