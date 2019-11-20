@@ -292,9 +292,7 @@ class SimpleTests(unittest.TestCase):
         run_test(
             'Running LDpred-inf with output file prefix: %s ' % self.tmp_file_prefix,
             '--debug fast --cf=%s/test_data/goldens/golden.coord.hdf5 --f 0.3 0.1 0.03 0.01 --ldr=100   --ldf=%s  --out=%s' % (TEST_DIR, self.tmp_file_prefix, self.tmp_file_prefix),
-            'Problems when running LDpred_inf!',
-            self.tmp_file_prefix + '_ldradius100.pkl.gz',
-            'test_data/goldens/golden_inf_ldradius100.pkl.gz')
+            'Problems when running LDpred_fast!')
 
     def test_ldpred_gibbs(self):
         run_test(
