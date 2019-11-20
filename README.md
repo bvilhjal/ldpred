@@ -16,9 +16,9 @@ Recent improvements have focused on making LDpred more robust, addressing issues
 
 - Oct 21st, 2019, v. 1.0.10: LDpred-gibbs now reports LDpred-inf effects for SNPs in long-range LD regions (Price et al., AJHG 2008). This improves convergence of the algorithm substantially when applied to large datasets.
 
-- Oct 17st, 2019, v. 1.0.9: Fixed a bug in LDpred that could improve convergence for gibbs.
+- Oct 17st, 2019, v. 1.0.8: Fixed a bug in LDpred that could improve convergence for gibbs.
 
-- Oct 11th, 2019, v. 1.0.8: Improved accuracy and robustness.
+- Oct 11th, 2019, v. 1.0.7: Improved accuracy and robustness.
   - Now able to handle variants with p-values rounded down to 0. 
   - Fixed a serious bug that caused sample sizes in summary stats file not always being used correctly when provided. 
   - LDpred gibbs can now handle differing sample sizes per variant effects, if they are parsed in summary stats. 
