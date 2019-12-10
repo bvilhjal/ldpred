@@ -2,28 +2,107 @@
 Code for handling plink files.
 
 Uses plinkio.
+
+Some of the code is borrowed from plink-pandas
+
 """
 import scipy as sp
 from plinkio import plinkfile
 
-def get_chrom_dict(loci, chromosomes, debug=False):
+import pandas_plink as pdp
+import pandas as pd
+from pandas.api.types import CategoricalDtype
+from collections import OrderedDict as odict
+from numpy import int64, float64
+
+
+def read_bim(fn):
+    fn = fn+'.bim'
+
+    header = odict(
+        [
+            ("chrom", bytes),
+            ("snp", bytes),
+            ("cm", float64),
+            ("pos", int64),
+            ("a0", bytes),
+            ("a1", bytes),
+        ]
+    )
+    df = pd.read_csv(fn,
+                  delim_whitespace=True,
+                  header=None,
+                  names=header.keys(),
+                  dtype=header,
+                  compression=None,
+                  engine="c",
+                  )
+
+    df["chrom"] = df["chrom"].astype(CategoricalDtype(ordered=True))
+    df["a0"] = df["a0"].astype("category")
+    df["a1"] = df["a1"].astype("category")
+    df["i"] = range(df.shape[0])
+    df["pos"] = df["pos"].astype(int64)
+    df["cm"] = df["cm"].astype(float64)
+    return df
+
+    
+def read_fam(fn):
+    fn = fn+'.fam'
+
+    header = odict(
+        [
+            ("fid", str),
+            ("iid", str),
+            ("father", str),
+            ("mother", str),
+            ("gender", bytes),
+            ("trait", float64),
+        ]
+    )
+    
+    df = pd.read_csv(fn,
+                  delim_whitespace=True,
+                  header=None,
+                  names=header.keys(),
+                  dtype=header,
+                  compression=None,
+                  engine="c",
+                  )
+
+
+    df["gender"] = df["gender"].astype("category")
+    df["i"] = range(df.shape[0])
+    df["trait"] = df["trait"].astype(float64)
+    return df
+
+
+def get_chrom_dict(bim_df, chromosomes):
     chr_dict = {}
     for chrom in chromosomes:
         chr_str = 'chrom_%s' % chrom
-        chr_dict[chr_str] = {'sids':[], 'snp_indices':[], 'positions':[], 'nts':[]}
-      
-    for i, l in enumerate(loci):
-        chrom = l.chromosome
-        pos = l.bp_position
-        chr_str = 'chrom_%d' % chrom
-        chr_dict[chr_str]['sids'].append(l.name)
-        chr_dict[chr_str]['snp_indices'].append(i)
-        chr_dict[chr_str]['positions'].append(pos)
-        chr_dict[chr_str]['nts'].append([l.allele1, l.allele2])
-      
-    if debug:
-        print('Genotype dictionary filled')
+        chr_dict[chr_str] = bim_df.query('chrom=="%s"'%chrom)
     return chr_dict
+
+
+# def get_chrom_dict(loci, chromosomes, debug=False):
+#     chr_dict = {}
+#     for chrom in chromosomes:
+#         chr_str = 'chrom_%s' % chrom
+#         chr_dict[chr_str] = {'sids':[], 'snp_indices':[], 'positions':[], 'nts':[]}
+#       
+#     for i, l in enumerate(loci):
+#         chrom = l.chromosome
+#         pos = l.bp_position
+#         chr_str = 'chrom_%d' % chrom
+#         chr_dict[chr_str]['sids'].append(l.name)
+#         chr_dict[chr_str]['snp_indices'].append(i)
+#         chr_dict[chr_str]['positions'].append(pos)
+#         chr_dict[chr_str]['nts'].append([l.allele1, l.allele2])
+#       
+#     if debug:
+#         print('Genotype dictionary filled')
+#     return chr_dict
 
 
 def parse_plink_snps(genotype_file, snp_indices):
@@ -69,24 +148,24 @@ def get_num_indivs(genotype_file):
     plinkf.close()
     return len(samples)
 
-def get_phenotypes(plinkf, debug=False):
-    samples = plinkf.get_samples()
-    num_individs = len(samples)
-    Y = [s.phenotype for s in samples]
-    fids = [s.fid for s in samples]
-    iids = [s.iid for s in samples]
-    unique_phens = sp.unique(Y)
-    if len(unique_phens) == 1:
-        print('Unable to find phenotype values.')
-        has_phenotype = False
-    elif len(unique_phens) == 2:
-        cc_bins = sp.bincount(Y)
-        assert len(cc_bins) == 2, 'Problems with loading phenotype'
-        if debug:
-            print('Loaded %d controls and %d cases' % (cc_bins[0], cc_bins[1]))
-        has_phenotype = True
-    else:
-        if debug:
-            print('Found quantitative phenotype values')
-        has_phenotype = True
-    return {'has_phenotype':has_phenotype, 'fids':fids, 'iids':iids, 'phenotypes':Y, 'num_individs':num_individs}
+# def get_phenotypes(plinkf, debug=False):
+#     samples = plinkf.get_samples()
+#     num_individs = len(samples)
+#     Y = [s.phenotype for s in samples]
+#     fids = [s.fid for s in samples]
+#     iids = [s.iid for s in samples]
+#     unique_phens = sp.unique(Y)
+#     if len(unique_phens) == 1:
+#         print('Unable to find phenotype values.')
+#         has_phenotype = False
+#     elif len(unique_phens) == 2:
+#         cc_bins = sp.bincount(Y)
+#         assert len(cc_bins) == 2, 'Problems with loading phenotype'
+#         if debug:
+#             print('Loaded %d controls and %d cases' % (cc_bins[0], cc_bins[1]))
+#         has_phenotype = True
+#     else:
+#         if debug:
+#             print('Found quantitative phenotype values')
+#         has_phenotype = True
+#     return {'has_phenotype':has_phenotype, 'fids':fids, 'iids':iids, 'phenotypes':Y, 'num_individs':num_individs}

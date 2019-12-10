@@ -141,46 +141,44 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
     else:
         print('Coordinating datasets (Summary statistics and LD reference genotypes).')
         
-    plinkf = plinkfile.PlinkFile(reference_genotype_file)
 
     # Figure out chromosomes and positions.
     if debug:
         print('Parsing plinkf_dict_val reference genotypes')
-    loci = plinkf.get_loci()
-    plinkf.close()
-    summary_dict[4]={'name':'Num individuals in LD Reference data:','value':plinkfiles.get_num_indivs(reference_genotype_file)}
-    summary_dict[4.1]={'name':'SNPs in LD Reference data:','value':len(loci)}
-    gf_chromosomes = [l.chromosome for l in loci]
+    ref_bim_df = plinkfiles.read_bim(reference_genotype_file)
+    ref_fam_df = plinkfiles.read_fam(reference_genotype_file)
+    summary_dict[4]={'name':'Num individuals in LD Reference data:','value':len(ref_fam_df)}
+    summary_dict[4.1]={'name':'SNPs in LD Reference data:','value':len(ref_bim_df)}
     
-    chromosomes = sp.unique(gf_chromosomes)
-    chromosomes.sort()
+    chromosomes = ref_bim_df['chrom'].unique()
 
-    chr_dict = plinkfiles.get_chrom_dict(loci, chromosomes, debug)
+    chr_dict = plinkfiles.get_chrom_dict(ref_bim_df, chromosomes)
     
     if validation_genotype_file is not None:
         if debug:
             print('Parsing LD validation bim file')
-        plinkf_val = plinkfile.PlinkFile(validation_genotype_file)
 
         # Loads only the individuals... 
-        plinkf_dict_val = plinkfiles.get_phenotypes(plinkf_val)
+        val_bim_df = plinkfiles.read_bim(validation_genotype_file)
+        val_fam_df = plinkfiles.read_fam(validation_genotype_file)
+        phens = val_fam_df['trait']
+        num_individs = len(phens) 
+        has_phenotype = len(phens.unique())>1
         
-        loci_val = plinkf_val.get_loci()
-        plinkf_val.close()
-        summary_dict[5]={'name':'SNPs in Validation data:','value':len(loci_val)}
+        summary_dict[5]={'name':'SNPs in Validation data:','value':len(val_bim_df)}
 
-        chr_dict_val = plinkfiles.get_chrom_dict(loci_val, chromosomes, debug)
+        chr_dict_val = plinkfiles.get_chrom_dict(val_bim_df, chromosomes)
 
         # Open HDF5 file and prepare out data
         assert not 'iids' in hdf5_file, 'Something is wrong with the HDF5 file, no individuals IDs were found.'
-        if plinkf_dict_val['has_phenotype']:
-            hdf5_file.create_dataset('y', data=plinkf_dict_val['phenotypes'])
-            summary_dict[6]={'name':'Num validation phenotypes:','value':plinkf_dict_val['num_individs']}
+        if has_phenotype:
+            hdf5_file.create_dataset('y', data=phens.values)
+            summary_dict[6]={'name':'Num validation phenotypes:','value':num_individs}
    
-        hdf5_file.create_dataset('fids', data=sp.array(plinkf_dict_val['fids'], dtype=util.fids_dtype))
-        hdf5_file.create_dataset('iids', data=sp.array(plinkf_dict_val['iids'], dtype=util.iids_dtype))
+        hdf5_file.create_dataset('fids', data=sp.array(val_fam_df['fid'].values, dtype=util.fids_dtype))
+        hdf5_file.create_dataset('iids', data=sp.array(val_fam_df['iid'].values, dtype=util.iids_dtype))
 
-        maf_adj_risk_scores = sp.zeros(plinkf_dict_val['num_individs'])
+        maf_adj_risk_scores = sp.zeros(num_individs)
 
     # Now summary statistics
     ssf = hdf5_file['sum_stats']
@@ -208,13 +206,13 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
             sys.stdout.write('\r%0.2f%%' % (100.0 * (float(chrom_i) / (len(chromosomes)+1))))
             sys.stdout.flush()            
         try:
-            chr_str = 'chrom_%d' % chrom
+            chr_str = 'chrom_%s' % chrom
             ssg = ssf[chr_str]
                     
         except Exception as err_str:
                 if debug:
                     print(err_str)
-                    print('Did not find chromosome %d in SS dataset.'%chrom)
+                    print('Did not find chromosome %s in SS dataset.'%chrom)
                     continue
         
         if debug:
@@ -223,11 +221,11 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
         chromosomes_found.add(chrom)
         
         #Get summary statistics chromosome group
-        ssg = ssf['chrom_%d' % chrom]
+        ssg = ssf['chrom_%s' % chrom]
         ss_sids = (ssg['sids'][...]).astype(util.sids_u_dtype)
         if validation_genotype_file is not None:
-            chrom_d_val = chr_dict_val[chr_str]
-            vg_sids = chrom_d_val['sids']
+            chrom_df_val = chr_dict_val[chr_str]
+            vg_sids = chrom_df_val['snp'].values
             common_sids = sp.intersect1d(ss_sids, vg_sids)
             
             # A map from sid to index for validation data        
@@ -243,8 +241,8 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
             ss_sid_dict[sid] = i
 
         #The indices to retain for the LD reference genotypes
-        chrom_d = chr_dict[chr_str]
-        g_sids = chrom_d['sids']
+        chrom_df = chr_dict[chr_str]
+        g_sids = chrom_df['snp'].values
         common_sids = sp.intersect1d(common_sids, g_sids)
         
         # A map from sid to index for LD reference data        
@@ -253,14 +251,14 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
             g_sid_dict[sid] = i
 
         if debug:
-            print('Found %d SNPs on chrom %d that were common across all datasets' % (len(common_sids), chrom))
+            print('Found %d SNPs on chrom %s that were common across all datasets' % (len(common_sids), chrom))
             print('Ordering SNPs by genomic positions (based on LD reference genotypes).')
         
         g_snp_map = []
         for sid in common_sids:
             g_snp_map.append(g_sid_dict[sid])
         # order by positions (based on LD reference file)
-        g_positions = sp.array(chrom_d['positions'])[g_snp_map]
+        g_positions = sp.array(chrom_df['pos'].values)[g_snp_map]
         order = sp.argsort(g_positions)
 
         g_snp_map = sp.array(g_snp_map)[order]
@@ -279,11 +277,11 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
             vg_snp_map = []
             for sid in common_sids:
                 vg_snp_map.append(vg_sid_dict[sid])
-            vg_nts = sp.array(chrom_d_val['nts'])
-            vg_nts_ok = sp.array(vg_nts)[vg_snp_map]
+            vg_nts = chrom_df_val[['a0','a1']].values
+            vg_nts_ok = vg_nts[vg_snp_map]
 
 
-        g_nts = sp.array(chrom_d['nts'])
+        g_nts = sp.array(chrom_df[['a0','a1']].values)
         ss_nts = (ssg['nts'][...]).astype(util.nts_u_dtype)
         betas = ssg['betas'][...]
         log_odds = ssg['log_odds'][...]
@@ -433,10 +431,10 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
 
         
         # Resorting by position
-        positions = sp.array(chrom_d['positions'])[ok_indices['g']]
+        positions = sp.array(chrom_df['pos'].values)[ok_indices['g']]
 
         # Now parse SNPs ..
-        snp_indices = sp.array(chrom_d['snp_indices'])
+        snp_indices = sp.array(chrom_df.i.values)
         # Pinpoint where the SNPs are in the file.
         snp_indices = snp_indices[ok_indices['g']]
         raw_snps, freqs = plinkfiles.parse_plink_snps(
@@ -454,7 +452,7 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
         sids = sids[ok_indices['ss']]
 
         #Storing everything in a dictionary
-        coord_data_dict = {'chrom': 'chrom_%d' % chrom, 
+        coord_data_dict = {'chrom': 'chrom_%s' % chrom, 
                            'raw_snps_ref': raw_snps, 
                            'snp_stds_ref': snp_stds, 
                            'snp_means_ref': snp_means, 
@@ -469,7 +467,7 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
         
         #Parse validation genotypes, if available
         if validation_genotype_file is not None:            
-            snp_indices_val = sp.array(chrom_d_val['snp_indices'])
+            snp_indices_val = sp.array(chrom_df_val.i.values)
             # Pinpoint where the SNPs are in the file.
             snp_indices_val = snp_indices_val[ok_indices['vg']]
             raw_snps_val, freqs_val = plinkfiles.parse_plink_snps(
@@ -519,9 +517,9 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
 
         if validation_genotype_file is not None:
             maf_adj_prs = sp.dot(log_odds, raw_snps_val)
-            if debug and plinkf_dict_val['has_phenotype']:
-                maf_adj_corr = sp.corrcoef(plinkf_dict_val['phenotypes'], maf_adj_prs)[0, 1]
-                print('Log odds, per genotype PRS correlation w phenotypes for chromosome %d was %0.4f' % (chrom, maf_adj_corr))
+            if debug and has_phenotype:
+                maf_adj_corr = sp.corrcoef(phens, maf_adj_prs)[0, 1]
+                print('Log odds, per genotype PRS correlation w phenotypes for chromosome %s was %0.4f' % (chrom, maf_adj_corr))
             maf_adj_risk_scores += maf_adj_prs
             coord_data_dict['log_odds_prs']=maf_adj_prs
             
@@ -540,7 +538,7 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
          
         write_coord_data(cord_data_g, coord_data_dict, debug=debug)
         if debug:
-            print('%d SNPs were retained on chromosome %d.' % (len(sids), chrom))
+            print('%d SNPs were retained on chromosome %s.' % (len(sids), chrom))
         
         #Update counters
         num_snps_common_before_filtering += len(common_sids)
@@ -558,9 +556,9 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
 
     # Now calculate the prediction r^2
     if validation_genotype_file:
-        if debug and plinkf_dict_val['has_phenotype']:
+        if debug and has_phenotype:
             maf_adj_corr = sp.corrcoef(
-                plinkf_dict_val['phenotypes'], maf_adj_risk_scores)[0, 1]
+                phens, maf_adj_risk_scores)[0, 1]
             print('Log odds, per PRS correlation for the whole genome was %0.4f (r^2=%0.4f)' % (maf_adj_corr, maf_adj_corr ** 2))
             print('Overall nucleotide concordance counts: rg_vg: %d, rg_ss: %d, vg_ss: %d' % (tot_g_vg_nt_concord_count, tot_g_ss_nt_concord_count, tot_vg_ss_nt_concord_count))
     else:
