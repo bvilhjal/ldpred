@@ -105,12 +105,26 @@ def get_chrom_dict(bim_df, chromosomes):
 #     return chr_dict
 
 
+def parse_snps(genotype_file,snp_mask):
+    bedf = "%s.bed"%(pf)
+    bimf = "%s.bim"%(pf)
+    famf = "%s.fam"%(pf)
+    G = pdp.read_plink1_bin(bedf, bimf, famf, verbose=False)
+    #Excluding SNPs not in mask (which is assumed to be ordered)
+    G = G[:,snp_mask]
+    missing_mask = sp.any(sp.isnan(G[:,[2,4,7]].values),axis=0)
+    
+    for 
+
+
+
 def parse_plink_snps(genotype_file, snp_indices):
     plinkf = plinkfile.PlinkFile(genotype_file)
     samples = plinkf.get_samples()
     num_individs = len(samples)
     num_snps = len(snp_indices)
     raw_snps = sp.empty((num_snps, num_individs), dtype='int8')
+
     # If these indices are not in order then we place them in the right place while parsing SNPs.
     snp_order = sp.argsort(snp_indices)
     ordered_snp_indices = list(snp_indices[snp_order])

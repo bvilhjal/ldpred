@@ -7,7 +7,6 @@ from ldpred import sum_stats_parsers
 from ldpred import reporting
 from ldpred import util
 from ldpred import plinkfiles
-from plinkio import plinkfile
 import time
 
 
@@ -437,6 +436,8 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
         snp_indices = sp.array(chrom_df.i.values)
         # Pinpoint where the SNPs are in the file.
         snp_indices = snp_indices[ok_indices['g']]
+        
+        #
         raw_snps, freqs = plinkfiles.parse_plink_snps(
             reference_genotype_file, snp_indices)
         snp_stds = get_snp_stds(raw_snps)
