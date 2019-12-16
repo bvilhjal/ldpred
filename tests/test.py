@@ -546,7 +546,9 @@ def run_unit_tests():
     unittest.TextTestRunner().run(simple_suite)
 
 if __name__ == '__main__':
-    unittest.main()
+    update_golden_files_mix1()
+    update_golden_files_mix2()
+    #unittest.main()
     
 
 

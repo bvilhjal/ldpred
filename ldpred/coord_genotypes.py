@@ -133,7 +133,7 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
                         max_freq_discrep = 0.15,
                         debug=False):
     
-    summary_dict[3.9]={'name':'dash', 'value':'Coordination'}
+    summary_dict[3.9]={'name':'dash', 'value':'LD reference data'}
     t0 = time.time()
     if validation_genotype_file is not None:
         print('Coordinating datasets (Summary statistics, LD reference genotypes, and Validation genotypes).')
@@ -193,9 +193,11 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
     tot_num_maf_filtered_snps = 0
     tot_g_ss_nt_concord_count = 0
     tot_num_flipped_nts = 0
+    tot_imp_frac = 0
     if validation_genotype_file is not None:
         tot_g_vg_nt_concord_count = 0
         tot_vg_ss_nt_concord_count = 0
+        tot_imp_frac_val = 0
         
     # Now iterate over chromosomes
     chrom_i = 0
@@ -438,7 +440,7 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
         snp_indices = snp_indices[ok_indices['g']]
         
         #
-        raw_snps, freqs = plinkfiles.parse_plink_snps(
+        raw_snps, freqs, imp_frac = plinkfiles.parse_snps(
             reference_genotype_file, snp_indices)
         snp_stds = get_snp_stds(raw_snps)
         snp_means = sp.mean(raw_snps, axis=1, dtype='float32')
@@ -471,7 +473,7 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
             snp_indices_val = sp.array(chrom_df_val.i.values)
             # Pinpoint where the SNPs are in the file.
             snp_indices_val = snp_indices_val[ok_indices['vg']]
-            raw_snps_val, freqs_val = plinkfiles.parse_plink_snps(
+            raw_snps_val, freqs_val, imp_frac_val = plinkfiles.parse_snps(
                 validation_genotype_file, snp_indices_val)
     
             snp_stds_val = get_snp_stds(raw_snps_val)
@@ -523,6 +525,8 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
                 print('Log odds, per genotype PRS correlation w phenotypes for chromosome %s was %0.4f' % (chrom, maf_adj_corr))
             maf_adj_risk_scores += maf_adj_prs
             coord_data_dict['log_odds_prs']=maf_adj_prs
+            tot_imp_frac_val += imp_frac_val * len(sids)
+
             
         genetic_map = []
         if genetic_map_dir is not None:
@@ -549,6 +553,7 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
         tot_num_non_matching_nts += num_non_matching_nts
         tot_num_freq_discrep_filtered_snps += num_freq_discrep_filtered_snps
         tot_num_maf_filtered_snps += num_maf_filtered_snps
+        tot_imp_frac += imp_frac * len(sids)
 
     if not debug:
         sys.stdout.write('\r%0.2f%%\n' % (100.0))
@@ -562,10 +567,16 @@ def coordinate_datasets(reference_genotype_file, hdf5_file, summary_dict,
                 phens, maf_adj_risk_scores)[0, 1]
             print('Log odds, per PRS correlation for the whole genome was %0.4f (r^2=%0.4f)' % (maf_adj_corr, maf_adj_corr ** 2))
             print('Overall nucleotide concordance counts: rg_vg: %d, rg_ss: %d, vg_ss: %d' % (tot_g_vg_nt_concord_count, tot_g_ss_nt_concord_count, tot_vg_ss_nt_concord_count))
+        if tot_imp_frac_val>0:
+            summary_dict[5.2]={'name':'Fraction of SNPs imputed using mode:','value':'%0.4f'%(tot_imp_frac_val/num_snps_common_after_filtering)}
+        summary_dict[4.9]={'name':'dash', 'value':'Validation data'}
     else:
         if debug:
             print('Overall nucleotide concordance counts, rg_ss: %d' % (tot_g_ss_nt_concord_count))        
     
+    if tot_imp_frac>0:
+        summary_dict[4.2]={'name':'Fraction of SNPs imputed using mode:','value':'%0.4f'%(tot_imp_frac/num_snps_common_after_filtering)}
+    summary_dict[5.9]={'name':'dash', 'value':'Coordination'}
     summary_dict[7]={'name':'Num chromosomes used:','value':len(chromosomes_found)}
     summary_dict[8]={'name':'SNPs common across datasets:','value':num_snps_common_before_filtering}
     if tot_num_non_supported_nts>0 or debug:

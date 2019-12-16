@@ -85,76 +85,80 @@ def get_chrom_dict(bim_df, chromosomes):
     return chr_dict
 
 
-# def get_chrom_dict(loci, chromosomes, debug=False):
-#     chr_dict = {}
-#     for chrom in chromosomes:
-#         chr_str = 'chrom_%s' % chrom
-#         chr_dict[chr_str] = {'sids':[], 'snp_indices':[], 'positions':[], 'nts':[]}
-#       
-#     for i, l in enumerate(loci):
-#         chrom = l.chromosome
-#         pos = l.bp_position
-#         chr_str = 'chrom_%d' % chrom
-#         chr_dict[chr_str]['sids'].append(l.name)
-#         chr_dict[chr_str]['snp_indices'].append(i)
-#         chr_dict[chr_str]['positions'].append(pos)
-#         chr_dict[chr_str]['nts'].append([l.allele1, l.allele2])
-#       
-#     if debug:
-#         print('Genotype dictionary filled')
-#     return chr_dict
 
-
-def parse_snps(genotype_file,snp_mask):
+def parse_snps(pf,snp_mask, imp_type='mode'):
     bedf = "%s.bed"%(pf)
     bimf = "%s.bim"%(pf)
     famf = "%s.fam"%(pf)
     G = pdp.read_plink1_bin(bedf, bimf, famf, verbose=False)
     #Excluding SNPs not in mask (which is assumed to be ordered)
     G = G[:,snp_mask]
-    missing_mask = sp.any(sp.isnan(G[:,[2,4,7]].values),axis=0)
-    
-    for 
-
-
-
-def parse_plink_snps(genotype_file, snp_indices):
-    plinkf = plinkfile.PlinkFile(genotype_file)
-    samples = plinkf.get_samples()
-    num_individs = len(samples)
-    num_snps = len(snp_indices)
-    raw_snps = sp.empty((num_snps, num_individs), dtype='int8')
-
-    # If these indices are not in order then we place them in the right place while parsing SNPs.
-    snp_order = sp.argsort(snp_indices)
-    ordered_snp_indices = list(snp_indices[snp_order])
-    ordered_snp_indices.reverse()
-    # Iterating over file to load SNPs
-    snp_i = 0
-    next_i = ordered_snp_indices.pop()
-    line_i = 0
-    max_i = ordered_snp_indices[0]
-    while line_i <= max_i: 
-        if line_i < next_i:
-            next(plinkf)
-        elif line_i == next_i:
-            line = next(plinkf)
-            snp = sp.array(line, dtype='int8')
-            bin_counts = line.allele_counts()
-            if bin_counts[-1] > 0:
+    num_indivs,num_snps = G.shape
+    G_T = G.T
+    snps=sp.zeros(G_T.shape,dtype='int8')
+    imp_frac = 0
+    for snp_i, snp in enumerate(G_T.values):
+        snp_is_nan = sp.isnan(snp)
+        if sp.any(snp_is_nan):
+            num_nans = sp.sum(snp_is_nan)
+            imp_frac += num_nans
+            if imp_type=='mode':
+                snp[snp_is_nan]=3
+                snp = sp.array(snp,dtype='int8')
+                bin_counts = sp.bincount(snp,minlength=4)
                 mode_v = sp.argmax(bin_counts[:2])
                 snp[snp == 3] = mode_v
-            s_i = snp_order[snp_i]
-            raw_snps[s_i] = snp
-            if line_i < max_i:
-                next_i = ordered_snp_indices.pop()
-            snp_i += 1
-        line_i += 1
-    plinkf.close()
-    assert snp_i == len(raw_snps), 'Parsing SNPs from plink file failed.'
-    num_indivs = len(raw_snps[0])
-    freqs = sp.sum(raw_snps, 1, dtype='float32') / (2 * float(num_indivs))
-    return raw_snps, freqs
+            elif imp_type=='random':
+                snp[snp_is_nan] = sp.random.choice(snp[~snp_is_nan],size=num_nans)
+                snp = sp.array(snp,dtype='int8')
+        else:
+            snp = sp.array(snp,dtype='int8')
+        snps[snp_i]=snp
+        
+    imp_frac = imp_frac/float(num_indivs*num_snps)
+    freqs = sp.sum(snps, 1, dtype='float32') / (2 * float(num_indivs))
+    return snps, freqs, imp_frac
+
+# def parse_plink_snps(genotype_file, snp_indices):
+#     plinkf = plinkfile.PlinkFile(genotype_file)
+#     samples = plinkf.get_samples()
+#     num_individs = len(samples)
+#     num_snps = len(snp_indices)
+#     raw_snps = sp.empty((num_snps, num_individs), dtype='int8')
+# 
+#     # If these indices are not in order then we place them in the right place while parsing SNPs.
+#     snp_order = sp.argsort(snp_indices)
+#     ordered_snp_indices = list(snp_indices[snp_order])
+#     ordered_snp_indices.reverse()
+#     # Iterating over file to load SNPs
+#     snp_i = 0
+#     next_i = ordered_snp_indices.pop()
+#     line_i = 0
+#     max_i = ordered_snp_indices[0]
+#     imp_frac = 0
+#     while line_i <= max_i: 
+#         if line_i < next_i:
+#             next(plinkf)
+#         elif line_i == next_i:
+#             line = next(plinkf)
+#             snp = sp.array(line, dtype='int8')
+#             bin_counts = line.allele_counts()
+#             if bin_counts[-1] > 0:
+#                 imp_frac += bin_counts[-1]
+#                 mode_v = sp.argmax(bin_counts[:2])
+#                 snp[snp == 3] = mode_v
+#             s_i = snp_order[snp_i]
+#             raw_snps[s_i] = snp
+#             if line_i < max_i:
+#                 next_i = ordered_snp_indices.pop()
+#             snp_i += 1
+#         line_i += 1
+#     plinkf.close()
+#     imp_frac = imp_frac/float(num_individs*num_snps)
+#     assert snp_i == len(raw_snps), 'Parsing SNPs from plink file failed.'
+#     num_indivs = len(raw_snps[0])
+#     freqs = sp.sum(raw_snps, 1, dtype='float32') / (2 * float(num_indivs))
+#     return raw_snps, freqs, imp_frac
 
 def get_num_indivs(genotype_file):
     plinkf = plinkfile.PlinkFile(genotype_file)
@@ -162,24 +166,3 @@ def get_num_indivs(genotype_file):
     plinkf.close()
     return len(samples)
 
-# def get_phenotypes(plinkf, debug=False):
-#     samples = plinkf.get_samples()
-#     num_individs = len(samples)
-#     Y = [s.phenotype for s in samples]
-#     fids = [s.fid for s in samples]
-#     iids = [s.iid for s in samples]
-#     unique_phens = sp.unique(Y)
-#     if len(unique_phens) == 1:
-#         print('Unable to find phenotype values.')
-#         has_phenotype = False
-#     elif len(unique_phens) == 2:
-#         cc_bins = sp.bincount(Y)
-#         assert len(cc_bins) == 2, 'Problems with loading phenotype'
-#         if debug:
-#             print('Loaded %d controls and %d cases' % (cc_bins[0], cc_bins[1]))
-#         has_phenotype = True
-#     else:
-#         if debug:
-#             print('Found quantitative phenotype values')
-#         has_phenotype = True
-#     return {'has_phenotype':has_phenotype, 'fids':fids, 'iids':iids, 'phenotypes':Y, 'num_individs':num_individs}
