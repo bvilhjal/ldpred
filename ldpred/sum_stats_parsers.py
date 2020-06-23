@@ -179,7 +179,7 @@ def get_beta(pval_read, raw_beta, beta_read, line_dict, header_dict, se,
                 se_inferred_zscores += 1
                 return get_beta_from_se(beta_read, se_read, eff_type, raw_beta, N)
         else:               
-            return sp.sign(raw_beta) * stats.norm.ppf(pval_read / 2.0)/ sp.sqrt(N) 
+            return -1 * sp.sign(raw_beta) * stats.norm.ppf(pval_read / 2.0)/ sp.sqrt(N) 
 
 
 
