@@ -319,7 +319,7 @@ def parse_pt_res(file_name):
 def write_scores_file(out_file, prs_dict, pval_derived_effects_prs, adj_pred_dict, 
                       output_regression_betas=False, weights_dict=None, verbose=False):
     num_individs = len(prs_dict['iids'])
-    with open(out_file, 'w') as f:
+    with open(out_file, 'w', newline="\n") as f:
         if verbose:
             print ('Writing polygenic scores to file %s'%out_file)
         out_str = 'IID, true_phens, PRS'
@@ -343,7 +343,7 @@ def write_scores_file(out_file, prs_dict, pval_derived_effects_prs, adj_pred_dic
             f.write(out_str)
 
     if len(list(adj_pred_dict.keys())) > 0:
-        with open(out_file + '.adj', 'w') as f:
+        with open(out_file + '.adj', 'w', newline="\n") as f:
             adj_prs_labels = list(adj_pred_dict.keys())
             out_str = 'IID, true_phens, PRS, ' + \
                 ', '.join(adj_prs_labels)
@@ -370,7 +370,7 @@ def write_scores_file(out_file, prs_dict, pval_derived_effects_prs, adj_pred_dic
 
 def write_only_scores_file(out_file, prs_dict, pval_derived_effects_prs):
     num_individs = len(prs_dict['iids'])
-    with open(out_file, 'w') as f:
+    with open(out_file, 'w', newline="\n") as f:
         print ('Writing polygenic scores to file %s'%out_file)
         out_str = 'IID, PRS \n'
         f.write(out_str)
@@ -763,7 +763,7 @@ def main(p_dict):
 
     res_summary_file = p_dict['summary_file']
     if res_summary_file is not None and not p_dict['only_score']:
-        with open(res_summary_file,'w') as f:
+        with open(res_summary_file, 'w', newline="\n") as f:
             if verbose:
                 print ('Writing Results Summary to file %s'%res_summary_file)
             out_str = 'Pred_Method    Pred_corr    Pred_R2    SNPs_used\n'

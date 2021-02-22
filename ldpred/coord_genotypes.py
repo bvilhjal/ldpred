@@ -51,7 +51,7 @@ def write_coord_data(cord_data_g, coord_dict, debug=False):
         ofg.create_dataset('log_odds_prs', data=coord_dict['log_odds_prs'])
 
     ofg.create_dataset('ps', data=coord_dict['ps'])
-    ofg.create_dataset('positions', data=coord_dict['positions'])
+    ofg.create_dataset('positions', data=coord_dict['positions'], dtype='int64')
     ofg.create_dataset('nts', data=sp.array(coord_dict['nts'],dtype=util.nts_dtype))
     ofg.create_dataset('sids', data=sp.array(coord_dict['sids'],dtype=util.sids_dtype))
     ofg.create_dataset('betas', data=coord_dict['betas'])

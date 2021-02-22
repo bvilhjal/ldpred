@@ -168,7 +168,7 @@ def ld_pruning(data_file=None, ld_radius = None, out_file_prefix=None, p_thres=N
         
         weights_out_file = '%s_P+T_r%0.2f_p%0.4e.txt'%(out_file_prefix, max_r2, p_thres)
         
-        with open(weights_out_file,'w') as f:
+        with open(weights_out_file, 'w', newline="\n") as f:
             f.write('chrom    pos    sid    nt1    nt2    raw_beta    raw_pval_beta    updated_beta    updated_pval_beta \n')
             for chrom, pos, sid, nt, raw_beta, raw_pval_beta, upd_beta, upd_pval_beta in zip(chromosomes, positions, sids, nts, raw_effect_sizes, raw_pval_effect_sizes, updated_effect_sizes, updated_pval_effect_sizes):
                 nt1,nt2 = nt[0],nt[1]
