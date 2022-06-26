@@ -95,7 +95,7 @@ def write_res_dict_2_file(out_file_prefix, results_cdict, ps):
     for p_c in ps:
         p_str = '%0.4f' % p_c
         weights_out_file = '%s_LDpred_fast_p%0.4e.txt' % (out_file_prefix, p_c)
-        with open(weights_out_file, 'w') as f:
+        with open(weights_out_file, 'w', newline="\n") as f:
             f.write('chrom    pos    sid    nt1    nt2    raw_beta     ldpred_beta\n')
             for chrom_str in util.chromosomes_list:
                 if chrom_str in results_cdict:

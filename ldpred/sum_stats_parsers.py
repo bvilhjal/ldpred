@@ -423,10 +423,10 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
         g.create_dataset('betas', data=betas)
         g.create_dataset('log_odds', data=log_odds)
         num_snps += len(log_odds)
-        g.create_dataset('infos', data=infos)
+        g.create_dataset('infos', data=infos, dtype='int64')
         g.create_dataset('nts', data=nts)
         g.create_dataset('sids', data=sids)
-        g.create_dataset('positions', data=positions)
+        g.create_dataset('positions', data=positions, dtype='int64')
         g.create_dataset('ns', data=ns)
         hdf5_file.flush()
     

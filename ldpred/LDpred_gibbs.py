@@ -375,14 +375,14 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
             
         
         weights_out_file = '%s_LDpred_p%0.4e.txt' % (out_file_prefix, p)
-        with open(weights_out_file, 'w') as f:
+        with open(weights_out_file, 'w', newline="\n") as f:
             f.write('chrom    pos    sid    nt1    nt2    raw_beta     ldpred_beta\n')
             for chrom, pos, sid, nt, raw_beta, ldpred_beta in zip(chromosomes, out_positions, out_sids, out_nts, raw_effect_sizes, ldpred_effect_sizes):
                 nt1, nt2 = nt[0], nt[1]
                 f.write('%s    %d    %s    %s    %s    %0.4e    %0.4e\n' % (chrom, pos, sid, nt1, nt2, raw_beta, ldpred_beta))
 
     weights_out_file = '%s_LDpred-inf.txt' % (out_file_prefix)
-    with open(weights_out_file, 'w') as f:
+    with open(weights_out_file, 'w', newline="\n") as f:
         f.write('chrom    pos    sid    nt1    nt2    raw_beta    ldpred_inf_beta \n')
         for chrom, pos, sid, nt, raw_beta, ldpred_inf_beta in zip(chromosomes, out_positions, out_sids, out_nts, raw_effect_sizes, ldpred_inf_effect_sizes):
             nt1, nt2 = nt[0], nt[1]
