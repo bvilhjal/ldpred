@@ -23,9 +23,15 @@ import os
 import tempfile
 import unittest
 import sys
+import glob
 
 np.set_printoptions(linewidth=int(os.environ.get('COLUMNS', 100)))
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
+
+def remove_files_with_prefix(prefix):
+    for file in glob.glob('%s*' % prefix):
+	    if os.path.isfile(file):
+	        os.remove(file)
 
 def run_test(mesg, cmd_str, error_mesg, *actual_and_golden_outputs):
     print(mesg)
@@ -173,7 +179,7 @@ class SimpleTests(unittest.TestCase):
         print('Cleaning up files: %s* ' % self.tmp_file_prefix)
         cmd_str = 'rm -f %s*' % self.tmp_file_prefix
         print(cmd_str + '\n')
-        assert os.system(cmd_str) == 0, 'Problems cleaning up test files!  Testing stopped'
+        remove_files_with_prefix(self.tmp_file_prefix)
 
     def test_parse_sum_stats(self):
         p_dict = {
@@ -364,7 +370,7 @@ class ComplexTests(unittest.TestCase):
         print('Cleaning up files: %s* ' % self.tmp_file_prefix)
         cmd_str = 'rm -f %s*' % self.tmp_file_prefix
         print(cmd_str + '\n')
-        assert os.system(cmd_str) == 0, 'Problems cleaning up test files!  Testing stopped'
+        remove_files_with_prefix(self.tmp_file_prefix)
 
     def test_mix1(self):
         t_i = 0
@@ -495,7 +501,7 @@ def update_golden_files_mix1():
         print('Cleaning up files.')
         cmd_str = 'rm %s*' % tmp_file_prefix
         print(cmd_str + '\n')
-        assert os.system(cmd_str) == 0, 'Problems cleaning up test files!  Testing stopped'
+        remove_files_with_prefix(tmp_file_prefix)
 
 def update_golden_files_mix2():
     label = 'mix2'
@@ -533,7 +539,7 @@ def update_golden_files_mix2():
         print('Cleaning up files.')
         cmd_str = 'rm %s*' % tmp_file_prefix
         print(cmd_str + '\n')
-        assert os.system(cmd_str) == 0, 'Problems cleaning up test files!  Testing stopped'
+        remove_files_with_prefix(tmp_file_prefix)
 
 
 
