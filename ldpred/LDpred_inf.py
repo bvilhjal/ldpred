@@ -31,21 +31,33 @@ def ldpred_inf(beta_hats, h2=0.1, n=1000, inf_shrink_matrices=None,
         start_i = wi
         stop_i = min(m, wi + ld_window_size)
         curr_window_size = stop_i - start_i
-        if inf_shrink_matrices!=None:
+        if inf_shrink_matrices is not None:
             A_inv = inf_shrink_matrices[i]
+            updated_betas[start_i: stop_i] = np.dot(A_inv * n , beta_hats[start_i: stop_i])  # Adjust the beta_hats
         else:
-            if reference_ld_mats != None:
+            if reference_ld_mats is not None:
                 D = reference_ld_mats[i]
             else:
-                if genotypes != None:
+                if genotypes is not None:
                     X = genotypes[start_i: stop_i]
                     num_indivs = X.shape[1]
                     D = np.dot(X, X.T) / num_indivs
                 else:
                     raise NotImplementedError
             A = ((m / h2) * np.eye(curr_window_size) + (n / (1.0)) * D)
-            A_inv = linalg.pinv(A)
-        updated_betas[start_i: stop_i] = np.dot(A_inv * n , beta_hats[start_i: stop_i])  # Adjust the beta_hats
+            # Solve A x = n * beta_hat rather than inverting A.  A is
+            # (m/h2) I + n D, so it is symmetric and normally positive
+            # definite, and a Cholesky solve is several times cheaper than the
+            # SVD behind pinv.  Shrinking D can cost positive definiteness, so
+            # fall back to the general symmetric solver and then to pinv.
+            b = n * beta_hats[start_i: stop_i]
+            try:
+                updated_betas[start_i: stop_i] = linalg.solve(A, b, assume_a='pos')
+            except linalg.LinAlgError:
+                try:
+                    updated_betas[start_i: stop_i] = linalg.solve(A, b, assume_a='sym')
+                except linalg.LinAlgError:
+                    updated_betas[start_i: stop_i] = np.dot(linalg.pinv(A), b)
 
         if verbose:
             sys.stdout.write('\r%0.2f%%' % (100.0 * (min(1, float(wi + ld_window_size) / m))))

@@ -152,19 +152,16 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=None, n
             b2 = res_beta_hat_i ** 2
 
 
+            # Both terms are products of real floats with exp() of a real, so
+            # they are always real; the isreal() guards that used to wrap this
+            # were tautologies whose else-branches could never be taken, and
+            # they cost two array calls per SNP per sweep.
             d_const_b2_exp = cd['d_const'] * np.exp(-b2 * cd['n'] / 2.0)
-            if np.isreal(d_const_b2_exp):
-                numerator = cd['c_const'] * np.exp(-b2 / (2.0 * cd['hdmpn']))
-                if np.isreal(numerator):
-                    if numerator == 0.0:
-                        postp = 0.0
-                    else:
-                        postp = numerator / (numerator + d_const_b2_exp)
-                        assert np.isreal(postp), 'The posterior mean is not a real number?  Possibly due to problems with summary stats, LD estimates, or parameter settings.' 
-                else:
-                    postp = 0.0
+            numerator = cd['c_const'] * np.exp(-b2 / (2.0 * cd['hdmpn']))
+            if numerator == 0.0:
+                postp = 0.0
             else:
-                postp = 1.0
+                postp = numerator / (numerator + d_const_b2_exp)
             curr_post_means[snp_i] = cd['hdmp_hdmpn'] * postp * res_beta_hat_i
 
             if rand_ps[i] < postp * alpha:
@@ -279,26 +276,28 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
             chrom_i+=1
             if chrom_str in cord_data_g:
                 g = cord_data_g[chrom_str]
-                
+                positions = g['positions'][...]
+
                 if out_file_prefix:
-                    positions = g['positions'][...]
                     sids = (g['sids'][...]).astype(util.sids_u_dtype)
                     log_odds = g['log_odds'][...]
                     nts = (g['nts'][...]).astype(util.nts_u_dtype)
-                    
+
                     chromosomes.extend([chrom_str] * len(positions))
                     out_positions.extend(positions)
                     out_sids.extend(sids)
                     raw_effect_sizes.extend(log_odds)
                     out_nts.extend(nts)
-        
+
                 pval_derived_betas = g['betas'][...]
                 ns = g['ns'][...]
                 h2_chrom = herit_dict[chrom_str]['h2']
-                
+
                 snp_lrld = None
                 if not incl_long_range_ld:
-                    snp_lrld = util.get_snp_lrld_status(chrom_i, positions, lrld_dict)      
+                    # Key off the group name, not the loop counter: chromosomes_list
+                    # runs to 24 entries while the long-range LD table is keyed 1-23.
+                    snp_lrld = util.get_snp_lrld_status(chrom_str, positions, lrld_dict)
                     num_snps_in_lrld +=np.sum(snp_lrld)
                     
                 ld_boundaries = None
