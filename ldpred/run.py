@@ -18,7 +18,6 @@ from ldpred import reporting
 
 import sys
 import textwrap
-import random
  
 title = '\033[96mLDpred v. %s\033[0m'%__version__
 title_len= len(title)-9

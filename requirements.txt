@@ -1,3 +1,6 @@
-plinkio
-h5py
-scipy
+# Runtime dependencies. Kept in sync with [project.dependencies] in
+# pyproject.toml; `pip install .` is the preferred install path.
+numpy>=1.20
+scipy>=1.6
+h5py>=3.0
+plinkio>=0.9.7

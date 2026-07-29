@@ -12,29 +12,6 @@ from ldpred import reporting
 from ldpred import coord_genotypes
 
 
-def get_LDpred_sample_size(n,ns,verbose):
-    if n is None:
-        #If coefficient of variation is very small, then use one N nevertheless.
-        n_cv = np.std(ns)/np.mean(ns)
-        if n_cv<0.01:
-            ldpred_n = np.mean(ns)
-            if verbose:
-                print ("Sample size does not vary much (CV=%0.4f).  Using a fixed sample size of %0.2f"%(n_cv,ldpred_n))
-        else:
-            if verbose:
-                print ("Using varying sample sizes")
-                print ("Sample size ranges between %d and %d"%(min(ns),max(ns)))
-                print ("Average sample size is %0.2f "%(np.mean(ns)))
-        ldpred_inf_n = np.mean(ns)
-        ldpred_n = None
-    else:
-        ldpred_n = float(n)
-        if verbose:
-            print ("Using the given fixed sample size of %d"%(n))
-        ldpred_inf_n = float(n)
-    return ldpred_n,ldpred_inf_n
-        
-        
 def prepare_constants(ldpred_n,ns,m,p,h2,sampl_var_shrink_factor):
     Mp = m * p
     hdmp = (h2 / Mp)
@@ -90,7 +67,7 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=None, n
     m = len(beta_hats)
 
 
-    ldpred_n, ldpred_inf_n = get_LDpred_sample_size(n,ns,verbose)
+    ldpred_n, ldpred_inf_n = util.get_LDpred_sample_size(n,ns,verbose)
     
     # If no starting values for effects were given, then use the infinitesimal model starting values.
     if start_betas is None and verbose:

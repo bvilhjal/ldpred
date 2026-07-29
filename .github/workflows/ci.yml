@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [master, "claude/**"]
+  pull_request:
+    branches: [master]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.11", "3.13"]
+    name: py${{ matrix.python-version }}
+    env:
+      # Pin BLAS threads so the golden-file comparisons are reproducible.
+      OPENBLAS_NUM_THREADS: "1"
+      OMP_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install LDpred and test dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install -e ".[test]"
+
+      - name: Unit tests
+        run: python -m pytest tests/test_util.py -q
+
+      # The golden-file suites. SimpleTests covers coord/inf/gibbs/fast/p+t and
+      # scoring; ComplexTests runs the multi-chromosome mixtures and is slower.
+      # CircleCI used to run SimpleTests plus a single ComplexTests case; both
+      # run in full here.
+      - name: Integration tests (golden files)
+        run: |
+          python -m unittest tests.test.SimpleTests -v
+          python -m unittest tests.test.ComplexTests -v
+
+  build:
+    runs-on: ubuntu-latest
+    name: wheel / sdist smoke
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Build wheel and sdist
+        run: |
+          python -m pip install --upgrade pip "build>=1.2"
+          python -m build
+
+      - name: Install the built wheel and import it
+        run: |
+          python -m pip install dist/*.whl
+          cd "${RUNNER_TEMP}"
+          python -c "import ldpred; print(ldpred.__version__)"
+          ldpred --help > /dev/null
