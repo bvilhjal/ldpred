@@ -131,6 +131,37 @@ class BackendEquivalenceTests(unittest.TestCase):
         self.assertTrue(np.any(post[~skip] != 0.0))
 
 
+class LrldPolicyResolutionTests(unittest.TestCase):
+    """--incl-long-range-ld is the deprecated spelling of --long-range-ld include."""
+
+    def test_default_is_inf(self):
+        self.assertEqual(LDpred_gibbs.resolve_lrld_policy({}), 'inf')
+        self.assertEqual(
+            LDpred_gibbs.resolve_lrld_policy(
+                {'long_range_ld': 'inf', 'incl_long_range_ld': False}), 'inf')
+
+    def test_explicit_policies_pass_through(self):
+        for policy in LDpred_gibbs.LRLD_POLICIES:
+            self.assertEqual(
+                LDpred_gibbs.resolve_lrld_policy(
+                    {'long_range_ld': policy, 'incl_long_range_ld': False}),
+                policy)
+
+    def test_deprecated_flag_maps_to_include(self):
+        self.assertEqual(
+            LDpred_gibbs.resolve_lrld_policy(
+                {'long_range_ld': 'inf', 'incl_long_range_ld': True}), 'include')
+
+    def test_deprecated_flag_conflicting_with_explicit_policy_is_rejected(self):
+        with self.assertRaises(ValueError):
+            LDpred_gibbs.resolve_lrld_policy(
+                {'long_range_ld': 'exclude', 'incl_long_range_ld': True})
+
+    def test_unknown_policy_is_rejected(self):
+        with self.assertRaises(ValueError):
+            LDpred_gibbs.resolve_lrld_policy({'long_range_ld': 'nope'})
+
+
 class SamplerSmokeTests(unittest.TestCase):
 
     def test_ldpred_gibbs_runs_and_is_finite(self):
@@ -186,6 +217,45 @@ class SamplerSmokeTests(unittest.TestCase):
                                       start_betas=start_betas.copy(), **kw)
         np.testing.assert_allclose(a['betas'][snp_lrld], b['betas'][snp_lrld],
                                    rtol=1e-12)
+
+    def test_exclude_policy_reports_zero_and_leaves_the_model(self):
+        """'exclude' removes the region rather than freezing it in place.
+
+        A zero effect contributes nothing to any neighbour's residual, so the
+        retained variants are fitted as if the region were not there. Its own
+        weights come back as zero.
+        """
+        m, r = 300, 20
+        rng = np.random.default_rng(5)
+        start_betas = rng.standard_normal(m) * 1e-3 + 0.05
+        snp_lrld = np.zeros(m, dtype=bool)
+        snp_lrld[100:130] = True
+        beta_hats = rng.standard_normal(m) * 2e-3
+        kw = dict(h2=0.3, n=2e5, ns=None, ld_radius=r, num_iter=20, burn_in=5,
+                  p=0.05, ld_dict=make_ld(m, r), snp_lrld=snp_lrld,
+                  verbose=False, print_progress=False)
+        excl = LDpred_gibbs.ldpred_gibbs(beta_hats.copy(),
+                                         start_betas=start_betas.copy(),
+                                         lrld_policy='exclude', **kw)
+        inf = LDpred_gibbs.ldpred_gibbs(beta_hats.copy(),
+                                        start_betas=start_betas.copy(),
+                                        lrld_policy='inf', **kw)
+        np.testing.assert_array_equal(excl['betas'][snp_lrld],
+                                      np.zeros(int(snp_lrld.sum())))
+        np.testing.assert_allclose(inf['betas'][snp_lrld],
+                                   start_betas[snp_lrld], rtol=1e-12)
+        # Neighbours of the region see a different model under the two
+        # policies, so the retained weights must differ somewhere.
+        self.assertTrue(np.any(excl['betas'][~snp_lrld] != inf['betas'][~snp_lrld]))
+
+    def test_unknown_policy_is_rejected(self):
+        m, r = 100, 10
+        with self.assertRaises(ValueError):
+            LDpred_gibbs.ldpred_gibbs(
+                np.zeros(m), start_betas=np.zeros(m), h2=0.3, n=2e5, ns=None,
+                ld_radius=r, num_iter=2, burn_in=1, p=0.05,
+                ld_dict=make_ld(m, r), lrld_policy='nonsense',
+                verbose=False, print_progress=False)
 
     def test_varying_sample_sizes_path_runs(self):
         m, r = 300, 20

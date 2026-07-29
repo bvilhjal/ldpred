@@ -199,12 +199,20 @@ parser_gibbs.add_argument('--hickle-ld', default=False, action='store_true',
                     help='Use hickle instead of pickle for storing LD files.  This saves memory, but generally'
                     'takes more time to write and load. Requires hickle to be installed on your system, '
                     'see http://telegraphic.github.io/hickle/ for how to install.')
+parser_gibbs.add_argument('--long-range-ld', default=LDpred_gibbs.LRLD_DEFAULT,
+                    choices=LDpred_gibbs.LRLD_POLICIES,
+                    help='What to do with SNPs in long-range LD regions (Price et al. AJHG 2008; 34 regions, '
+                    '~5%% of the genome).  The LD radius cannot capture LD in those regions, so sampling them '
+                    'normally can stop the Gibbs sampler from converging.  '
+                    '\'inf\' (the default) holds them out of the sampler and reports their LDpred-inf effect '
+                    'estimates; it is the safest choice when you do not know whether a given region really '
+                    'carries long-range LD in your data.  '
+                    '\'exclude\' holds them out with a zero effect, removing them from the model and giving '
+                    'them a zero weight; prefer it when the regions genuinely do carry strong long-range LD.  '
+                    '\'include\' samples them like any other SNP.  '
+                    'See simulations/lrld_policy.py for the comparison behind these.')
 parser_gibbs.add_argument('--incl-long-range-ld', default=False, action='store_true',
-                    help='Includes SNPs that are located in long-range LD regions (Price et al. AJHG 2008; '
-                    '34 regions, ~5%% of the genome) in the Gibbs sampler.  By default they are held out of '
-                    'the sampler and reported with their LDpred-inf effect estimates instead, because the LD '
-                    'radius cannot capture LD in those regions and sampling them can stop the Gibbs sampler '
-                    'from converging.  Setting this flag samples them like any other SNP. ')
+                    help='Deprecated spelling of --long-range-ld include.')
 
 # parser_gibbs.add_argument('--gm-ldr', type=float, default=None, 
 #                     help='If this option is set, then a genetic map will be used to calculate LD-radius. '

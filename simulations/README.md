@@ -9,27 +9,33 @@ LDpred models LD as a band of ±`ld_radius` variants. Inside a long-range LD
 region — the MHC, a polymorphic inversion, a centromere — real LD extends far
 past that band, so the model is misspecified exactly there. LDpred ships the
 Price et al. (AJHG 2008) table of 34 such regions, lifted to hg38: **~168 Mb,
-about 5.4% of the genome**. `ldpred gibbs` excludes them unless
-`--incl-long-range-ld` is passed.
+about 5.4% of the genome**. `ldpred gibbs` holds them out of the sampler unless
+told otherwise, via `--long-range-ld {include,inf,exclude}`.
 
-Four policies are possible:
+Five arms are compared here; three of them are reachable from the command line.
 
-| policy | behaviour |
-|---|---|
-| `include` | sample those variants normally — this is `--incl-long-range-ld` |
-| `zero` | skip them in the sweep, emit weight 0 |
-| `inf` | skip them in the sweep, emit their LDpred-inf weight — **what LDpred now does** |
-| `drop` | remove them from the panel before LD is built |
+| arm | behaviour | exposed as |
+|---|---|---|
+| `include` | sample those variants normally | `--long-range-ld include` |
+| `zero` | skip them, keep them in the model at their LDpred-inf effect, emit weight 0 | — (the old behaviour) |
+| `inf` | skip them, keep them in the model, emit their LDpred-inf weight | `--long-range-ld inf` **(default)** |
+| `exclude` | skip them with a zero effect, so they leave the model, emit weight 0 | `--long-range-ld exclude` |
+| `drop` | remove them from the panel before LD is built | — (coordination-step only) |
 
-Under either skip policy the variant is frozen at its LDpred-inf effect
-*internally*, so it still absorbs LD from its neighbours. The two differ only in
-what gets written out. LDpred used to emit 0, contradicting its own `--help`
-text and silently dropping ~5% of the genome from the score; on the strength of
-the results below it now emits the LDpred-inf weight.
+A held-out variant stays frozen at whatever value it starts with, so that
+starting value decides two things at once: what it contributes to its
+neighbours' residuals, and what weight it is reported with. `zero` and `inf`
+keep it at its LDpred-inf effect, so it still absorbs LD from its neighbours,
+and differ only in what gets written out. `exclude` starts it at zero, so it
+contributes nothing and leaves the model altogether.
 
-The simulation sets the region's weights explicitly in every arm rather than
-inheriting whatever the sampler currently emits, so `zero` stays a real
-comparison rather than becoming a duplicate of `inf`.
+`zero` was LDpred's behaviour before this work: it contradicted the `--help`
+text and silently dropped ~5% of the genome from the score. It is kept here as
+a comparison arm but is no longer reachable.
+
+The simulation sets each arm's region weights explicitly rather than inheriting
+whatever the sampler currently emits, so the arms stay independent of the
+default.
 
 ### Running
 
@@ -48,16 +54,17 @@ the control**: a region that sits on the exclusion list but behaves normally.
 
 **Mean test R²**
 
-| policy | loading 0.0 *(control)* | 0.5 | 1.0 | 2.0 |
+| arm | loading 0.0 *(control)* | 0.5 | 1.0 | 2.0 |
 |---|---|---|---|---|
 | `include` | **0.435** | 0.014 | 0.029 | 0.080 |
 | `zero` | 0.324 | 0.328 | 0.329 | 0.330 |
 | `inf` | **0.444** | **0.374** | 0.300 | 0.288 |
+| `exclude` | 0.326 | 0.333 | **0.334** | **0.333** |
 | `drop` | 0.347 | 0.332 | **0.336** | **0.332** |
 
 **Sum of squared effects** (true h² = 0.5; far above it means the sampler diverged)
 
-| policy | 0.0 | 0.5 | 1.0 | 2.0 |
+| arm | 0.0 | 0.5 | 1.0 | 2.0 |
 |---|---|---|---|---|
 | `include` | 2.2 | **429.9** | **244.3** | **126.9** |
 | others | ~0.4–1.5 | ~0.5 | ~0.5 | ~0.5–0.8 |
@@ -76,17 +83,31 @@ the control**: a region that sits on the exclusion list but behaves normally.
    is broad and derived from 2008 European data; plenty of it may be benign for
    a given trait or ancestry.
 
-3. **`inf` is the only policy that is safe in both regimes.** It never diverges,
+3. **`inf` is the only arm that is safe in both regimes.** It never diverges,
    and it pays no exclusion penalty when the region is benign (0.444 vs 0.435
-   for `include`). `zero` and `drop` are safe but give up ~0.1 R² whenever the
-   region turns out fine. Under strong long-range LD, `zero`/`drop` edge ahead
-   of `inf` by ~0.03–0.04.
+   for `include`). `zero`, `exclude` and `drop` are all safe but give up
+   ~0.09–0.12 R² whenever the region turns out fine. Under strong long-range
+   LD they edge ahead of `inf` by ~0.03–0.04.
 
-**Implication, now implemented:** LDpred emits the LDpred-inf weight for skipped
-variants rather than zero, which is what its help text always claimed. A
-three-way option (`include` / `inf` / `drop`) would express the trade-off better
-than the current boolean, and is not implemented — under strong long-range LD
-`drop` is the best of the four, by ~0.03–0.04 over `inf`.
+4. **`exclude` is a faithful stand-in for `drop`.** Wherever there is real
+   long-range LD it matches the full panel rebuild to within noise (0.334 vs
+   0.336 at loading 1.0; 0.333 vs 0.332 at 2.0). It is cheaper because it needs
+   no re-derivation of LD, which is why it is the one exposed on the command
+   line. It falls short of `drop` only in the control column (0.326 vs 0.347),
+   which is the regime where `inf` is the right choice anyway.
+
+**Implemented as a three-way option**, `--long-range-ld {include,inf,exclude}`,
+defaulting to `inf`:
+
+- `inf` when you do not know whether a listed region really carries long-range
+  LD in your data — it is the only arm that is never bad.
+- `exclude` when the regions genuinely do carry strong long-range LD — it is
+  the best of the reachable arms at loading >= 0.5.
+- `include` only to reproduce the old (pre-fix) behaviour; expect divergence.
+
+`drop` itself is not exposed: rebuilding every retained variant's LD window on
+the reduced panel is a coordination-step operation, not something the sampler
+can do, and `exclude` captures nearly all of its benefit.
 
 ### Model and caveats
 

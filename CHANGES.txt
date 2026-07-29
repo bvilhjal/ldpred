@@ -14,6 +14,14 @@ Unreleased
   documentation has always described.  Scores over those regions, roughly 5%
   of the genome, will differ from previous releases.
 
+- New --long-range-ld {include,inf,exclude} for `ldpred gibbs`, replacing the
+  boolean --incl-long-range-ld, which still works but is deprecated.  'inf'
+  (the default) holds those SNPs out of the sampler and reports their
+  LDpred-inf weights; 'exclude' additionally removes them from the model and
+  reports zero weights, which is the better choice when the regions really do
+  carry strong long-range LD; 'include' samples them as before.  See
+  simulations/lrld_policy.py for the comparison.
+
 - The Gibbs sampler is compiled with Numba when it is available
   (`pip install ldpred[fast]`), about 12x faster.  Without Numba an equivalent
   NumPy implementation is used, so results are unchanged either way.

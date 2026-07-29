@@ -13,6 +13,49 @@ from ldpred import coord_genotypes
 from ldpred._numba import HAVE_NUMBA, _jit, numba_status
 
 
+# What to do with variants inside the long-range LD regions (Price et al. AJHG
+# 2008; 34 regions, ~5% of the genome).  LDpred models LD as a band of
+# +/- ld_radius, which cannot capture LD in those regions, so sampling them
+# normally can stop the Gibbs sampler from converging.
+#
+#   include   sample them like any other variant
+#   inf       hold them out of the sampler, report their LDpred-inf weight
+#   exclude   hold them out with a zero effect, so they leave the model
+#             entirely, and report a zero weight
+#
+# simulations/lrld_policy.py compares these.  'inf' is the default because it
+# is the only one that is safe in both regimes: it never diverges, and unlike
+# 'exclude' it costs nothing when a listed region turns out to behave normally.
+# 'exclude' is the better choice when a region really does carry strong
+# long-range LD.
+LRLD_INCLUDE = 'include'
+LRLD_INF = 'inf'
+LRLD_EXCLUDE = 'exclude'
+LRLD_POLICIES = (LRLD_INCLUDE, LRLD_INF, LRLD_EXCLUDE)
+LRLD_DEFAULT = LRLD_INF
+
+
+def resolve_lrld_policy(p_dict):
+    """Resolve the long-range LD policy from parsed command line arguments.
+
+    --incl-long-range-ld is the historical boolean spelling of
+    ``--long-range-ld include``.  It still works, but warns.
+    """
+    policy = p_dict.get('long_range_ld') or LRLD_DEFAULT
+    if p_dict.get('incl_long_range_ld'):
+        if policy != LRLD_DEFAULT:
+            raise ValueError(
+                '--incl-long-range-ld cannot be combined with --long-range-ld '
+                '%s; use --long-range-ld include instead.' % policy)
+        print('\033[93m Warning: --incl-long-range-ld is deprecated. '
+              'Use --long-range-ld include instead. \033[0m')
+        policy = LRLD_INCLUDE
+    if policy not in LRLD_POLICIES:
+        raise ValueError('--long-range-ld must be one of %s, got %r'
+                         % (', '.join(LRLD_POLICIES), policy))
+    return policy
+
+
 def prepare_constants(ldpred_n,ns,m,p,h2,sampl_var_shrink_factor):
     Mp = m * p
     hdmp = (h2 / Mp)
@@ -202,10 +245,16 @@ def _gibbs_sweep_numpy(beta_hats, ld_flat, ld_offsets, ld_lengths, ld_starts,
 def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=None, ns= None, ld_radius=100,
                  num_iter=60, burn_in=10, p=None, zero_jump_prob=0.01, sampl_var_shrink_factor=0.9, 
                  tight_sampling=False,ld_dict=None, reference_ld_mats=None, ld_boundaries=None, 
-                 snp_lrld=None, verbose=False, print_progress=True):
+                 snp_lrld=None, lrld_policy=LRLD_DEFAULT, verbose=False, print_progress=True):
     """
-    LDpred (Gibbs Sampler) 
+    LDpred (Gibbs Sampler)
+
+    snp_lrld marks variants in long-range LD regions; lrld_policy says what to
+    do with them, and is ignored when snp_lrld is None.  See LRLD_POLICIES.
     """
+    if lrld_policy not in LRLD_POLICIES:
+        raise ValueError('lrld_policy must be one of %s, got %r'
+                         % (', '.join(LRLD_POLICIES), lrld_policy))
     # Set random seed to stabilize results
     np.random.seed(42) 
 
@@ -246,15 +295,22 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=None, n
 
     # Variants in long-range LD regions are held out of the sweep: the LD band
     # is badly misspecified there, and sampling them makes the chain diverge.
-    # They stay frozen at their LDpred-inf effect, so they still absorb LD from
-    # their neighbours.  Seed their posterior mean with that same effect, once,
-    # before the iterations begin.  The sweep never writes these entries, so the
-    # value persists and averaging it over the retained iterations returns it
-    # unchanged -- which is what the --incl-long-range-ld help text has always
-    # promised.  Leaving them at zero instead silently dropped ~5% of the genome
-    # from the score; see simulations/lrld_policy.py for the comparison.
+    # Skipped variants stay frozen at whatever value they start with, so the
+    # starting value decides both what they contribute to their neighbours'
+    # residuals and, via curr_post_means, what weight they are reported with.
+    # See simulations/lrld_policy.py for the comparison behind the default.
     if skip_mask.any():
-        curr_post_means[skip_mask] = curr_betas[skip_mask]
+        if lrld_policy == 'exclude':
+            # Out of the model entirely: a zero effect contributes nothing to
+            # any neighbour, and the posterior mean stays at its initial zero,
+            # so the reported weight is zero too.
+            curr_betas[skip_mask] = 0.0
+        else:                                     # 'inf'
+            # Held out of sampling but kept in the model at the LDpred-inf
+            # effect, and reported with it. The sweep never writes these
+            # entries, so averaging the seeded value over the retained
+            # iterations returns it unchanged.
+            curr_post_means[skip_mask] = curr_betas[skip_mask]
 
     sweep = _gibbs_sweep_jit if HAVE_NUMBA else _gibbs_sweep_numpy
 
@@ -296,7 +352,7 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=None, n
 
 def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_prefix=None, 
                       summary_dict=None, ps=None,n=None, h2=None, use_gw_h2=False, 
-                      sampl_var_shrink_factor=1, incl_long_range_ld=False,
+                      sampl_var_shrink_factor=1, lrld_policy=LRLD_DEFAULT,
                       num_iter=None, verbose=False, zero_jump_prob=0.01, 
                       burn_in=5):
     """
@@ -349,7 +405,7 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
                                                 h2=h2_chrom, n=mean_n, ld_window_size=2 * ld_radius, verbose=verbose)
             LDpred_inf_chrom_dict[chrom_str] = start_betas
 
-    if not incl_long_range_ld:
+    if lrld_policy != 'include':
         lrld_dict = util.load_lrld_dict()
         num_snps_in_lrld = 0
     
@@ -396,7 +452,7 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
                 h2_chrom = herit_dict[chrom_str]['h2']
 
                 snp_lrld = None
-                if not incl_long_range_ld:
+                if lrld_policy != 'include':
                     # Key off the group name, not the loop counter: chromosomes_list
                     # runs to 24 entries while the long-range LD table is keyed 1-23.
                     snp_lrld = util.get_snp_lrld_status(chrom_str, positions, lrld_dict)
@@ -411,7 +467,7 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
                                         verbose=verbose, num_iter=num_iter, burn_in=burn_in, ld_dict=chrom_ld_dict[chrom_str],
                                         start_betas=LDpred_inf_chrom_dict[chrom_str], ld_boundaries=ld_boundaries,
                                         zero_jump_prob=zero_jump_prob,sampl_var_shrink_factor=sampl_var_shrink_factor,
-                                        snp_lrld=snp_lrld, print_progress=False)
+                                        snp_lrld=snp_lrld, lrld_policy=lrld_policy, print_progress=False)
                 
                 updated_betas = res_dict['betas']
                 updated_inf_betas = res_dict['inf_betas']
@@ -444,8 +500,15 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
                         r2 = corr ** 2
                         print('The R2 prediction accuracy of PRS using %s was: %0.4f' % (chrom_str, r2))
 
-        if not incl_long_range_ld:
+        if lrld_policy != LRLD_INCLUDE:
             summary_dict[1.3]={'name':'SNPs in long-range LD regions','value':'%d'%num_snps_in_lrld}
+            summary_dict[1.31]={
+                'name':'Long-range LD handling',
+                'value':('held out, LDpred-inf weights' if lrld_policy == LRLD_INF
+                         else 'held out, zero weights')}
+        else:
+            summary_dict[1.31]={'name':'Long-range LD handling',
+                                'value':'sampled like any other SNP'}
         
         if not verbose:
             sys.stdout.write('\r%0.2f%%\n' % (100.0))
@@ -514,7 +577,7 @@ def main(p_dict):
     summary_dict[1.9]={'name':'dash', 'value':'LDpred Gibbs sampler'}
     ldpred_genomewide(data_file=p_dict['cf'], out_file_prefix=p_dict['out'], ps=p_dict['f'], ld_radius=p_dict['ldr'],
                       ld_dict=ld_dict, n=p_dict['N'], num_iter=p_dict['n_iter'], burn_in=p_dict['n_burn_in'], 
-                      h2=p_dict['h2'], use_gw_h2=p_dict['use_gw_h2'], incl_long_range_ld=p_dict['incl_long_range_ld'], 
+                      h2=p_dict['h2'], use_gw_h2=p_dict['use_gw_h2'], lrld_policy=resolve_lrld_policy(p_dict), 
                       sampl_var_shrink_factor=1, verbose=p_dict['debug'], summary_dict=summary_dict)
     t1 = time.time()
     t = (t1 - t0)

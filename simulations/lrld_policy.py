@@ -61,7 +61,7 @@ import numpy as np
 
 from ldpred import LDpred_gibbs, LDpred_inf, ld
 
-POLICIES = ('include', 'zero', 'inf', 'drop')
+POLICIES = ('include', 'zero', 'inf', 'exclude', 'drop')
 
 
 def simulate_panel(rng, n, m, rho, lrld_slice, lrld_loading):
@@ -122,8 +122,18 @@ def weights_for_policy(policy, beta_hat, ld_ret, ref_panel, lrld_mask,
         w[keep] = res['betas']
         return w
 
+    # 'exclude' removes the region from the model without rebuilding LD: the
+    # held-out variants start at zero, and since skipped variants stay frozen at
+    # their starting value they contribute nothing to their neighbours'
+    # residuals. That is the part of 'drop' reachable at sampling time --
+    # 'drop' additionally re-derives every retained variant's LD window on the
+    # reduced panel, which only the coordination step can do.
+    start = inf_betas.copy()
+    if policy == 'exclude':
+        start[lrld_mask] = 0.0
+
     res = LDpred_gibbs.ldpred_gibbs(
-        beta_hat, start_betas=inf_betas.copy(), h2=h2, n=n_gwas, ns=None,
+        beta_hat, start_betas=start, h2=h2, n=n_gwas, ns=None,
         ld_radius=ld_radius, num_iter=num_iter, burn_in=burn_in, p=p,
         ld_dict=ld_ret['ld_dict'],
         snp_lrld=None if policy == 'include' else lrld_mask,
@@ -132,7 +142,7 @@ def weights_for_policy(policy, beta_hat, ld_ret, ref_panel, lrld_mask,
     # Set the region's weights explicitly rather than relying on whatever the
     # sampler currently emits for skipped variants.  That default is the thing
     # under comparison here, so the arms must not inherit it.
-    if policy == 'zero':
+    if policy in ('zero', 'exclude'):
         w[lrld_mask] = 0.0
     elif policy == 'inf':
         w[lrld_mask] = inf_betas[lrld_mask]
