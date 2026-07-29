@@ -1,5 +1,28 @@
 ===================== Brief and incoplete release notes =====================
 
+Unreleased
+
+- LDpred now runs on current NumPy/SciPy.  Earlier versions failed at import
+  because SciPy removed the NumPy aliases they relied on.
+
+- BEHAVIOUR CHANGE: the long-range LD exclusion now actually works.  It was a
+  silent no-op in every previous release, because the region table was stored
+  under a key that the lookup never read, so no variant was ever excluded.
+  With `ldpred gibbs` and without --incl-long-range-ld, variants in the 34
+  Price et al. (2008) long-range LD regions are now held out of the Gibbs
+  sampler and reported with their LDpred-inf effect estimates, as the flag's
+  documentation has always described.  Scores over those regions, roughly 5%
+  of the genome, will differ from previous releases.
+
+- The Gibbs sampler is compiled with Numba when it is available
+  (`pip install ldpred[fast]`), about 12x faster.  Without Numba an equivalent
+  NumPy implementation is used, so results are unchanged either way.
+
+- AUC is computed by the rank (Mann-Whitney) form rather than a threshold
+  sweep.  This is much faster on large validation sets and, unlike the old
+  version, handles tied scores correctly.
+
+
 Nov 20th, 2019, v 1.0.11
 
 - Implemented Joel Mefford's sparsified BLUP prediction (Mefford, thesis 2018), which we dub LDpred-fast. LDpred-fast may be 

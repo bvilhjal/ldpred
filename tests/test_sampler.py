@@ -144,6 +144,49 @@ class SamplerSmokeTests(unittest.TestCase):
         self.assertEqual(res['betas'].shape, (m,))
         self.assertTrue(np.all(np.isfinite(res['betas'])))
 
+    def test_skipped_variants_get_their_ldpred_inf_weight(self):
+        """Long-range LD variants come back with their starting effect.
+
+        They are held out of the sweep because the LD band is misspecified
+        there, but they must still carry their LDpred-inf weight into the
+        output, which is what --incl-long-range-ld's help text promises.  They
+        used to come back as zeros, silently dropping ~5% of the genome.
+        """
+        m, r = 300, 20
+        rng = np.random.default_rng(5)
+        start_betas = rng.standard_normal(m) * 1e-3 + 0.05   # distinctive
+        snp_lrld = np.zeros(m, dtype=bool)
+        snp_lrld[100:130] = True
+        res = LDpred_gibbs.ldpred_gibbs(
+            rng.standard_normal(m) * 2e-3, start_betas=start_betas.copy(),
+            h2=0.3, n=2e5, ns=None, ld_radius=r, num_iter=20, burn_in=5,
+            p=0.05, ld_dict=make_ld(m, r), snp_lrld=snp_lrld,
+            verbose=False, print_progress=False)
+        np.testing.assert_allclose(res['betas'][snp_lrld],
+                                   start_betas[snp_lrld], rtol=1e-12)
+        self.assertTrue(np.all(res['betas'][snp_lrld] != 0.0))
+        # Retained variants are still sampled, so they must not simply echo
+        # their starting values.
+        self.assertTrue(np.any(res['betas'][~snp_lrld] != start_betas[~snp_lrld]))
+
+    def test_skipped_variants_are_unaffected_by_iteration_count(self):
+        """Averaging a constant over the retained sweeps returns it unchanged."""
+        m, r = 200, 15
+        rng = np.random.default_rng(6)
+        start_betas = rng.standard_normal(m) * 1e-3 + 0.02
+        snp_lrld = np.zeros(m, dtype=bool)
+        snp_lrld[50:70] = True
+        kw = dict(h2=0.3, n=2e5, ns=None, ld_radius=r, p=0.05,
+                  ld_dict=make_ld(m, r), snp_lrld=snp_lrld,
+                  verbose=False, print_progress=False)
+        beta_hats = rng.standard_normal(m) * 2e-3
+        a = LDpred_gibbs.ldpred_gibbs(beta_hats.copy(), num_iter=15, burn_in=5,
+                                      start_betas=start_betas.copy(), **kw)
+        b = LDpred_gibbs.ldpred_gibbs(beta_hats.copy(), num_iter=40, burn_in=10,
+                                      start_betas=start_betas.copy(), **kw)
+        np.testing.assert_allclose(a['betas'][snp_lrld], b['betas'][snp_lrld],
+                                   rtol=1e-12)
+
     def test_varying_sample_sizes_path_runs(self):
         m, r = 300, 20
         rng = np.random.default_rng(4)

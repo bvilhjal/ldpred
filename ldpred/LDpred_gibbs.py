@@ -244,6 +244,18 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=None, n
     else:
         skip_mask = np.asarray(snp_lrld, dtype=bool)
 
+    # Variants in long-range LD regions are held out of the sweep: the LD band
+    # is badly misspecified there, and sampling them makes the chain diverge.
+    # They stay frozen at their LDpred-inf effect, so they still absorb LD from
+    # their neighbours.  Seed their posterior mean with that same effect, once,
+    # before the iterations begin.  The sweep never writes these entries, so the
+    # value persists and averaging it over the retained iterations returns it
+    # unchanged -- which is what the --incl-long-range-ld help text has always
+    # promised.  Leaving them at zero instead silently dropped ~5% of the genome
+    # from the score; see simulations/lrld_policy.py for the comparison.
+    if skip_mask.any():
+        curr_post_means[skip_mask] = curr_betas[skip_mask]
+
     sweep = _gibbs_sweep_jit if HAVE_NUMBA else _gibbs_sweep_numpy
 
     for k in range(num_iter):  # Big iteration

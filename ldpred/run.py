@@ -200,8 +200,11 @@ parser_gibbs.add_argument('--hickle-ld', default=False, action='store_true',
                     'takes more time to write and load. Requires hickle to be installed on your system, '
                     'see http://telegraphic.github.io/hickle/ for how to install.')
 parser_gibbs.add_argument('--incl-long-range-ld', default=False, action='store_true',
-                    help='Includes SNPs that are located in long-range LD regions in the Gibbs sampler. The '
-                    'LD-pred inf effect estimates are used for these by default. ')
+                    help='Includes SNPs that are located in long-range LD regions (Price et al. AJHG 2008; '
+                    '34 regions, ~5%% of the genome) in the Gibbs sampler.  By default they are held out of '
+                    'the sampler and reported with their LDpred-inf effect estimates instead, because the LD '
+                    'radius cannot capture LD in those regions and sampling them can stop the Gibbs sampler '
+                    'from converging.  Setting this flag samples them like any other SNP. ')
 
 # parser_gibbs.add_argument('--gm-ldr', type=float, default=None, 
 #                     help='If this option is set, then a genetic map will be used to calculate LD-radius. '

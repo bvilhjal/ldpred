@@ -17,13 +17,19 @@ Four policies are possible:
 | policy | behaviour |
 |---|---|
 | `include` | sample those variants normally — this is `--incl-long-range-ld` |
-| `zero` | skip them in the sweep, emit weight 0 — **what the code does today** |
-| `inf` | skip them in the sweep, emit their LDpred-inf weight — **what `--help` claims** |
+| `zero` | skip them in the sweep, emit weight 0 |
+| `inf` | skip them in the sweep, emit their LDpred-inf weight — **what LDpred now does** |
 | `drop` | remove them from the panel before LD is built |
 
-Under `zero`, a skipped variant is frozen at its LDpred-inf effect *internally*,
-so it still absorbs LD from its neighbours, but its own posterior mean is never
-written and stays 0.
+Under either skip policy the variant is frozen at its LDpred-inf effect
+*internally*, so it still absorbs LD from its neighbours. The two differ only in
+what gets written out. LDpred used to emit 0, contradicting its own `--help`
+text and silently dropping ~5% of the genome from the score; on the strength of
+the results below it now emits the LDpred-inf weight.
+
+The simulation sets the region's weights explicitly in every arm rather than
+inheriting whatever the sampler currently emits, so `zero` stays a real
+comparison rather than becoming a duplicate of `inf`.
 
 ### Running
 
@@ -76,10 +82,11 @@ the control**: a region that sits on the exclusion list but behaves normally.
    region turns out fine. Under strong long-range LD, `zero`/`drop` edge ahead
    of `inf` by ~0.03–0.04.
 
-**Implication:** the evidence favours making the code honour its own help text,
-i.e. emitting the LDpred-inf weight for skipped variants rather than zero. A
+**Implication, now implemented:** LDpred emits the LDpred-inf weight for skipped
+variants rather than zero, which is what its help text always claimed. A
 three-way option (`include` / `inf` / `drop`) would express the trade-off better
-than the current boolean.
+than the current boolean, and is not implemented — under strong long-range LD
+`drop` is the best of the four, by ~0.03–0.04 over `inf`.
 
 ### Model and caveats
 

@@ -129,7 +129,12 @@ def weights_for_policy(policy, beta_hat, ld_ret, ref_panel, lrld_mask,
         snp_lrld=None if policy == 'include' else lrld_mask,
         verbose=False, print_progress=False)
     w = res['betas'].copy()
-    if policy == 'inf':
+    # Set the region's weights explicitly rather than relying on whatever the
+    # sampler currently emits for skipped variants.  That default is the thing
+    # under comparison here, so the arms must not inherit it.
+    if policy == 'zero':
+        w[lrld_mask] = 0.0
+    elif policy == 'inf':
         w[lrld_mask] = inf_betas[lrld_mask]
     return w
 
