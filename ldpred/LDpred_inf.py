@@ -1,7 +1,7 @@
 import sys
 import time
 import h5py
-import scipy as sp
+import numpy as np
 from scipy import linalg
 from ldpred import util
 from ldpred import ld
@@ -25,27 +25,39 @@ def ldpred_inf(beta_hats, h2=0.1, n=1000, inf_shrink_matrices=None,
         print('Doing LD correction')
     t0 = time.time()
     m = len(beta_hats)
-    updated_betas = sp.empty(m)
+    updated_betas = np.empty(m)
 
     for i, wi in enumerate(range(0, m, ld_window_size)):
         start_i = wi
         stop_i = min(m, wi + ld_window_size)
         curr_window_size = stop_i - start_i
-        if inf_shrink_matrices!=None:
+        if inf_shrink_matrices is not None:
             A_inv = inf_shrink_matrices[i]
+            updated_betas[start_i: stop_i] = np.dot(A_inv * n , beta_hats[start_i: stop_i])  # Adjust the beta_hats
         else:
-            if reference_ld_mats != None:
+            if reference_ld_mats is not None:
                 D = reference_ld_mats[i]
             else:
-                if genotypes != None:
+                if genotypes is not None:
                     X = genotypes[start_i: stop_i]
                     num_indivs = X.shape[1]
-                    D = sp.dot(X, X.T) / num_indivs
+                    D = np.dot(X, X.T) / num_indivs
                 else:
                     raise NotImplementedError
-            A = ((m / h2) * sp.eye(curr_window_size) + (n / (1.0)) * D)
-            A_inv = linalg.pinv(A)
-        updated_betas[start_i: stop_i] = sp.dot(A_inv * n , beta_hats[start_i: stop_i])  # Adjust the beta_hats
+            A = ((m / h2) * np.eye(curr_window_size) + (n / (1.0)) * D)
+            # Solve A x = n * beta_hat rather than inverting A.  A is
+            # (m/h2) I + n D, so it is symmetric and normally positive
+            # definite, and a Cholesky solve is several times cheaper than the
+            # SVD behind pinv.  Shrinking D can cost positive definiteness, so
+            # fall back to the general symmetric solver and then to pinv.
+            b = n * beta_hats[start_i: stop_i]
+            try:
+                updated_betas[start_i: stop_i] = linalg.solve(A, b, assume_a='pos')
+            except linalg.LinAlgError:
+                try:
+                    updated_betas[start_i: stop_i] = linalg.solve(A, b, assume_a='sym')
+                except linalg.LinAlgError:
+                    updated_betas[start_i: stop_i] = np.dot(linalg.pinv(A), b)
 
         if verbose:
             sys.stdout.write('\r%0.2f%%' % (100.0 * (min(1, float(wi + ld_window_size) / m))))
@@ -69,7 +81,7 @@ def ldpred_inf_genomewide(data_file=None, ld_radius = None, ld_dict=None, out_fi
     if has_phenotypes:
         y = df['y'][...]  # Phenotype
         num_individs = len(y)
-        risk_scores_pval_derived = sp.zeros(num_individs)
+        risk_scores_pval_derived = np.zeros(num_individs)
 
     ld_scores_dict = ld_dict['ld_scores_dict']
     chrom_ref_ld_mats = ld_dict['chrom_ref_ld_mats']
@@ -122,9 +134,9 @@ def ldpred_inf_genomewide(data_file=None, ld_radius = None, ld_dict=None, out_fi
             updated_betas = updated_betas / (snp_stds.flatten())
             ldpred_effect_sizes.extend(updated_betas)
             if has_phenotypes:
-                prs = sp.dot(updated_betas, raw_snps)
+                prs = np.dot(updated_betas, raw_snps)
                 risk_scores_pval_derived += prs
-                corr = sp.corrcoef(y, prs)[0, 1]
+                corr = np.corrcoef(y, prs)[0, 1]
                 r2 = corr ** 2
                 if verbose:
                     print('The R2 prediction accuracy of PRS using %s was: %0.4f' %(chrom_str, r2))
@@ -136,7 +148,7 @@ def ldpred_inf_genomewide(data_file=None, ld_radius = None, ld_dict=None, out_fi
         results_dict['risk_scores_pd']=risk_scores_pval_derived
         print('Prediction accuracy was assessed using %d individuals.'%(num_indivs))
 
-        corr = sp.corrcoef(y, risk_scores_pval_derived)[0, 1]
+        corr = np.corrcoef(y, risk_scores_pval_derived)[0, 1]
         r2 = corr ** 2
         results_dict['r2_pd']=r2
         print('The  R2 prediction accuracy (observed scale) for the whole genome was: %0.4f (%0.6f)' % (r2, ((1-r2)**2)/num_indivs))
@@ -147,9 +159,9 @@ def ldpred_inf_genomewide(data_file=None, ld_radius = None, ld_dict=None, out_fi
         print('AUC for the whole genome was: %0.4f'%auc)
 
         #Now calibration                               
-        denominator = sp.dot(risk_scores_pval_derived.T, risk_scores_pval_derived)
-        y_norm = (y-sp.mean(y))/sp.std(y)
-        numerator = sp.dot(risk_scores_pval_derived.T, y_norm)
+        denominator = np.dot(risk_scores_pval_derived.T, risk_scores_pval_derived)
+        y_norm = (y-np.mean(y))/np.std(y)
+        numerator = np.dot(risk_scores_pval_derived.T, y_norm)
         regression_slope = (numerator / denominator)
         print('The slope for predictions with P-value derived  effects is: %0.4f'%regression_slope)
         results_dict['slope_pd']=regression_slope

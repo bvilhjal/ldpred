@@ -2,7 +2,7 @@
 Various general utility functions.
 
 """
-import scipy as sp
+import numpy as np
 from scipy import stats
 import pickle
 import gzip
@@ -14,7 +14,6 @@ import re
 
 # LDpred currently ignores the Y and MT chromosomes.
 ok_chromosomes = set(range(1, 24))
-chromosomes_list = ['chrom_%d' % (chrom) for chrom in ok_chromosomes]
 
 chrom_name_map = {'X':23,'chr_X':23,'chrom_X':23}
 for chrom in ok_chromosomes:
@@ -33,7 +32,9 @@ opp_strand_dict = {'A': 'T', 'G': 'C', 'T': 'A', 'C': 'G'}
 valid_nts = set(['A', 'T', 'C', 'G'])
 
 
-# LDpred currently ignores the Y and MT chromosomes.
+# LDpred currently ignores the Y and MT chromosomes.  Note that X is stored as
+# chromosome 23 in coordinated data (see chrom_name_map), so 'chrom_X' never
+# matches a group; it is kept here only so the ordering is unchanged.
 valid_chromosomes = ['%d' % (x) for x in range(1, 24)]
 valid_chromosomes.append('X')
 
@@ -64,8 +65,8 @@ def calc_auc(y_true, y_hat, show_plot=False):
     """
     Calculate the Area Under the Curve (AUC) for a predicted and observed case-control phenotype.
     """
-    y_true = sp.copy(y_true)
-    if len(sp.unique(y_true)) == 2:
+    y_true = np.copy(y_true)
+    if len(np.unique(y_true)) == 2:
         y_min = y_true.min()
         y_max = y_true.max()
         if y_min != 0 or y_max != 1:
@@ -75,43 +76,36 @@ def calc_auc(y_true, y_hat, show_plot=False):
         
     else:
         print('Warning: Calculating AUC for a quantitative phenotype.')
-        y_mean = sp.mean(y_true)
+        y_mean = np.mean(y_true)
         zero_filter = y_true <= y_mean
         one_filter = y_true > y_mean
         y_true[zero_filter] = 0
         y_true[one_filter] = 1
 
-    num_cases = sp.sum(y_true == 1)
-    num_controls = sp.sum(y_true == 0)
+    num_cases = np.sum(y_true == 1)
+    num_controls = np.sum(y_true == 0)
     assert num_cases + num_controls == len(y_true), 'The phenotype is not defined as expected. It is not binary (0 1 case-control status).'
     print('%d cases, %d controls' % (num_cases, num_controls)) 
     
-    num_indivs = float(len(y_true))
-    tot_num_pos = float(sp.sum(y_true))
-    tot_num_neg = float(num_indivs - tot_num_pos)
-        
-    l = y_hat.tolist()
-    l.sort(reverse=True)
-    roc_x = []
-    roc_y = []
-    auc = 0.0
-    prev_fpr = 0.0
-    for thres in l:
-        thres_filter = y_hat >= thres
-        y_t = y_true[thres_filter]
-        n = len(y_t)
-        tp = sp.sum(y_t)
-        fp = n - tp
-        
-        fpr = fp / tot_num_neg
-        tpr = tp / tot_num_pos
-        roc_x.append(fpr)
-        roc_y.append(tpr)
-        delta_fpr = fpr - prev_fpr
-        auc += tpr * delta_fpr
-        prev_fpr = fpr
+    y_hat = np.asarray(y_hat)
+
+    # The AUC is the probability that a randomly drawn case scores above a
+    # randomly drawn control, which is the cases' rank sum rescaled (the
+    # Mann-Whitney U statistic).  rankdata averages tied ranks, so ties
+    # contribute a half each, and the whole thing is one O(n log n) sort.  The
+    # previous version swept every observed score as a threshold and rescanned
+    # the full prediction vector at each one, which is O(n^2).
+    ranks = stats.rankdata(y_hat)
+    auc = ((ranks[y_true == 1].sum() - num_cases * (num_cases + 1) / 2.0)
+           / float(num_cases * num_controls))
     print('AUC: %0.4f' % auc)
     if show_plot:
+        # Sweep the scores from high to low and accumulate the case/control
+        # counts to trace the ROC in one pass.
+        order = np.argsort(-y_hat, kind='mergesort')
+        y_sorted = y_true[order]
+        roc_y = np.concatenate([[0.0], np.cumsum(y_sorted == 1) / float(num_cases)])
+        roc_x = np.concatenate([[0.0], np.cumsum(y_sorted == 0) / float(num_controls)])
         import pylab
         pylab.plot(roc_x, roc_y)
         pylab.show()
@@ -150,6 +144,29 @@ def obs_r2_to_liab(R2_osb,K=0.01,P=0.5):
     R2_liab_cc =  (R2_osb*C)/(1+(R2_osb*C*theta))
     return R2_liab_cc
     
+def get_LDpred_sample_size(n,ns,verbose):
+    if n is None:
+        #If coefficient of variation is very small, then use one N nevertheless.
+        n_cv = np.std(ns)/np.mean(ns)
+        if n_cv<0.01:
+            ldpred_n = np.mean(ns)
+            if verbose:
+                print ("Sample size does not vary much (CV=%0.4f).  Using a fixed sample size of %0.2f"%(n_cv,ldpred_n))
+        else:
+            if verbose:
+                print ("Using varying sample sizes")
+                print ("Sample size ranges between %d and %d"%(min(ns),max(ns)))
+                print ("Average sample size is %0.2f "%(np.mean(ns)))
+        ldpred_inf_n = np.mean(ns)
+        ldpred_n = None
+    else:
+        ldpred_n = float(n)
+        if verbose:
+            print ("Using the given fixed sample size of %d"%(n))
+        ldpred_inf_n = float(n)
+    return ldpred_n,ldpred_inf_n
+
+
 def load_hapmap_SNPs():
     f = gzip.open(hm3_file, 'r')
     hm3_sids = pickle.load(f)
@@ -165,25 +182,35 @@ def load_lrld_dict():
     with open(lrld_file, 'r') as f:
         for line in f:
             l = line.split()
-            d[chrom_name_map[l[0]]][l[3]] = {'start_pos':int(l[1]), 'end_pos':int(l[2])}
+            d[chrom_name_map[l[0]]]['reg_dict'][l[3]] = {'start_pos':int(l[1]), 'end_pos':int(l[2])}
     return d
 
 
+def get_lrld_chrom_key(chromosome):
+    """Resolve a chromosome label to the key used by :func:`load_lrld_dict`.
+
+    Accepts the 'chrom_<n>' group names used in coordinated data, a bare
+    number, or an int.  X maps to 23, matching how coordinated data stores it.
+    """
+    if isinstance(chromosome, str):
+        return chrom_name_map[chromosome]
+    return int(chromosome)
+
+
 def is_in_lrld(chrom, pos, lrld_dict):
-    if len(lrld_dict[chrom]['reg_dict'])==0:
-        return False
-    else:
-        for lrld_reg in lrld_dict[chrom]['reg_dict']:
-            if lrld_reg['start_pos'] < pos < lrld_reg['end_pos']:
-                return True
-        else:
-            return False
+    for lrld_reg in lrld_dict[get_lrld_chrom_key(chrom)]['reg_dict'].values():
+        if lrld_reg['start_pos'] < pos < lrld_reg['end_pos']:
+            return True
+    return False
 
 
 def get_snp_lrld_status(chromosome, positions, lrld_dict):
-    snp_lrld = sp.zeros(len(positions))
-    for snp_i in range(len(positions)):
-        snp_lrld[snp_i] = is_in_lrld(chromosome, positions[snp_i], lrld_dict)
+    """Boolean mask marking which positions fall in a long-range LD region."""
+    positions = np.asarray(positions)
+    snp_lrld = np.zeros(len(positions), dtype=bool)
+    for lrld_reg in lrld_dict[get_lrld_chrom_key(chromosome)]['reg_dict'].values():
+        snp_lrld |= ((positions > lrld_reg['start_pos'])
+                     & (positions < lrld_reg['end_pos']))
     return snp_lrld
     
 def is_gz(name):

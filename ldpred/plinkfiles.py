@@ -3,7 +3,7 @@ Code for handling plink files.
 
 Uses plinkio.
 """
-import scipy as sp
+import numpy as np
 from plinkio import plinkfile
 
 def get_chrom_dict(loci, chromosomes, debug=False):
@@ -31,9 +31,9 @@ def parse_plink_snps(genotype_file, snp_indices):
     samples = plinkf.get_samples()
     num_individs = len(samples)
     num_snps = len(snp_indices)
-    raw_snps = sp.empty((num_snps, num_individs), dtype='int8')
+    raw_snps = np.empty((num_snps, num_individs), dtype='int8')
     # If these indices are not in order then we place them in the right place while parsing SNPs.
-    snp_order = sp.argsort(snp_indices)
+    snp_order = np.argsort(snp_indices)
     ordered_snp_indices = list(snp_indices[snp_order])
     ordered_snp_indices.reverse()
     # Iterating over file to load SNPs
@@ -46,10 +46,10 @@ def parse_plink_snps(genotype_file, snp_indices):
             next(plinkf)
         elif line_i == next_i:
             line = next(plinkf)
-            snp = sp.array(line, dtype='int8')
+            snp = np.array(line, dtype='int8')
             bin_counts = line.allele_counts()
             if bin_counts[-1] > 0:
-                mode_v = sp.argmax(bin_counts[:2])
+                mode_v = np.argmax(bin_counts[:2])
                 snp[snp == 3] = mode_v
             s_i = snp_order[snp_i]
             raw_snps[s_i] = snp
@@ -60,7 +60,7 @@ def parse_plink_snps(genotype_file, snp_indices):
     plinkf.close()
     assert snp_i == len(raw_snps), 'Parsing SNPs from plink file failed.'
     num_indivs = len(raw_snps[0])
-    freqs = sp.sum(raw_snps, 1, dtype='float32') / (2 * float(num_indivs))
+    freqs = np.sum(raw_snps, 1, dtype='float32') / (2 * float(num_indivs))
     return raw_snps, freqs
 
 def get_num_indivs(genotype_file):
@@ -75,12 +75,12 @@ def get_phenotypes(plinkf, debug=False):
     Y = [s.phenotype for s in samples]
     fids = [s.fid for s in samples]
     iids = [s.iid for s in samples]
-    unique_phens = sp.unique(Y)
+    unique_phens = np.unique(Y)
     if len(unique_phens) == 1:
         print('Unable to find phenotype values.')
         has_phenotype = False
     elif len(unique_phens) == 2:
-        cc_bins = sp.bincount(Y)
+        cc_bins = np.bincount(Y)
         assert len(cc_bins) == 2, 'Problems with loading phenotype'
         if debug:
             print('Loaded %d controls and %d cases' % (cc_bins[0], cc_bins[1]))

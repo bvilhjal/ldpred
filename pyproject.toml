@@ -1,0 +1,76 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ldpred"
+dynamic = ["version"]                 # single-sourced from ldpred.__version__
+description = "A Python package that adjusts GWAS summary statistics for the effects of linkage disequilibrium (LD)"
+readme = "README.md"
+requires-python = ">=3.9"
+license = "MIT"
+license-files = ["LICENSE.txt"]
+authors = [{ name = "Bjarni J Vilhjalmsson", email = "bjarni.vilhjalmsson@gmail.com" }]
+keywords = ["Polygenic Risk Scores", "GWAS", "Linkage Disequilibrium", "Risk Prediction"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+# numpy>=1.20 for the modern dtype rules this code now relies on; scipy>=1.6
+# because the scipy namespace no longer re-exports numpy and the code no
+# longer expects it to. h5py and plinkio are unbounded, as before.
+dependencies = [
+    "numpy>=1.20",
+    "scipy>=1.6",
+    "h5py>=3.0",
+    "plinkio>=0.9.7",
+]
+
+[project.optional-dependencies]
+# Numba compiles the Gibbs sweep, the dominant cost in a genome-wide run
+# (~12x on the sampler). Optional: without it the sampler falls back to an
+# equivalent NumPy implementation.
+fast = ["numba>=0.57"]
+test = ["pytest>=7"]
+hickle = ["hickle>=4"]                # optional LD serialisation backend
+
+[project.urls]
+Homepage = "https://github.com/bvilhjal/ldpred"
+Repository = "https://github.com/bvilhjal/ldpred"
+Issues = "https://github.com/bvilhjal/ldpred/issues"
+
+[project.scripts]
+ldpred = "ldpred.run:main"
+ldpred-unittest = "tests.test:run_unit_tests"
+ldpred-inttest = "tests.test:run_integration_tests"
+
+[tool.setuptools]
+# `tests` stays an installed package because the ldpred-unittest and
+# ldpred-inttest console scripts import it. Note this pulls ~43 MB of golden
+# fixtures into site-packages; dropping it would shrink the wheel a lot but
+# would remove those two entry points.
+packages = ["ldpred", "tests"]
+
+[tool.setuptools.dynamic]
+version = { attr = "ldpred.__version__" }
+
+[tool.setuptools.package-data]
+ldpred = ["reference/hm3_sids.txt.gz", "reference/long-range-ld-price-2008hg38.txt"]
+tests = [
+    "test_data/sim*_0_test.fam",
+    "test_data/sim*_0_test.bim",
+    "test_data/sim*_0_test.bed",
+    "test_data/sim*_0_ss.txt",
+    "test_data/sim*_parameters.json",
+    "test_data/goldens/*",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
