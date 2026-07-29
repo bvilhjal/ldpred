@@ -1,0 +1,33 @@
+# Byte-compiled / cached
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Packaging / build
+build/
+dist/
+*.egg-info/
+.eggs/
+MANIFEST
+
+# Test and coverage output
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# Environments
+.venv/
+venv/
+env/
+
+# LDpred outputs that land in a working directory
+*.pkl.gz
+*.hkl
+
+# Editors / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
