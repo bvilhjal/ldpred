@@ -34,6 +34,10 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Numba compiles the Gibbs sweep, the dominant cost in a genome-wide run
+# (~12x on the sampler). Optional: without it the sampler falls back to an
+# equivalent NumPy implementation.
+fast = ["numba>=0.57"]
 test = ["pytest>=7"]
 hickle = ["hickle>=4"]                # optional LD serialisation backend
 

@@ -29,10 +29,17 @@ jobs:
       - name: Install LDpred and test dependencies
         run: |
           python -m pip install --upgrade pip setuptools wheel
-          python -m pip install -e ".[test]"
+          python -m pip install -e ".[test,fast]"
 
       - name: Unit tests
         run: python -m pytest tests/test_util.py -q
+
+      # The sampler has two interchangeable backends. Exercise the NumPy
+      # fallback too, so it cannot rot behind the compiled path.
+      - name: Unit tests (NumPy sampler fallback)
+        env:
+          LDPRED_DISABLE_NUMBA: "1"
+        run: python -m pytest tests/test_util.py tests/test_sampler.py -q
 
       # The golden-file suites. SimpleTests covers coord/inf/gibbs/fast/p+t and
       # scoring; ComplexTests runs the multi-chromosome mixtures and is slower.
@@ -42,6 +49,11 @@ jobs:
         run: |
           python -m unittest tests.test.SimpleTests -v
           python -m unittest tests.test.ComplexTests -v
+
+      - name: Integration tests with the NumPy sampler fallback
+        env:
+          LDPRED_DISABLE_NUMBA: "1"
+        run: python -m unittest tests.test.SimpleTests
 
   build:
     runs-on: ubuntu-latest
