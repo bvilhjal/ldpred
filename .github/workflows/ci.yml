@@ -32,14 +32,14 @@ jobs:
           python -m pip install -e ".[test,fast]"
 
       - name: Unit tests
-        run: python -m pytest tests/test_util.py -q
+        run: python -m pytest tests/test_util.py tests/test_sampler.py tests/test_lrld_simulation.py -q
 
       # The sampler has two interchangeable backends. Exercise the NumPy
       # fallback too, so it cannot rot behind the compiled path.
       - name: Unit tests (NumPy sampler fallback)
         env:
           LDPRED_DISABLE_NUMBA: "1"
-        run: python -m pytest tests/test_util.py tests/test_sampler.py -q
+        run: python -m pytest tests/test_util.py tests/test_sampler.py tests/test_lrld_simulation.py -q
 
       # The golden-file suites. SimpleTests covers coord/inf/gibbs/fast/p+t and
       # scoring; ComplexTests runs the multi-chromosome mixtures and is slower.
