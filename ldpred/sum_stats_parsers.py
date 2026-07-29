@@ -1,6 +1,5 @@
-import scipy as sp
+import numpy as np
 from scipy import stats
-from scipy import isfinite
 import gzip
 from ldpred import util
 import time
@@ -136,7 +135,7 @@ def parse_freq(line_dict, header_dict, reffreq, control_freq, case_freq, control
 
 def get_raw_beta(beta_read, eff_type):
     if eff_type=='OR':
-        raw_beta = sp.log(beta_read)
+        raw_beta = np.log(beta_read)
     elif eff_type=='LINREG' or eff_type=='LOGOR' or eff_type=='BLUP':
         raw_beta = beta_read
     else: 
@@ -147,12 +146,12 @@ def get_beta_from_se(beta_read, se_read, eff_type, raw_beta, N):
     if se_read==0:
         return 
     if eff_type=='LINREG' or eff_type=='LOGOR':
-        abs_beta = sp.absolute(beta_read)/se_read
+        abs_beta = np.absolute(beta_read)/se_read
     elif eff_type=='OR':
-        abs_beta = sp.absolute(1-beta_read)/se_read
+        abs_beta = np.absolute(1-beta_read)/se_read
     else: 
         raise Exception('Unknown effect type')      
-    return sp.sign(raw_beta) * abs_beta/ sp.sqrt(N)
+    return np.sign(raw_beta) * abs_beta/ np.sqrt(N)
 
 
 def get_beta(pval_read, raw_beta, beta_read, line_dict, header_dict, se, 
@@ -162,24 +161,24 @@ def get_beta(pval_read, raw_beta, beta_read, line_dict, header_dict, se,
     if z_from_se:
         assert se in header_dict, "SE was not specified in summary statistics provided, which is necessary when the 'z_from_se' flag is used."
         se_read = float(line_dict[header_dict[se]])
-        if se_read==0 or not isfinite(se_read):
+        if se_read==0 or not np.isfinite(se_read):
             return None
         se_inferred_zscores += 1
         return get_beta_from_se(beta_read, se_read, eff_type, raw_beta, N)
     else:
-        if pval_read==0 or not isfinite(stats.norm.ppf(pval_read)):
+        if pval_read==0 or not np.isfinite(stats.norm.ppf(pval_read)):
             #Attempt to Parse SEs to infer Z-score
             if not se in header_dict:
                 return None
             else:
                 se_read = float(line_dict[header_dict[se]])
-                if se_read==0 or not isfinite(se_read):
+                if se_read==0 or not np.isfinite(se_read):
                     return None
 
                 se_inferred_zscores += 1
                 return get_beta_from_se(beta_read, se_read, eff_type, raw_beta, N)
         else:               
-            return sp.sign(raw_beta) * stats.norm.ppf(pval_read / 2.0)/ sp.sqrt(N) 
+            return np.sign(raw_beta) * stats.norm.ppf(pval_read / 2.0)/ np.sqrt(N) 
 
 
 
@@ -316,7 +315,7 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
 
                 #Parse raw beta      
                 beta_read = float(l[header_dict[eff]])
-                if not isfinite(beta_read):
+                if not np.isfinite(beta_read):
                     invalid_beta += 1
                     continue
 
@@ -324,7 +323,7 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
 
                 #Parse p-value and effect size
                 pval_read = float(l[header_dict[pval]])
-                if pval_read==0 or not isfinite(stats.norm.ppf(pval_read)):
+                if pval_read==0 or not np.isfinite(stats.norm.ppf(pval_read)):
                     invalid_p += 1
 
 
@@ -399,7 +398,7 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
                 continue
             else:
                 prev_pos = pos
-            if not sp.isfinite(beta):
+            if not np.isfinite(beta):
                 num_non_finite += 1
                 continue
             ps.append(p)
@@ -411,14 +410,14 @@ def parse_sum_stats_custom(filename=None, bimfile=None, only_hm3=False, hdf5_fil
             infos.append(info)
             freqs.append(frq)
             ns.append(num_ind)
-        nts = sp.array(nts, dtype=util.nts_dtype)
-        sids = sp.array(sids, dtype=util.sids_dtype)
+        nts = np.array(nts, dtype=util.nts_dtype)
+        sids = np.array(sids, dtype=util.sids_dtype)
         if debug:
             if not num_non_finite == 0:
                 print('%d SNPs have non-finite statistics on chromosome %s' % (num_non_finite, chrom))
             print ('Still %d SNPs on chromosome %s' % (len(ps), chrom))
         g = ssg.create_group('chrom_%s' % chrom)
-        g.create_dataset('ps', data=sp.array(ps))
+        g.create_dataset('ps', data=np.array(ps))
         g.create_dataset('freqs', data=freqs)
         g.create_dataset('betas', data=betas)
         g.create_dataset('log_odds', data=log_odds)

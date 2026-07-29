@@ -1,7 +1,7 @@
 import sys
 import time
 
-import scipy as sp
+import numpy as np
 from scipy import stats
 import h5py
 
@@ -15,17 +15,17 @@ from ldpred import coord_genotypes
 def get_LDpred_sample_size(n,ns,verbose):
     if n is None:
         #If coefficient of variation is very small, then use one N nevertheless.
-        n_cv = sp.std(ns)/sp.mean(ns)
+        n_cv = np.std(ns)/np.mean(ns)
         if n_cv<0.01:
-            ldpred_n = sp.mean(ns)
+            ldpred_n = np.mean(ns)
             if verbose:
                 print ("Sample size does not vary much (CV=%0.4f).  Using a fixed sample size of %0.2f"%(n_cv,ldpred_n))
         else:
             if verbose:
                 print ("Using varying sample sizes")
                 print ("Sample size ranges between %d and %d"%(min(ns),max(ns)))
-                print ("Average sample size is %0.2f "%(sp.mean(ns)))
-        ldpred_inf_n = sp.mean(ns)
+                print ("Average sample size is %0.2f "%(np.mean(ns)))
+        ldpred_inf_n = np.mean(ns)
         ldpred_n = None
     else:
         ldpred_n = float(n)
@@ -39,31 +39,31 @@ def prepare_constants(ldpred_n,ns,m,p,h2,sampl_var_shrink_factor):
     Mp = m * p
     hdmp = (h2 / Mp)
     const_dict = {'Mp':Mp, 'hdmp':hdmp}
-    rv_scalars = sp.zeros(m)
+    rv_scalars = np.zeros(m)
     if ldpred_n is not None:
         hdmpn = hdmp + 1.0 / ldpred_n
         hdmp_hdmpn = (hdmp / hdmpn)
-        c_const = (p / sp.sqrt(hdmpn))
-        d_const = (1.0 - p) / (sp.sqrt(1.0 / ldpred_n))
+        c_const = (p / np.sqrt(hdmpn))
+        d_const = (1.0 - p) / (np.sqrt(1.0 / ldpred_n))
         const_dict['n']=ldpred_n
         const_dict['hdmpn']=hdmpn
         const_dict['hdmp_hdmpn']=hdmp_hdmpn
         const_dict['c_const']=c_const
         const_dict['d_const']=d_const
-        rv_scalars[:]=sampl_var_shrink_factor* sp.sqrt((hdmp_hdmpn) * (1.0 / ldpred_n))
+        rv_scalars[:]=sampl_var_shrink_factor* np.sqrt((hdmp_hdmpn) * (1.0 / ldpred_n))
     else:
         snp_dict = {}
         for i in range(m):
             ni = ns[i]
             hdmpn_i = hdmp + 1.0 / ni
             hdmp_hdmpn_i = (hdmp / hdmpn_i)
-            c_const_i = (p / sp.sqrt(hdmpn_i))
-            d_const_i = (1.0 - p) / (sp.sqrt(1.0 / ni))
+            c_const_i = (p / np.sqrt(hdmpn_i))
+            d_const_i = (1.0 - p) / (np.sqrt(1.0 / ni))
             snp_dict[i]={'n':ni, 'hdmpn':hdmpn_i, 
                            'hdmp_hdmpn':hdmp_hdmpn_i, 
                            'c_const':c_const_i, 
                            'd_const':d_const_i}
-            rv_scalars[i]=sampl_var_shrink_factor* sp.sqrt((hdmp_hdmpn_i) * (1.0 / ni))
+            rv_scalars[i]=sampl_var_shrink_factor* np.sqrt((hdmp_hdmpn_i) * (1.0 / ni))
         const_dict['snp_dict']=snp_dict
     const_dict['rv_scalars']=rv_scalars
     return const_dict
@@ -84,7 +84,7 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=None, n
     LDpred (Gibbs Sampler) 
     """
     # Set random seed to stabilize results
-    sp.random.seed(42) 
+    np.random.seed(42) 
 
     t0 = time.time()
     m = len(beta_hats)
@@ -98,28 +98,28 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=None, n
         print('Calculating LDpred-inf effects.')
         start_betas = LDpred_inf.ldpred_inf(beta_hats, genotypes=genotypes, reference_ld_mats=reference_ld_mats,
                                             h2=h2, n=ldpred_inf_n, ld_window_size=2 * ld_radius, verbose=False)
-    curr_betas = sp.copy(start_betas)
+    curr_betas = np.copy(start_betas)
     assert len(curr_betas)==m,'Betas returned by LDpred_inf do not have the same length as expected.'
-    curr_post_means = sp.zeros(m)
-    avg_betas = sp.zeros(m)
+    curr_post_means = np.zeros(m)
+    avg_betas = np.zeros(m)
 
     # Iterating over effect estimates in sequential order
-    iter_order = sp.arange(m)
+    iter_order = np.arange(m)
     
     # Setting up the marginal Bayes shrink
     const_dict = prepare_constants(ldpred_n,ns,m,p,h2,sampl_var_shrink_factor)
 
 
     for k in range(num_iter):  # Big iteration
-        h2_est = max(0.00001, sp.sum(curr_betas ** 2))
+        h2_est = max(0.00001, np.sum(curr_betas ** 2))
         if tight_sampling:
             # Force an alpha shrink if estimates are way off compared to heritability estimates.  
             #(May improve MCMC convergence.)
-            alpha = min(1.0 - zero_jump_prob, 1.0 / h2_est, (h2 + 1.0 / sp.sqrt(ldpred_n)) / h2_est)
+            alpha = min(1.0 - zero_jump_prob, 1.0 / h2_est, (h2 + 1.0 / np.sqrt(ldpred_n)) / h2_est)
         else:
             alpha = 1.0 - zero_jump_prob
 
-        rand_ps = sp.random.random(m)
+        rand_ps = np.random.random(m)
         
         rand_norms = stats.norm.rvs(0.0, 1, size=m)*const_dict['rv_scalars']
 
@@ -148,19 +148,19 @@ def ldpred_gibbs(beta_hats, genotypes=None, start_betas=None, h2=None, n=None, n
             
             # Calculate the local posterior mean, used when sampling.
             local_betas[focal_i] = 0.0
-            res_beta_hat_i = beta_hats[snp_i] - sp.dot(D_i , local_betas)
+            res_beta_hat_i = beta_hats[snp_i] - np.dot(D_i , local_betas)
             b2 = res_beta_hat_i ** 2
 
 
-            d_const_b2_exp = cd['d_const'] * sp.exp(-b2 * cd['n'] / 2.0)
-            if sp.isreal(d_const_b2_exp):
-                numerator = cd['c_const'] * sp.exp(-b2 / (2.0 * cd['hdmpn']))
-                if sp.isreal(numerator):
+            d_const_b2_exp = cd['d_const'] * np.exp(-b2 * cd['n'] / 2.0)
+            if np.isreal(d_const_b2_exp):
+                numerator = cd['c_const'] * np.exp(-b2 / (2.0 * cd['hdmpn']))
+                if np.isreal(numerator):
                     if numerator == 0.0:
                         postp = 0.0
                     else:
                         postp = numerator / (numerator + d_const_b2_exp)
-                        assert sp.isreal(postp), 'The posterior mean is not a real number?  Possibly due to problems with summary stats, LD estimates, or parameter settings.' 
+                        assert np.isreal(postp), 'The posterior mean is not a real number?  Possibly due to problems with summary stats, LD estimates, or parameter settings.' 
                 else:
                     postp = 0.0
             else:
@@ -210,7 +210,7 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
     if 'y' in df:
         y = df['y'][...]  # Phenotype
         num_individs = len(y)
-        risk_scores_pval_derived = sp.zeros(num_individs)
+        risk_scores_pval_derived = np.zeros(num_individs)
         has_phenotypes = True
 
 
@@ -299,7 +299,7 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
                 snp_lrld = None
                 if not incl_long_range_ld:
                     snp_lrld = util.get_snp_lrld_status(chrom_i, positions, lrld_dict)      
-                    num_snps_in_lrld +=sp.sum(snp_lrld)
+                    num_snps_in_lrld +=np.sum(snp_lrld)
                     
                 ld_boundaries = None
                 if 'chrom_ld_boundaries' in ld_dict:
@@ -314,7 +314,7 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
                 
                 updated_betas = res_dict['betas']
                 updated_inf_betas = res_dict['inf_betas']
-                sum_sqr_effects = sp.sum(updated_betas ** 2)
+                sum_sqr_effects = np.sum(updated_betas ** 2)
                 if sum_sqr_effects > herit_dict['gw_h2_ld_score_est']:
                     print('Sum of squared updated effects estimates seems too large: %0.4f'% sum_sqr_effects)
                     print('This suggests that the Gibbs sampler did not convergence.')
@@ -337,9 +337,9 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
                             raw_snps = g['raw_snps_val'][...]
                         else:
                             raw_snps = g['raw_snps_ref'][...]
-                        prs = sp.dot(updated_betas, raw_snps)
+                        prs = np.dot(updated_betas, raw_snps)
                         risk_scores_pval_derived += prs
-                        corr = sp.corrcoef(y, prs)[0, 1]
+                        corr = np.corrcoef(y, prs)[0, 1]
                         r2 = corr ** 2
                         print('The R2 prediction accuracy of PRS using %s was: %0.4f' % (chrom_str, r2))
 
@@ -355,7 +355,7 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
             results_dict[p_str]['risk_scores_pd'] = risk_scores_pval_derived
             print('Prediction accuracy was assessed using %d individuals.' % (num_indivs))
     
-            corr = sp.corrcoef(y, risk_scores_pval_derived)[0, 1]
+            corr = np.corrcoef(y, risk_scores_pval_derived)[0, 1]
             r2 = corr ** 2
             results_dict[p_str]['r2_pd'] = r2
             print('The  R2 prediction accuracy (observed scale) for the whole genome was: %0.4f (%0.6f)' % (r2, ((1 - r2) ** 2) / num_indivs))
@@ -366,9 +366,9 @@ def ldpred_genomewide(data_file=None, ld_radius=None, ld_dict=None, out_file_pre
             print('AUC for the whole genome was: %0.4f' % auc)
     
             # Now calibration                               
-            denominator = sp.dot(risk_scores_pval_derived.T, risk_scores_pval_derived)
-            y_norm = (y - sp.mean(y)) / sp.std(y)
-            numerator = sp.dot(risk_scores_pval_derived.T, y_norm)
+            denominator = np.dot(risk_scores_pval_derived.T, risk_scores_pval_derived)
+            y_norm = (y - np.mean(y)) / np.std(y)
+            numerator = np.dot(risk_scores_pval_derived.T, y_norm)
             regression_slope = (numerator / denominator)  # [0][0]
             print('The slope for predictions with P-value derived  effects is: %0.4f' % regression_slope)
             results_dict[p_str]['slope_pd'] = regression_slope

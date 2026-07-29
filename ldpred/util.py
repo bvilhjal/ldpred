@@ -2,7 +2,7 @@
 Various general utility functions.
 
 """
-import scipy as sp
+import numpy as np
 from scipy import stats
 import pickle
 import gzip
@@ -64,8 +64,8 @@ def calc_auc(y_true, y_hat, show_plot=False):
     """
     Calculate the Area Under the Curve (AUC) for a predicted and observed case-control phenotype.
     """
-    y_true = sp.copy(y_true)
-    if len(sp.unique(y_true)) == 2:
+    y_true = np.copy(y_true)
+    if len(np.unique(y_true)) == 2:
         y_min = y_true.min()
         y_max = y_true.max()
         if y_min != 0 or y_max != 1:
@@ -75,19 +75,19 @@ def calc_auc(y_true, y_hat, show_plot=False):
         
     else:
         print('Warning: Calculating AUC for a quantitative phenotype.')
-        y_mean = sp.mean(y_true)
+        y_mean = np.mean(y_true)
         zero_filter = y_true <= y_mean
         one_filter = y_true > y_mean
         y_true[zero_filter] = 0
         y_true[one_filter] = 1
 
-    num_cases = sp.sum(y_true == 1)
-    num_controls = sp.sum(y_true == 0)
+    num_cases = np.sum(y_true == 1)
+    num_controls = np.sum(y_true == 0)
     assert num_cases + num_controls == len(y_true), 'The phenotype is not defined as expected. It is not binary (0 1 case-control status).'
     print('%d cases, %d controls' % (num_cases, num_controls)) 
     
     num_indivs = float(len(y_true))
-    tot_num_pos = float(sp.sum(y_true))
+    tot_num_pos = float(np.sum(y_true))
     tot_num_neg = float(num_indivs - tot_num_pos)
         
     l = y_hat.tolist()
@@ -100,7 +100,7 @@ def calc_auc(y_true, y_hat, show_plot=False):
         thres_filter = y_hat >= thres
         y_t = y_true[thres_filter]
         n = len(y_t)
-        tp = sp.sum(y_t)
+        tp = np.sum(y_t)
         fp = n - tp
         
         fpr = fp / tot_num_neg
@@ -181,7 +181,7 @@ def is_in_lrld(chrom, pos, lrld_dict):
 
 
 def get_snp_lrld_status(chromosome, positions, lrld_dict):
-    snp_lrld = sp.zeros(len(positions))
+    snp_lrld = np.zeros(len(positions))
     for snp_i in range(len(positions)):
         snp_lrld[snp_i] = is_in_lrld(chromosome, positions[snp_i], lrld_dict)
     return snp_lrld

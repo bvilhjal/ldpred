@@ -3,7 +3,7 @@ Various useful LD functions.
 
 
 """
-import scipy as sp    
+import numpy as np
 import sys, os, gzip
 import time
 import h5py
@@ -22,33 +22,33 @@ from scipy import linalg
 
         
 def shrink_r2_mat(D_i,n):
-    D_i = sp.clip(D_i, -1, 1)
-    D_i[(1.0/(n-1))>sp.absolute(D_i)]=0
+    D_i = np.clip(D_i, -1, 1)
+    D_i[(1.0/(n-1))>np.absolute(D_i)]=0
     return D_i
 
 def shrink_r2_mat_2(D_i,n):
-    D_i = sp.clip(D_i, 0, 1)
+    D_i = np.clip(D_i, 0, 1)
     for j in range(len(D_i)):
         D_i[j]=shrink_r2(D_i[j],n)
     return D_i
 
 def shrink_r2(r,n):
-    abs_r = sp.absolute(r)
+    abs_r = np.absolute(r)
     if abs_r<0.0001:
         return 0
     else:
-        return r * sp.sqrt(max(0,(1.0+1.0/float(n-2))*(r**2-1.0/(1.0+float(n-2)))))/abs_r 
+        return r * np.sqrt(max(0,(1.0+1.0/float(n-2))*(r**2-1.0/(1.0+float(n-2)))))/abs_r 
 
 
 
 def _calculate_D(snps, snp_i, snp, start_i, stop_i, ld_dict, ld_scores):
     m, n = snps.shape
     X = snps[start_i: stop_i]
-    D_i = sp.dot(snp, X.T) / n
+    D_i = np.dot(snp, X.T) / n
     D_i_shrunk = shrink_r2_mat(D_i,n)
     r2s = D_i ** 2
     ld_dict[snp_i] = D_i_shrunk
-    lds_i = sp.sum(r2s - (1 - r2s) / (n - 2), dtype='float32')
+    lds_i = np.sum(r2s - (1 - r2s) / (n - 2), dtype='float32')
     ld_scores[snp_i] = lds_i
 
 
@@ -59,7 +59,7 @@ def get_LDpred_ld_tables(snps, ld_radius=100, ld_window_size=0, h2=None, n_train
     
     ld_dict = {}
     m, n = snps.shape
-    ld_scores = sp.ones(m)
+    ld_scores = np.ones(m)
     ret_dict = {}
     if gm_ld_radius is None:
         for snp_i, snp in enumerate(snps):
@@ -93,7 +93,7 @@ def get_LDpred_ld_tables(snps, ld_radius=100, ld_window_size=0, h2=None, n_train
             assert curr_ws > 0, 'Some issues with the genetic map'
             _calculate_D(snps, snp_i, snp, start_i, stop_i, ld_dict, ld_scores)
         
-        avg_window_size = sp.mean(window_sizes)
+        avg_window_size = np.mean(window_sizes)
         print('Average # of SNPs in LD window was %0.2f' % avg_window_size)
         if ld_window_size == 0:
             ld_window_size = avg_window_size * 2
@@ -109,11 +109,11 @@ def get_LDpred_ld_tables(snps, ld_radius=100, ld_window_size=0, h2=None, n_train
             stop_i = min(m, wi + ld_window_size)
             curr_window_size = stop_i - start_i
             X = snps[start_i: stop_i]
-            D = sp.dot(X, X.T) / n
+            D = np.dot(X, X.T) / n
             D = shrink_r2_mat(D,n)
             ref_ld_matrices.append(D)
             if h2 != None and n_training != None:
-                A = ((m / h2) * sp.eye(curr_window_size) + (n_training / (1)) * D)
+                A = ((m / h2) * np.eye(curr_window_size) + (n_training / (1)) * D)
                 A_inv = linalg.pinv(A)
                 inf_shrink_matrices.append(A_inv)
         ret_dict['ref_ld_matrices'] = ref_ld_matrices
@@ -131,7 +131,7 @@ def calc_ld_table(snps, max_ld_dist=2000, min_r2=0.2, verbose=True, normalize=Fa
     # Normalize SNPs (perhaps not necessary, but cheap)
     if normalize:
         snps = snps.T
-        snps = (snps - sp.mean(snps, 0)) / sp.std(snps, 0)
+        snps = (snps - np.mean(snps, 0)) / np.std(snps, 0)
         snps = snps.T
 
     
@@ -151,8 +151,8 @@ def calc_ld_table(snps, max_ld_dist=2000, min_r2=0.2, verbose=True, normalize=Fa
     for i in range(0, num_snps - 1):
         start_i = i + 1
         end_i = min(start_i + max_ld_dist, num_snps)
-        ld_vec = sp.dot(snps[i], sp.transpose(snps[start_i:end_i])) / float(num_indivs)
-        ld_vec = sp.array(ld_vec).flatten()
+        ld_vec = np.dot(snps[i], np.transpose(snps[start_i:end_i])) / float(num_indivs)
+        ld_vec = np.array(ld_vec).flatten()
         for k in range(start_i, end_i):
             ld_vec_i = k - start_i
             if ld_vec[ld_vec_i] ** 2 > min_r2:
@@ -196,7 +196,7 @@ def extract_snps_from_cord_data_chrom(g):
     snp_stds.shape = (n_snps, 1)
 
     # Normalize SNPs..
-    snps = sp.array((raw_snps - snp_means) / snp_stds, dtype='float32')
+    snps = np.array((raw_snps - snp_means) / snp_stds, dtype='float32')
     assert snps.shape == raw_snps.shape, 'Problems normalizing SNPs (array shape mismatch).'
     return snps, n_raw_snps, n_snps
 
@@ -230,7 +230,7 @@ def smart_ld_pruning(scores, ld_table, max_ld=0.5, verbose=False, reverse=False)
                 if ld_table[i][j] > max_ld and j in remaining_indices:
                     remaining_indices.remove(j)
     indices_to_keep.sort()
-    pruning_vector = sp.zeros(len(scores), dtype='bool8')
+    pruning_vector = np.zeros(len(scores), dtype=bool)
     pruning_vector[indices_to_keep] = 1
     t1 = time.time()
     t = (t1 - t0)
@@ -294,8 +294,8 @@ def get_ld_dict(cord_data_file, local_ld_file_prefix, ld_radius,
             chrom_ld_dict[chrom_str] = ret_dict['ld_dict']
             chrom_ref_ld_mats[chrom_str] = ret_dict['ref_ld_matrices']
             ld_scores = ret_dict['ld_scores']
-            chrom_ld_scores_dict[chrom_str] = {'ld_scores':ld_scores, 'avg_ld_score':sp.mean(ld_scores)}
-            ld_score_sum += sp.sum(ld_scores)
+            chrom_ld_scores_dict[chrom_str] = {'ld_scores':ld_scores, 'avg_ld_score':np.mean(ld_scores)}
+            ld_score_sum += np.sum(ld_scores)
         avg_gw_ld_score = ld_score_sum / float(num_snps)
         ld_scores_dict = {'avg_gw_ld_score': avg_gw_ld_score, 'chrom_dict':chrom_ld_scores_dict, 
                           'num_snps':num_snps, 'num_raw_snps':num_raw_snps}    
@@ -343,9 +343,9 @@ def get_chromosome_herits(cord_data_g, ld_scores_dict, n, h2=None, max_h2=1, use
             betas = g['betas'][...]
             n_snps = len(betas)
             tot_num_snps += n_snps
-            sum_beta2s = sp.sum(betas ** 2)
+            sum_beta2s = np.sum(betas ** 2)
             tot_sum_beta2s += sum_beta2s
-            chr_chi_square_lambda = sp.mean(n * sum_beta2s / float(n_snps))
+            chr_chi_square_lambda = np.mean(n * sum_beta2s / float(n_snps))
             chr_avg_ld_score = ld_scores_dict['chrom_dict'][chrom_str]['avg_ld_score']
             chr_h2_ld_score_est = max(0.0001, (max(1, chr_chi_square_lambda) - 1) / (n * (chr_avg_ld_score / n_snps)))
             herit_dict[chrom_str]= {'n_snps':n_snps,'h2':chr_h2_ld_score_est}
@@ -356,7 +356,7 @@ def get_chromosome_herits(cord_data_g, ld_scores_dict, n, h2=None, max_h2=1, use
     print('%d SNP effects were found' % tot_num_snps)
 
     L = ld_scores_dict['avg_gw_ld_score']
-    chi_square_lambda = sp.mean(n * tot_sum_beta2s / float(tot_num_snps))
+    chi_square_lambda = np.mean(n * tot_sum_beta2s / float(tot_num_snps))
     gw_h2_ld_score_est = max(0.0001, (max(1, chi_square_lambda) - 1) / (n * (L / tot_num_snps)))
     if debug:
         print('Genome-wide lambda inflation: %0.4f'% chi_square_lambda)

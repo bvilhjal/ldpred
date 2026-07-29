@@ -7,7 +7,7 @@ Implementation of Joel Mefford's BLUP-based shrink (Mefford, PhD thesis 2018).
 import sys
 import time
 
-import scipy as sp
+import numpy as np
 from scipy import stats
 import h5py
 
@@ -23,17 +23,17 @@ from ldpred import coord_genotypes
 def get_LDpred_sample_size(n,ns,verbose):
     if n is None:
         #If coefficient of variation is very small, then use one N nevertheless.
-        n_cv = sp.std(ns)/sp.mean(ns)
+        n_cv = np.std(ns)/np.mean(ns)
         if n_cv<0.01:
-            ldpred_n = sp.mean(ns)
+            ldpred_n = np.mean(ns)
             if verbose:
                 print ("Sample size does not vary much (CV=%0.4f).  Using a fixed sample size of %0.2f"%(n_cv,ldpred_n))
         else:
             if verbose:
                 print ("Using varying sample sizes")
                 print ("Sample size ranges between %d and %d"%(min(ns),max(ns)))
-                print ("Average sample size is %0.2f "%(sp.mean(ns)))
-        ldpred_inf_n = sp.mean(ns)
+                print ("Average sample size is %0.2f "%(np.mean(ns)))
+        ldpred_inf_n = np.mean(ns)
         ldpred_n = None
     else:
         ldpred_n = float(n)
@@ -56,8 +56,8 @@ def ldpred_fast(betas_blup, h2=None, Ns=None, p_c=None):
     C2 = h2/h2mn
     V_nc = (C2/Ns)*(1-C2*h2)
     V_c = C2*(h2/(M*p_c))+V_nc
-    P_beta_ncaus = stats.norm.pdf(betas_blup,scale=sp.sqrt(V_nc))
-    P_beta_caus = stats.norm.pdf(betas_blup,scale=sp.sqrt(V_c))
+    P_beta_ncaus = stats.norm.pdf(betas_blup,scale=np.sqrt(V_nc))
+    P_beta_caus = stats.norm.pdf(betas_blup,scale=np.sqrt(V_c))
     P_caus_beta =  P_beta_caus *p_c/(P_beta_caus *p_c + P_beta_ncaus *(1-p_c))
     beta_jms = betas_blup * C1 * P_caus_beta 
     return beta_jms
